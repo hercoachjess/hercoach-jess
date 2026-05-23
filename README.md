@@ -1,86 +1,28 @@
 # HerCoach Jess — Private Coaching Platform
 
-A private client management platform for HerCoach Jess, an online nutrition and fitness coaching business. Built with Next.js 16, Supabase, and the Anthropic Claude API.
+Private client-management platform for HerCoach Jess, run by Jess (HCPC-registered Registered Dietitian, BDA member, England & Wales). Built with Next.js 16, Supabase, and the Anthropic Claude API.
+
+## 🟢 Live
+
+- **Production URL**: https://meal-generator-murex.vercel.app (custom domain `app.hercoach.co.uk` may be configured — check Vercel Domains)
+- **Vercel project**: [hercoach-jess](https://vercel.com/hercoachjess/hercoach-jess)
+- **GitHub repo**: [hercoachjess/hercoach-jess](https://github.com/hercoachjess/hercoach-jess)
+- **Supabase project**: [hercoachjess's Project](https://supabase.com/dashboard/project/ownmulrkykbbcnytuozi) (ref: `ownmulrkykbbcnytuozi`, EU West 1)
+- **Coach login**: `hercoachjess@gmail.com`
+- Auto-deploys on every push to `main`
+
+> Backup of the original meal-generator code is preserved on the `meal-generator-archive` branch — it can be checked out at any time.
+
+---
 
 ## Tech Stack
 
-- **Next.js 16** (App Router) — frontend & backend API routes
-- **Supabase** — Postgres database + Auth + Storage
+- **Next.js 16** (App Router) — frontend & API routes
+- **Supabase** — Postgres + Auth + Storage
 - **Tailwind CSS v4** — styling
-- **@react-pdf/renderer** — PDF generation
-- **Anthropic Claude API** (`claude-sonnet-4-5`) — AI drafting
-- **Recharts** — data visualisation
-
----
-
-## Environment Variables
-
-Copy `.env.local.example` to `.env.local` and fill in:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-ANTHROPIC_API_KEY=sk-ant-YOUR_KEY
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-Get Supabase keys from: **Supabase Dashboard → Project Settings → API**
-Get Anthropic key from: **console.anthropic.com**
-
----
-
-## Database Setup
-
-### 1. Run the migration
-
-Open the **Supabase SQL Editor** (your project → SQL Editor → New query) and paste the full contents of:
-
-```
-supabase/migrations/001_initial_schema.sql
-```
-
-Click **Run**. This creates all tables, indexes, and RLS policies, and inserts three demo clients.
-
-### 2. Create the plan-pdfs storage bucket
-
-In **Supabase Dashboard → Storage → New bucket**:
-- Name: `plan-pdfs`
-- Public: **off** (private — links are generated via the API)
-
-Or uncomment and run the two lines at the bottom of the migration file.
-
----
-
-## Create the Coach Login (Jess's account)
-
-In **Supabase Dashboard → Authentication → Users → Invite user** (or Add user):
-- Enter Jess's email and a strong password
-- This is the ONLY account. The dashboard will only ever be accessible to this user.
-
----
-
-## Run Locally
-
-```bash
-cd hercoach-jess
-npm install
-cp .env.local.example .env.local
-# Fill in .env.local with your keys
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) — it redirects to `/dashboard`, which redirects to `/login` until you sign in.
-
----
-
-## Deploy to Vercel
-
-1. Push the `hercoach-jess` folder to a GitHub/GitLab repo
-2. Import into [Vercel](https://vercel.com/new)
-3. Add all environment variables from `.env.local` in the Vercel project settings
-4. Change `NEXT_PUBLIC_APP_URL` to your Vercel production URL
-5. Deploy
+- **@react-pdf/renderer** — branded plan PDFs
+- **Anthropic Claude API** (`claude-sonnet-4-5`) — AI drafts
+- **Recharts** — progress charts
 
 ---
 
@@ -88,78 +30,140 @@ Open [http://localhost:3000](http://localhost:3000) — it redirects to `/dashbo
 
 | Route | Access | Description |
 |-------|--------|-------------|
-| `/onboarding` | Public | Multi-step client onboarding form |
+| `/onboarding` | Public | 7-step branded client onboarding form |
 | `/checkin` | Public | Weekly check-in form |
-| `/login` | Public | Coach sign-in |
+| `/login` | Public | Coach sign-in (Supabase Auth) |
 | `/dashboard` | Coach only | Client list + stats |
-| `/dashboard/client/[id]` | Coach only | Full client file (9 tabs) |
+| `/dashboard/client/[id]` | Coach only | Full client file with 9 tabs |
+
+Clients never log in — Jess shares the two form links with them. The dashboard is for the coach only.
 
 ---
 
-## Client Experience
+## Local Development
 
-Clients **never log in**. Jess shares two links:
-1. **Onboarding**: `yoursite.com/onboarding` — completed once
-2. **Check-in**: `yoursite.com/checkin` — submitted weekly
+### 1. Clone
 
-Both forms are unauthenticated, write-only.
+```bash
+git clone https://github.com/hercoachjess/hercoach-jess.git
+cd hercoach-jess
+npm install
+```
+
+### 2. Create `.env.local`
+
+Copy `.env.local.example` and fill in:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://ownmulrkykbbcnytuozi.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_vGvuhD5H2LLOUKwnP2FpcQ_2PEwEEkN
+SUPABASE_SERVICE_ROLE_KEY=<copy from Supabase Dashboard → API Keys>
+ANTHROPIC_API_KEY=<copy from console.anthropic.com or Vercel env vars>
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 3. Run
+
+```bash
+npm run dev
+```
+
+Open http://localhost:3000 — it redirects to `/dashboard` → bounces to `/login` until you sign in.
 
 ---
 
-## Dashboard — 9 Tabs
+## Deployment
+
+Pushing to `main` auto-deploys to Vercel. No manual deploy step needed.
+
+```bash
+git push origin main
+```
+
+To configure env vars in production, use the [Vercel project settings](https://vercel.com/hercoachjess/hercoach-jess/settings/environment-variables).
+
+---
+
+## Database
+
+Schema lives in `supabase/migrations/001_initial_schema.sql` and has already been applied to the production Supabase project. If you ever need to reset / recreate, run that SQL in the Supabase SQL Editor.
+
+Tables:
+- `clients` — client roster + macros + check-in day
+- `onboarding_submissions` — full payload from `/onboarding`
+- `checkin_submissions` — weekly check-ins
+- `meal_plans` — current meal plan per client
+- `training_plans` — current training plan per client
+- `plan_history` — versioned snapshots + PDF URLs
+- `payments` — payment tracking
+
+Storage:
+- `plan-pdfs` bucket — generated plan PDFs (public bucket, paths are UUID + timestamp so functionally unguessable)
+
+RLS:
+- Anon role: INSERT-only into the two submission tables
+- Authenticated role (Jess): full access to all client data
+
+---
+
+## Dashboard Tabs
 
 | Tab | What it does |
-|-----|-------------|
-| Overview | Weight stats, metrics, inline-editable targets |
-| Check-ins | Expandable list of all weekly check-ins |
-| Compare & Feedback | AI-drafted comparison summary (editable before sending) |
-| Progress Graphs | Weight / training / wellbeing charts with PNG export |
-| Meal Plan | AI-drafted or manually edited meal plan |
-| Training Plan | AI-drafted or manually edited training programme |
-| Plan History | Version-controlled snapshots with branded PDFs |
-| Payments | Log and track payments |
-| Onboarding File | Read-only view of original onboarding answers |
+|-----|--------------|
+| **Overview** | Stats, BMR/HR zone calcs, inline-editable targets |
+| **Check-ins** | Expandable list of all weekly check-ins |
+| **Compare & Feedback** | AI-drafted comparison summary — editable, approve before sending |
+| **Progress Graphs** | Weight / training / wellbeing charts with PNG export |
+| **Meal Plan** | AI-drafted or manually edited meal plan |
+| **Training Plan** | AI-drafted or manually edited training programme |
+| **Plan History** | Version-controlled snapshots + branded PDFs (with-numbers / no-numbers variants) |
+| **Payments** | Log and track payments |
+| **Onboarding File** | Read-only view of original onboarding answers |
 
 ---
 
-## AI Features
+## AI
 
-All AI generation is server-side via `/api/ai/*` routes. The Anthropic API key is **never** exposed to the browser.
-
-Every AI output is a **draft** — Jess reviews and edits before anything is saved or sent to a client.
+- All AI generation is **server-side only** via `/api/ai/*` routes — the Anthropic API key never reaches the browser
+- Every AI output is a **draft** that Jess reviews and edits before saving / sending
+- Prompts are primed with: Jess is an HCPC-registered RD, evidence-based, UK foods, metric units, warm-professional voice
 
 ---
 
 ## PDF Generation
 
-When Jess saves a plan to history, a combined meal + training PDF is generated server-side and uploaded to Supabase Storage. The PDF is branded with the HerCoach Jess identity (dark theme, serif/sans typography, macro targets, exercise tables).
+`lib/pdf/ClientPlanDocument.tsx` produces branded plan PDFs via `@react-pdf/renderer` — matches the visual design of the original ReportLab scripts:
 
-Provide Jess with the download link or send directly from the plan history tab.
+- Black header bar with `hercoach · Jess` italic serif + spaced-caps tagline + dark RD badge
+- Section 01 Training: warm-up, weekly structure, progressive overload, day-by-day exercise tables, cool-down
+- Section 02 Yoga: dark "how to" box + yoga sequence table
+- Section 03 Cardio: 2-col + HR zones table with Zone 2 highlighted
+- Section 04 Nutrition: meal tables, snack strip, hydration/protein 2-col
+- Section 05 General Guidance: sleep/stress, training day fuel, "a note from Jess"
+- Closing panel with RD credentials + disclaimers
+- Footer with confidentiality notice + page number
+
+Two variants supported, picked at save time:
+- **With numbers** — macro chips show kcal/protein, meals show `~kcal · Xg protein`
+- **Without numbers** — chips show "Balanced", meals show foods + grams only
 
 ---
 
 ## Security & Compliance
 
-- RLS enforced: public/anon can only INSERT into `onboarding_submissions` and `checkin_submissions`
-- Authenticated coach can SELECT/UPDATE all rows
-- `SUPABASE_SERVICE_ROLE_KEY` is server-side only — never sent to the browser
-- `ANTHROPIC_API_KEY` is server-side only — never sent to the browser
-- Both public forms include a UK GDPR privacy notice footer
-- Health data is stored in the EU Supabase region (verify your project region matches)
+- RLS enforced — anon can only INSERT into the two submission tables
+- `SUPABASE_SERVICE_ROLE_KEY` is server-side only; never sent to the browser
+- `ANTHROPIC_API_KEY` is server-side only; never sent to the browser
+- Both public forms include a UK GDPR privacy notice
+- Health data resides in EU Supabase region (EU West 1)
+- Plan history PDFs in private-ish public bucket with unguessable paths
 
 ---
 
-## Customising
+## Source HTML / PDF designs
 
-### Replacing form designs
-When Jess provides the branded HTML forms, update:
-- `app/onboarding/OnboardingForm.tsx`
-- `app/checkin/CheckinForm.tsx`
-
-The field names and API submission logic stay the same — only the visual layout changes.
-
-### Replacing PDF design
-When Jess provides the Python PDF script reference, update:
-- `lib/pdf/ClientPlanDocument.tsx`
-
-The prop interface (`client`, `mealPlan`, `trainingPlan`, `version`, `includeNumbers`) stays the same.
+The authoritative visual designs live in the user's downloads folder:
+- `hcj-onboarding-rd-final.html` — onboarding visual spec
+- `hcj-checkin-final.html` — check-in visual spec
+- `build_final_plan.py` — PDF design (with-numbers variant)
+- `build_no_numbers.py` — PDF design (no-numbers variant)
