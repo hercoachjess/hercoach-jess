@@ -22,7 +22,7 @@ const TOOLTIP_STYLE = {
     color: '#f0ece4',
     fontSize: 12,
   },
-  labelStyle: { color: '#6b6764', marginBottom: 2 },
+  labelStyle: { color: '#b8b4ac', marginBottom: 2 },
 }
 
 function exportChart(ref: React.RefObject<HTMLDivElement | null>, name: string) {
@@ -73,7 +73,7 @@ export default function ProgressTab({ checkins }: Props) {
   }))
 
   if (checkins.length === 0) {
-    return <div className="text-center py-20 text-[#6b6764] text-sm">No check-in data to chart yet.</div>
+    return <div className="text-center py-20 text-[#b8b4ac] text-sm">No check-in data to chart yet.</div>
   }
 
   return (
@@ -82,18 +82,18 @@ export default function ProgressTab({ checkins }: Props) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#6b6764] tracking-widest uppercase">Weight journey</span>
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Weight journey</span>
               <Button size="sm" variant="ghost" onClick={() => exportChart(weightRef, 'weight-chart')}>Export as image</Button>
             </div>
           </CardHeader>
           <CardBody ref={weightRef}>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={weightData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="0" />
-                <XAxis dataKey="week" tick={{ fill: '#6b6764', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis domain={['auto', 'auto']} tick={{ fill: '#6b6764', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="0" />
+                <XAxis dataKey="week" tick={{ fill: '#b8b4ac', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis domain={['auto', 'auto']} tick={{ fill: '#b8b4ac', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} formatter={(v) => [`${v} kg`, 'Weight']} />
-                <Line type="monotone" dataKey="weight" stroke="#c8c4bc" strokeWidth={1.5} dot={{ fill: '#c8c4bc', strokeWidth: 0, r: 3 }} activeDot={{ r: 5, fill: '#f0ece4' }} />
+                <Line type="monotone" dataKey="weight" stroke="#e0d8cc" strokeWidth={1.5} dot={{ fill: '#e0d8cc', strokeWidth: 0, r: 3 }} activeDot={{ r: 5, fill: '#f0ece4' }} />
               </LineChart>
             </ResponsiveContainer>
           </CardBody>
@@ -103,16 +103,16 @@ export default function ProgressTab({ checkins }: Props) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#6b6764] tracking-widest uppercase">Training sessions completed</span>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Training sessions completed</span>
             <Button size="sm" variant="ghost" onClick={() => exportChart(trainingRef, 'training-chart')}>Export as image</Button>
           </div>
         </CardHeader>
         <CardBody ref={trainingRef}>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={trainingData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="0" />
-              <XAxis dataKey="week" tick={{ fill: '#6b6764', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#6b6764', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="0" />
+              <XAxis dataKey="week" tick={{ fill: '#b8b4ac', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#b8b4ac', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip {...TOOLTIP_STYLE} />
               <Bar dataKey="completed" fill="rgba(240,236,228,0.25)" radius={[2,2,0,0]} name="Sessions completed" />
             </BarChart>
@@ -123,30 +123,30 @@ export default function ProgressTab({ checkins }: Props) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#6b6764] tracking-widest uppercase">Sleep / stress / mood trends</span>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Sleep / stress / mood trends</span>
             <Button size="sm" variant="ghost" onClick={() => exportChart(wellbeingRef, 'wellbeing-chart')}>Export as image</Button>
           </div>
         </CardHeader>
         <CardBody ref={wellbeingRef}>
           <div className="flex gap-4 mb-3">
             {[
-              { color: '#c8c4bc', label: 'Sleep' },
+              { color: '#e0d8cc', label: 'Sleep' },
               { color: '#c89a6a', label: 'Stress' },
               { color: '#7da87d', label: 'Mood' },
             ].map(({ color, label }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-3 h-0.5 rounded-full inline-block" style={{ background: color }} />
-                <span className="text-xs text-[#6b6764]">{label}</span>
+                <span className="text-xs text-[#b8b4ac]">{label}</span>
               </div>
             ))}
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={wellbeingData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="0" />
-              <XAxis dataKey="week" tick={{ fill: '#6b6764', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 10]} tick={{ fill: '#6b6764', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="0" />
+              <XAxis dataKey="week" tick={{ fill: '#b8b4ac', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 10]} tick={{ fill: '#b8b4ac', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip {...TOOLTIP_STYLE} />
-              <Line type="monotone" dataKey="sleep" stroke="#c8c4bc" strokeWidth={1.5} dot={false} name="Sleep" connectNulls />
+              <Line type="monotone" dataKey="sleep" stroke="#e0d8cc" strokeWidth={1.5} dot={false} name="Sleep" connectNulls />
               <Line type="monotone" dataKey="stress" stroke="#c89a6a" strokeWidth={1.5} dot={false} name="Stress" connectNulls />
               <Line type="monotone" dataKey="mood" stroke="#7da87d" strokeWidth={1.5} dot={false} name="Mood" connectNulls />
             </LineChart>

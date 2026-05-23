@@ -42,7 +42,7 @@ export default function LoginPage() {
         </div>
 
         <div
-          className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.07)] rounded-sm p-8"
+          className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-sm p-8"
         >
           <h1
             className="text-lg font-normal mb-6"
@@ -53,7 +53,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-[#6b6764] tracking-widest uppercase">Email</label>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase">Email</label>
               <input
                 type="email"
                 value={email}
@@ -66,7 +66,7 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-[#6b6764] tracking-widest uppercase">Password</label>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase">Password</label>
               <input
                 type="password"
                 value={password}

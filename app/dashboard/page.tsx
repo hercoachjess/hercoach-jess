@@ -4,6 +4,7 @@ import Badge from '@/components/ui/Badge'
 import { getInitials, resolvePaymentStatus, getWeeksSince } from '@/lib/utils'
 import type { Client, CheckinSubmission, Payment } from '@/types'
 import AddClientButton from '@/components/dashboard/AddClientButton'
+import CopyLink from '@/components/ui/CopyLink'
 
 function getHour() {
   return new Date().getHours()
@@ -79,7 +80,7 @@ export default async function DashboardPage() {
       {/* Greeting */}
       <div className="mb-8">
         <h1 className="logo-text text-4xl mb-1">{greeting()}, Jess</h1>
-        <p className="text-sm text-[#6b6764]">Here&apos;s your client overview.</p>
+        <p className="text-sm text-[#b8b4ac]">Here&apos;s your client overview.</p>
       </div>
 
       {/* Stats strip */}
@@ -92,9 +93,9 @@ export default async function DashboardPage() {
         ].map(({ label, value, warn }) => (
           <div
             key={label}
-            className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.07)] rounded-sm px-5 py-4"
+            className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-sm px-5 py-4"
           >
-            <p className="text-xs text-[#6b6764] tracking-widest uppercase mb-2">{label}</p>
+            <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">{label}</p>
             <p
               className="text-3xl font-light"
               style={{ color: warn ? '#c89a6a' : '#f0ece4' }}
@@ -105,14 +106,31 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* Share links — public form URLs */}
+      <div className="mb-10">
+        <h2 className="text-sm text-[#e0d8cc] tracking-widest uppercase mb-3">Share with clients</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <CopyLink
+            label="Onboarding link"
+            url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/onboarding`}
+            hint="Send to new clients. They complete the 7-step form — a client file appears on your dashboard automatically."
+          />
+          <CopyLink
+            label="Generic check-in link"
+            url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/checkin`}
+            hint="The same link for every client. They identify themselves by email when submitting. For pre-filled links per client, see their individual file."
+          />
+        </div>
+      </div>
+
       {/* Client list */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm text-[#c8c4bc] tracking-widest uppercase">Clients</h2>
+        <h2 className="text-sm text-[#e0d8cc] tracking-widest uppercase">Clients</h2>
       </div>
 
       <div className="flex flex-col gap-2 mb-6">
         {clientList.length === 0 && (
-          <div className="text-center py-16 text-[#6b6764] text-sm">
+          <div className="text-center py-16 text-[#b8b4ac] text-sm">
             No clients yet. Add your first client below.
           </div>
         )}
@@ -125,12 +143,12 @@ export default async function DashboardPage() {
             <Link
               key={client.id}
               href={`/dashboard/client/${client.id}`}
-              className="flex items-center gap-4 bg-[#0e0e0e] border border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.14)] rounded-sm px-5 py-4 transition-colors group"
+              className="flex items-center gap-4 bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] hover:border-[rgba(255,255,255,0.24)] rounded-sm px-5 py-4 transition-colors group"
             >
               {/* Avatar */}
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.05)', color: '#c8c4bc' }}
+                style={{ background: 'rgba(255,255,255,0.10)', color: '#e0d8cc' }}
               >
                 {getInitials(client.full_name)}
               </div>
@@ -145,7 +163,7 @@ export default async function DashboardPage() {
                     {client.status}
                   </Badge>
                 </div>
-                <p className="text-xs text-[#6b6764] truncate">
+                <p className="text-xs text-[#b8b4ac] truncate">
                   {client.goal || 'No goal set'}
                   {client.checkin_day && ` · Check-in: ${client.checkin_day}s`}
                   {weeksCoached > 0 && ` · Week ${weeksCoached}`}

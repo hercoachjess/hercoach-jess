@@ -67,7 +67,7 @@ export default function ClientFile({
       {/* Back */}
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-xs text-[#6b6764] hover:text-[#c8c4bc] transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-xs text-[#b8b4ac] hover:text-[#e0d8cc] transition-colors mb-6"
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2">
           <path d="M8 2L4 6l4 4" strokeLinecap="round" strokeLinejoin="round" />
@@ -79,7 +79,7 @@ export default function ClientFile({
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="logo-text text-4xl mb-1">{client.full_name}</h1>
-          <p className="text-sm text-[#6b6764]">
+          <p className="text-sm text-[#b8b4ac]">
             {client.goal || 'No goal set'}
             {weeksCoached > 0 && ` · Week ${weeksCoached}`}
           </p>
@@ -95,7 +95,7 @@ export default function ClientFile({
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[rgba(255,255,255,0.07)] mb-6 overflow-x-auto">
+      <div className="border-b border-[rgba(255,255,255,0.24)] mb-6 overflow-x-auto">
         <div className="flex gap-0 min-w-max">
           {TABS.map((tab, i) => {
             const hasAlert =
@@ -107,7 +107,7 @@ export default function ClientFile({
                 className={`relative px-4 py-3 text-xs tracking-wider uppercase transition-colors whitespace-nowrap ${
                   activeTab === i
                     ? 'text-[#f0ece4] border-b-2 border-[#f0ece4]'
-                    : 'text-[#6b6764] hover:text-[#c8c4bc] border-b-2 border-transparent'
+                    : 'text-[#b8b4ac] hover:text-[#e0d8cc] border-b-2 border-transparent'
                 }`}
               >
                 {tab}

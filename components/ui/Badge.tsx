@@ -6,14 +6,14 @@ interface BadgeProps {
 }
 
 const variants: Record<string, string> = {
-  default:   'bg-[rgba(255,255,255,0.06)] text-[#c8c4bc]',
+  default:   'bg-[rgba(255,255,255,0.12)] text-[#e0d8cc]',
   active:    'bg-[rgba(125,168,125,0.12)] text-[#7da87d]',
-  paused:    'bg-[rgba(255,255,255,0.06)] text-[#6b6764]',
-  archived:  'bg-[rgba(255,255,255,0.04)] text-[#4a4744]',
+  paused:    'bg-[rgba(255,255,255,0.12)] text-[#b8b4ac]',
+  archived:  'bg-[rgba(255,255,255,0.08)] text-[#8a8680]',
   paid:      'bg-[rgba(125,168,125,0.12)] text-[#7da87d]',
-  pending:   'bg-[rgba(255,255,255,0.06)] text-[#a8a49c]',
+  pending:   'bg-[rgba(255,255,255,0.12)] text-[#a8a49c]',
   overdue:   'bg-[rgba(200,154,106,0.15)] text-[#c89a6a]',
-  draft:     'bg-[rgba(255,255,255,0.06)] text-[#a8a49c]',
+  draft:     'bg-[rgba(255,255,255,0.12)] text-[#a8a49c]',
   saved:     'bg-[rgba(125,168,125,0.12)] text-[#7da87d]',
 }
 
@@ -28,7 +28,7 @@ export default function Badge({ children, variant = 'default', dot, className = 
           style={{
             backgroundColor: variant === 'overdue' ? '#c89a6a'
               : variant === 'paid' || variant === 'active' || variant === 'saved' ? '#7da87d'
-              : '#6b6764',
+              : '#b8b4ac',
           }}
         />
       )}

@@ -8,7 +8,7 @@ interface Props {
 export default function OnboardingFileTab({ onboarding }: Props) {
   if (!onboarding) {
     return (
-      <div className="text-center py-20 text-[#6b6764] text-sm">
+      <div className="text-center py-20 text-[#b8b4ac] text-sm">
         No onboarding submission on record.
       </div>
     )
@@ -28,7 +28,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
   return (
     <div className="flex flex-col gap-5">
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Basics</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Basics</span></CardHeader>
         <CardBody className="grid grid-cols-2 gap-3">
           <Row label="First name" value={b.first_name || '—'} />
           <Row label="Age" value={b.age || '—'} />
@@ -43,7 +43,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Goals</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Goals</span></CardHeader>
         <CardBody className="flex flex-col gap-3">
           <Row label="Primary goal" value={g.primary_goal || '—'} />
           <Row label="Timeline" value={g.timeline || '—'} />
@@ -53,7 +53,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Lifestyle</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Lifestyle</span></CardHeader>
         <CardBody className="grid grid-cols-2 gap-3">
           <Row label="Activity level" value={l.activity || '—'} />
           <Row label="Training experience" value={l.experience || '—'} />
@@ -65,7 +65,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Food & nutrition</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Food & nutrition</span></CardHeader>
         <CardBody className="flex flex-col gap-3">
           <Row label="Diet type" value={f.diet_type || '—'} />
           <Row label="Meals per day" value={f.meals_per_day || '—'} />
@@ -80,7 +80,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Health — physical</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Health — physical</span></CardHeader>
         <CardBody className="flex flex-col gap-3">
           <Row label="Injuries / limitations" value={h.injuries || '—'} multiline />
           <Row label="Diagnosed conditions" value={list(h.conditions)} />
@@ -90,7 +90,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Health — mental & food relationship</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Health — mental & food relationship</span></CardHeader>
         <CardBody className="flex flex-col gap-3">
           <Row label="Mental health" value={h.mental_health || '—'} />
           <Row label="Food relationship" value={h.food_relationship || '—'} />
@@ -100,7 +100,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Wellbeing</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Wellbeing</span></CardHeader>
         <CardBody className="grid grid-cols-2 gap-3">
           <Row label="Sleep quality" value={h.sleep || '—'} />
           <Row label="Stress level" value={h.stress_level || '—'} />
@@ -111,7 +111,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#6b6764] tracking-widest uppercase">Declaration</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Declaration</span></CardHeader>
         <CardBody className="grid grid-cols-2 gap-3">
           <Row label="Scope of practice" value={a.scope ? 'Accepted' : '—'} />
           <Row label="Referral rights" value={a.referral ? 'Accepted' : '—'} />
@@ -133,8 +133,8 @@ export default function OnboardingFileTab({ onboarding }: Props) {
 function Row({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
   return (
     <div className={multiline ? 'flex flex-col gap-0.5' : 'flex items-start justify-between gap-4'}>
-      <span className="text-xs text-[#6b6764] flex-shrink-0">{label}</span>
-      <span className={`text-sm text-[#c8c4bc] ${multiline ? '' : 'text-right'} leading-relaxed`}>
+      <span className="text-xs text-[#b8b4ac] flex-shrink-0">{label}</span>
+      <span className={`text-sm text-[#e0d8cc] ${multiline ? '' : 'text-right'} leading-relaxed`}>
         {value}
       </span>
     </div>

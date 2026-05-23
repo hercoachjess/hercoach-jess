@@ -71,7 +71,7 @@ export default function AddClientButton() {
             { key: 'goal', label: 'Goal', placeholder: 'e.g. Fat loss & improved energy' },
           ].map(({ key, label, placeholder, required, type }) => (
             <div key={key} className="flex flex-col gap-1.5">
-              <label className="text-xs text-[#6b6764] tracking-widest uppercase">
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase">
                 {label}{required && ' *'}
               </label>
               <input
@@ -85,7 +85,7 @@ export default function AddClientButton() {
           ))}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-[#6b6764] tracking-widest uppercase">Check-in day</label>
+            <label className="text-xs text-[#b8b4ac] tracking-widest uppercase">Check-in day</label>
             <select className="input-underline" value={form.checkin_day} onChange={(e) => set('checkin_day', e.target.value)}>
               <option value="">Select</option>
               {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => (

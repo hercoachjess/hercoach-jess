@@ -16,6 +16,7 @@ import {
   getWeightChange,
 } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import CopyLink from '@/components/ui/CopyLink'
 import type { Client, CheckinSubmission } from '@/types'
 
 interface Props {
@@ -91,8 +92,23 @@ export default function OverviewTab({ client, checkins }: Props) {
     router.refresh()
   }
 
+  // Personalised check-in URL for this client (pre-fills email + name)
+  const baseUrl =
+    (typeof window !== 'undefined' && window.location.origin) ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://meal-generator-murex.vercel.app'
+  const params = new URLSearchParams({ email: client.email, name: client.full_name }).toString()
+  const personalisedCheckinUrl = `${baseUrl}/checkin?${params}`
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Per-client check-in link */}
+      <CopyLink
+        label={`Personalised check-in link for ${client.full_name}`}
+        url={personalisedCheckinUrl}
+        hint="Send this link to this specific client. Their name and email are pre-filled so they never need to type them."
+      />
+
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
@@ -109,7 +125,7 @@ export default function OverviewTab({ client, checkins }: Props) {
         ].map(({ label, value, color }) => (
           <Card key={label}>
             <CardBody>
-              <p className="text-xs text-[#6b6764] tracking-widest uppercase mb-2">{label}</p>
+              <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">{label}</p>
               <p className="text-3xl font-light" style={{ color: color ?? '#f0ece4' }}>{value}</p>
             </CardBody>
           </Card>
@@ -122,7 +138,7 @@ export default function OverviewTab({ client, checkins }: Props) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#6b6764] tracking-widest uppercase">Contact & schedule</span>
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Contact & schedule</span>
               <Button size="sm" variant="ghost" onClick={() => setEditingContact(!editingContact)}>
                 {editingContact ? 'Cancel' : 'Edit'}
               </Button>
@@ -136,7 +152,7 @@ export default function OverviewTab({ client, checkins }: Props) {
                   { key: 'phone', label: 'Phone' },
                 ].map(({ key, label, type }) => (
                   <div key={key}>
-                    <p className="text-xs text-[#6b6764] mb-1">{label}</p>
+                    <p className="text-xs text-[#b8b4ac] mb-1">{label}</p>
                     <input
                       type={type || 'text'}
                       className="input-underline text-sm"
@@ -146,7 +162,7 @@ export default function OverviewTab({ client, checkins }: Props) {
                   </div>
                 ))}
                 <div>
-                  <p className="text-xs text-[#6b6764] mb-1">Check-in day</p>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Check-in day</p>
                   <select className="input-underline text-sm" value={contact.checkin_day} onChange={(e) => setContact((c) => ({ ...c, checkin_day: e.target.value }))}>
                     <option value="">None</option>
                     {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((d) => (
@@ -155,7 +171,7 @@ export default function OverviewTab({ client, checkins }: Props) {
                   </select>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6b6764] mb-1">Status</p>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Status</p>
                   <select className="input-underline text-sm" value={contact.status} onChange={(e) => setContact((c) => ({ ...c, status: e.target.value as Client['status'] }))}>
                     <option value="active">Active</option>
                     <option value="paused">Paused</option>
@@ -163,7 +179,7 @@ export default function OverviewTab({ client, checkins }: Props) {
                   </select>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6b6764] mb-1">Coach notes</p>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Coach notes</p>
                   <textarea
                     className="input-underline text-sm"
                     rows={2}
@@ -181,8 +197,8 @@ export default function OverviewTab({ client, checkins }: Props) {
                 <Row label="Last check-in" value={latestCheckin ? formatDate(latestCheckin.created_at) : '—'} />
                 {client.coach_notes && (
                   <div>
-                    <p className="text-xs text-[#6b6764] mb-1">Coach notes</p>
-                    <p className="text-sm text-[#c8c4bc] leading-relaxed italic">{client.coach_notes}</p>
+                    <p className="text-xs text-[#b8b4ac] mb-1">Coach notes</p>
+                    <p className="text-sm text-[#e0d8cc] leading-relaxed italic">{client.coach_notes}</p>
                   </div>
                 )}
               </>
@@ -193,7 +209,7 @@ export default function OverviewTab({ client, checkins }: Props) {
         {/* Vital Stats */}
         <Card>
           <CardHeader>
-            <span className="text-xs text-[#6b6764] tracking-widest uppercase">Vital stats</span>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Vital stats</span>
           </CardHeader>
           <CardBody className="flex flex-col gap-3">
             <Row label="Age" value={age != null ? `${age} yrs` : '—'} />
@@ -211,24 +227,24 @@ export default function OverviewTab({ client, checkins }: Props) {
         {/* Calculated Metrics */}
         <Card>
           <CardHeader>
-            <span className="text-xs text-[#6b6764] tracking-widest uppercase">Calculated metrics</span>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Calculated metrics</span>
           </CardHeader>
           <CardBody className="flex flex-col gap-3">
             <div>
-              <p className="text-xs text-[#6b6764] mb-0.5">BMR (Mifflin-St Jeor)</p>
+              <p className="text-xs text-[#b8b4ac] mb-0.5">BMR (Mifflin-St Jeor)</p>
               <p className="text-sm text-[#f0ece4]">{bmr ? `${bmr} kcal/day` : '—'}</p>
-              <p className="text-xs text-[#4a4744] mt-0.5">Calories burned at complete rest</p>
+              <p className="text-xs text-[#8a8680] mt-0.5">Calories burned at complete rest</p>
             </div>
             <div>
-              <p className="text-xs text-[#6b6764] mb-0.5">Max HR (220 − age)</p>
+              <p className="text-xs text-[#b8b4ac] mb-0.5">Max HR (220 − age)</p>
               <p className="text-sm text-[#f0ece4]">{maxHR ? `${maxHR} bpm` : '—'}</p>
             </div>
             <div>
-              <p className="text-xs text-[#6b6764] mb-0.5">Zone 2 range (60–70% max HR)</p>
+              <p className="text-xs text-[#b8b4ac] mb-0.5">Zone 2 range (60–70% max HR)</p>
               <p className="text-sm text-[#f0ece4]">
                 {zone2 ? `${zone2.low}–${zone2.high} bpm` : '—'}
               </p>
-              <p className="text-xs text-[#4a4744] mt-0.5">Aerobic base training zone</p>
+              <p className="text-xs text-[#8a8680] mt-0.5">Aerobic base training zone</p>
             </div>
             {client.hr_resting && (
               <Row label="Resting HR" value={`${client.hr_resting} bpm`} />
@@ -240,7 +256,7 @@ export default function OverviewTab({ client, checkins }: Props) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#6b6764] tracking-widest uppercase">Coach targets</span>
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Coach targets</span>
               <Button size="sm" variant="ghost" onClick={() => setEditingTargets(!editingTargets)}>
                 {editingTargets ? 'Cancel' : 'Edit'}
               </Button>
@@ -256,7 +272,7 @@ export default function OverviewTab({ client, checkins }: Props) {
                   { key: 'carbs_target_g', label: 'Carbs (g)' },
                 ].map(({ key, label }) => (
                   <div key={key}>
-                    <p className="text-xs text-[#6b6764] mb-1">{label}</p>
+                    <p className="text-xs text-[#b8b4ac] mb-1">{label}</p>
                     <input
                       type="number"
                       className="input-underline text-sm"
@@ -283,20 +299,20 @@ export default function OverviewTab({ client, checkins }: Props) {
       {latestCheckin && (
         <Card>
           <CardHeader>
-            <span className="text-xs text-[#6b6764] tracking-widest uppercase">
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">
               Latest check-in — Week {latestCheckin.week_number} · {formatDate(latestCheckin.created_at)}
             </span>
           </CardHeader>
           <CardBody className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-[#7da87d] tracking-widest uppercase mb-2">Biggest win</p>
-              <p className="text-sm text-[#c8c4bc] leading-relaxed italic">
+              <p className="text-sm text-[#e0d8cc] leading-relaxed italic">
                 &ldquo;{latestCheckin.payload.biggest_win || 'Not recorded'}&rdquo;
               </p>
             </div>
             <div>
               <p className="text-xs text-[#c89a6a] tracking-widest uppercase mb-2">Hardest part</p>
-              <p className="text-sm text-[#c8c4bc] leading-relaxed italic">
+              <p className="text-sm text-[#e0d8cc] leading-relaxed italic">
                 &ldquo;{latestCheckin.payload.hardest_part || 'Not recorded'}&rdquo;
               </p>
             </div>
@@ -308,7 +324,7 @@ export default function OverviewTab({ client, checkins }: Props) {
       {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <span className="text-xs text-[#6b6764] tracking-widest uppercase">Weight trend — last 8 check-ins</span>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Weight trend — last 8 check-ins</span>
           </CardHeader>
           <CardBody className="pt-2">
             <WeightChart data={chartData} />
@@ -322,8 +338,8 @@ export default function OverviewTab({ client, checkins }: Props) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-[#6b6764]">{label}</span>
-      <span className="text-sm text-[#c8c4bc]">{value}</span>
+      <span className="text-xs text-[#b8b4ac]">{label}</span>
+      <span className="text-sm text-[#e0d8cc]">{value}</span>
     </div>
   )
 }

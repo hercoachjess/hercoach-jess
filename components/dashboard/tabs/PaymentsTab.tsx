@@ -102,7 +102,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
         ].map(({ label, value, warn }) => (
           <Card key={label}>
             <CardBody>
-              <p className="text-xs text-[#6b6764] tracking-widest uppercase mb-2">{label}</p>
+              <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">{label}</p>
               <p className="text-lg" style={{ color: warn ? '#c89a6a' : '#f0ece4' }}>{value}</p>
             </CardBody>
           </Card>
@@ -116,7 +116,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
 
       {/* Payment list */}
       {resolved.length === 0 ? (
-        <div className="text-center py-16 text-[#6b6764] text-sm">
+        <div className="text-center py-16 text-[#b8b4ac] text-sm">
           No payments recorded yet.
         </div>
       ) : (
@@ -127,13 +127,13 @@ export default function PaymentsTab({ clientId, payments }: Props) {
                 <div className="flex items-center gap-4">
                   <div>
                     <p className="text-sm font-medium text-[#f0ece4]">£{payment.amount_gbp.toFixed(2)}</p>
-                    <p className="text-xs text-[#6b6764] mt-0.5">
+                    <p className="text-xs text-[#b8b4ac] mt-0.5">
                       Due: {formatDate(payment.due_date)}
                       {payment.paid_date && ` · Paid: ${formatDate(payment.paid_date)}`}
                       {payment.payment_method && ` · ${payment.payment_method}`}
                     </p>
                     {payment.notes && (
-                      <p className="text-xs text-[#4a4744] mt-0.5">{payment.notes}</p>
+                      <p className="text-xs text-[#8a8680] mt-0.5">{payment.notes}</p>
                     )}
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
         </div>
       )}
 
-      <p className="text-xs text-[#4a4744] leading-relaxed mt-2">
+      <p className="text-xs text-[#8a8680] leading-relaxed mt-2">
         Records payments received via bank transfer or other methods outside the platform. Does not process card payments.
       </p>
 
@@ -178,7 +178,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
             { key: 'notes', label: 'Notes', placeholder: 'Month 1 package...' },
           ].map(({ key, label, type, placeholder, required }) => (
             <div key={key}>
-              <label className="text-xs text-[#6b6764] tracking-widest uppercase block mb-1.5">
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">
                 {label}{required && ' *'}
               </label>
               <input

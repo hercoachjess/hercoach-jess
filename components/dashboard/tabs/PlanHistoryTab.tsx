@@ -110,8 +110,8 @@ export default function PlanHistoryTab({
   return (
     <div className="flex flex-col gap-5">
       {/* Explainer */}
-      <div className="px-5 py-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-sm">
-        <p className="text-sm text-[#6b6764] leading-relaxed">
+      <div className="px-5 py-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.24)] rounded-sm">
+        <p className="text-sm text-[#b8b4ac] leading-relaxed">
           When you save a plan, both the meal plan and training plan are combined into a branded PDF saved here with a new version number. The previous plan automatically becomes &lsquo;previous&rsquo; — nothing is lost.
         </p>
       </div>
@@ -125,7 +125,7 @@ export default function PlanHistoryTab({
 
       {/* History list */}
       {planHistory.length === 0 ? (
-        <div className="text-center py-16 text-[#6b6764] text-sm">
+        <div className="text-center py-16 text-[#b8b4ac] text-sm">
           No saved plans yet.
         </div>
       ) : (
@@ -144,11 +144,11 @@ export default function PlanHistoryTab({
                     {entry.training_plan_snapshot && <Badge variant="default">Training</Badge>}
                     <Badge variant="default">{noNumbers ? 'No numbers' : 'With numbers'}</Badge>
                   </div>
-                  <span className="text-xs text-[#6b6764]">{formatDate(entry.created_at)}</span>
+                  <span className="text-xs text-[#b8b4ac]">{formatDate(entry.created_at)}</span>
                 </div>
               </CardHeader>
               <CardBody className="flex items-center justify-between">
-                <p className="text-sm text-[#c8c4bc]">{cleanNote}</p>
+                <p className="text-sm text-[#e0d8cc]">{cleanNote}</p>
                 <div className="flex gap-2">
                   {entry.pdf_url && (
                     <>
@@ -158,6 +158,7 @@ export default function PlanHistoryTab({
                       <a href={entry.pdf_url} download>
                         <Button size="sm" variant="ghost">Download</Button>
                       </a>
+                      <CopyPdfLinkButton url={entry.pdf_url} />
                     </>
                   )}
                   {!entry.is_current && (
@@ -192,13 +193,13 @@ export default function PlanHistoryTab({
         }
       >
         <div className="flex flex-col gap-5">
-          <p className="text-sm text-[#c8c4bc] leading-relaxed">
+          <p className="text-sm text-[#e0d8cc] leading-relaxed">
             This will snapshot the current meal plan and training plan, generate a combined PDF, and save it as a new version.
           </p>
 
           {/* PDF variant toggle */}
           <div>
-            <label className="text-xs text-[#6b6764] tracking-widest uppercase block mb-2.5">
+            <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-2.5">
               PDF variant
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -207,14 +208,14 @@ export default function PlanHistoryTab({
                 onClick={() => setIncludeNumbers(true)}
                 className={`px-4 py-3 border rounded-sm text-left transition-colors ${
                   includeNumbers
-                    ? 'border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.04)]'
-                    : 'border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.14)]'
+                    ? 'border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.08)]'
+                    : 'border-[rgba(255,255,255,0.24)] hover:border-[rgba(255,255,255,0.24)]'
                 }`}
               >
-                <p className={`text-sm font-medium mb-0.5 ${includeNumbers ? 'text-[#f0ece4]' : 'text-[#c8c4bc]'}`}>
+                <p className={`text-sm font-medium mb-0.5 ${includeNumbers ? 'text-[#f0ece4]' : 'text-[#e0d8cc]'}`}>
                   With numbers
                 </p>
-                <p className="text-xs text-[#6b6764] leading-relaxed">
+                <p className="text-xs text-[#b8b4ac] leading-relaxed">
                   Macro chips show kcal &amp; protein. Each meal shows ~kcal &amp; protein grams.
                 </p>
               </button>
@@ -223,14 +224,14 @@ export default function PlanHistoryTab({
                 onClick={() => setIncludeNumbers(false)}
                 className={`px-4 py-3 border rounded-sm text-left transition-colors ${
                   !includeNumbers
-                    ? 'border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.04)]'
-                    : 'border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.14)]'
+                    ? 'border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.08)]'
+                    : 'border-[rgba(255,255,255,0.24)] hover:border-[rgba(255,255,255,0.24)]'
                 }`}
               >
-                <p className={`text-sm font-medium mb-0.5 ${!includeNumbers ? 'text-[#f0ece4]' : 'text-[#c8c4bc]'}`}>
+                <p className={`text-sm font-medium mb-0.5 ${!includeNumbers ? 'text-[#f0ece4]' : 'text-[#e0d8cc]'}`}>
                   Without numbers
                 </p>
-                <p className="text-xs text-[#6b6764] leading-relaxed">
+                <p className="text-xs text-[#b8b4ac] leading-relaxed">
                   Chips show &ldquo;Balanced&rdquo; etc. Meals show foods &amp; grams only — no kcal/protein.
                 </p>
               </button>
@@ -238,7 +239,7 @@ export default function PlanHistoryTab({
           </div>
 
           <div>
-            <label className="text-xs text-[#6b6764] tracking-widest uppercase block mb-1.5">
+            <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">
               Change note (optional)
             </label>
             <input
@@ -265,10 +266,32 @@ export default function PlanHistoryTab({
           </>
         }
       >
-        <p className="text-sm text-[#c8c4bc]">
+        <p className="text-sm text-[#e0d8cc]">
           This will permanently delete this plan version and its PDF. This cannot be undone.
         </p>
       </Modal>
     </div>
+  )
+}
+
+// Inline copy-PDF-link button — used in the plan history list
+function CopyPdfLinkButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false)
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = url; document.body.appendChild(ta); ta.select()
+      document.execCommand('copy'); document.body.removeChild(ta)
+      setCopied(true); setTimeout(() => setCopied(false), 1800)
+    }
+  }
+  return (
+    <Button size="sm" variant="ghost" onClick={handleCopy}>
+      {copied ? '✓ Copied' : 'Copy link'}
+    </Button>
   )
 }

@@ -19,7 +19,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       outline:
         'bg-transparent text-[#f0ece4] border border-[rgba(255,255,255,0.2)] hover:border-[rgba(255,255,255,0.4)]',
       ghost:
-        'bg-transparent text-[#c8c4bc] hover:text-[#f0ece4] border border-transparent hover:border-[rgba(255,255,255,0.1)]',
+        'bg-transparent text-[#e0d8cc] hover:text-[#f0ece4] border border-transparent hover:border-[rgba(255,255,255,0.1)]',
       danger:
         'bg-transparent text-[#b06060] border border-[rgba(176,96,96,0.3)] hover:border-[rgba(176,96,96,0.6)]',
     }

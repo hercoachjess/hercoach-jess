@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // ───────────── MOOD / ADHERENCE ICONS ─────────────
 type IconProps = { active: boolean }
@@ -157,6 +157,17 @@ export default function CheckinForm() {
   // Identity
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [isPersonalised, setIsPersonalised] = useState(false)
+
+  // Pre-fill from URL params (per-client links)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const e = params.get('email')
+    const n = params.get('name')
+    if (e) { setEmail(e); setIsPersonalised(true) }
+    if (n) setName(n)
+  }, [])
 
   // Progress & Weight
   const [weightKg, setWeightKg] = useState('')
@@ -238,24 +249,24 @@ export default function CheckinForm() {
   }
 
   return (
-    <div className="bg-[#080808] min-h-screen relative" style={{ fontFamily: 'var(--font-jost), sans-serif', color: '#d8d0c8' }}>
+    <div className="bg-[#080808] min-h-screen relative" style={{ fontFamily: 'var(--font-jost), sans-serif', color: '#e0d8cc' }}>
       <NoiseOverlay />
       <div className="relative z-10 max-w-[640px] mx-auto px-7 pb-24">
 
         {!submitted ? (
           <>
             {/* HERO */}
-            <div className="pt-[72px] pb-[52px] text-center border-b border-[rgba(255,255,255,0.07)] mb-11">
+            <div className="pt-[72px] pb-[52px] text-center border-b border-[rgba(255,255,255,0.24)] mb-11">
               <span className="font-serif italic text-[38px] font-light text-[#f0ece4] tracking-[-1px] block leading-none">hercoach Jess</span>
               <div className="w-full h-px my-[9px] mb-2" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)' }} />
-              <span className="text-[9px] tracking-[5px] uppercase text-[#4a4a4a] font-light block mb-[30px]">Less restriction. More you.</span>
-              <div className="inline-block border border-[rgba(255,255,255,0.07)] rounded-[2px] px-4 py-[5px] text-[9px] tracking-[4px] uppercase text-[#666] mb-[22px]">
+              <span className="text-[9px] tracking-[5px] uppercase text-[#7a7670] font-light block mb-[30px]">Less restriction. More you.</span>
+              <div className="inline-block border border-[rgba(255,255,255,0.24)] rounded-[2px] px-4 py-[5px] text-[9px] tracking-[4px] uppercase text-[#a8a49c] mb-[22px]">
                 Weekly Check-In
               </div>
               <h1 className="font-serif font-light text-[clamp(26px,5vw,38px)] text-[#f0ece4] tracking-[-0.5px] mb-3.5 leading-[1.2]">
                 How&apos;s your week been,<br /><em className="italic">lovely?</em>
               </h1>
-              <p className="text-[13px] text-[#666] leading-[1.85] font-light max-w-[380px] mx-auto">
+              <p className="text-[13px] text-[#a8a49c] leading-[1.85] font-light max-w-[380px] mx-auto">
                 Honest answers only. Jess reads every single word. No judgement — just progress.
               </p>
             </div>
@@ -350,7 +361,7 @@ export default function CheckinForm() {
             <Card>
               <CardLabel>Wins &amp; Struggles</CardLabel>
               <div className="bg-[#141414] rounded-md px-4 py-3.5 mb-5">
-                <p className="text-xs text-[#4a4a4a] leading-[1.7] font-light italic font-serif">
+                <p className="text-xs text-[#7a7670] leading-[1.7] font-light italic font-serif">
                   A win is anything — choosing water over Coke, getting all your steps in, not finishing the biscuits at work. Big or small, it all counts.
                 </p>
               </div>
@@ -385,7 +396,7 @@ export default function CheckinForm() {
               >
                 {submitting ? 'Sending…' : 'Send Check-In'}
               </button>
-              <span className="block text-[13px] text-[#4a4a4a] mt-3.5 italic font-serif">
+              <span className="block text-[13px] text-[#7a7670] mt-3.5 italic font-serif">
                 Jess reads every single response. You&apos;ve got this.
               </span>
             </div>
@@ -394,14 +405,14 @@ export default function CheckinForm() {
           <div className="text-center py-20 fade-in">
             <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
             <h2 className="font-serif text-[32px] font-light text-[#f0ece4] mb-3.5">Check-in received.</h2>
-            <p className="text-sm text-[#666] leading-[1.8] font-light max-w-[340px] mx-auto mb-2.5">
+            <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[340px] mx-auto mb-2.5">
               Jess will review this and send your feedback and any plan updates within 24 hours. Keep showing up — it&apos;s working.
             </p>
-            <span className="font-serif italic text-base text-[#4a4a4a] block mt-7">Less restriction. More you.</span>
+            <span className="font-serif italic text-base text-[#7a7670] block mt-7">Less restriction. More you.</span>
           </div>
         )}
 
-        <div className="text-center pt-10 text-[9px] tracking-[4px] uppercase text-[#4a4a4a] border-t border-[rgba(255,255,255,0.07)] mt-[60px] font-light">
+        <div className="text-center pt-10 text-[9px] tracking-[4px] uppercase text-[#7a7670] border-t border-[rgba(255,255,255,0.24)] mt-[60px] font-light">
           hercoach jess &nbsp;·&nbsp; less restriction. more you.
         </div>
       </div>
@@ -423,12 +434,12 @@ function NoiseOverlay() {
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.07)] rounded-2xl p-7 mb-3">{children}</div>
+  return <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-2xl p-7 mb-3">{children}</div>
 }
 
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[9px] tracking-[4px] uppercase text-[#4a4a4a] font-normal mb-5 pb-3.5 border-b border-[rgba(255,255,255,0.07)] block">
+    <span className="text-[9px] tracking-[4px] uppercase text-[#7a7670] font-normal mb-5 pb-3.5 border-b border-[rgba(255,255,255,0.24)] block">
       {children}
     </span>
   )
@@ -437,7 +448,7 @@ function CardLabel({ children }: { children: React.ReactNode }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-6 last:mb-0">
-      <label className="block text-[10px] tracking-[2px] uppercase text-[#666] mb-[9px]">{label}</label>
+      <label className="block text-[10px] tracking-[2px] uppercase text-[#a8a49c] mb-[9px]">{label}</label>
       {children}
     </div>
   )
@@ -450,7 +461,7 @@ function G2({ children }: { children: React.ReactNode }) {
 function Input({ value, onChange, placeholder, type = 'text' }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
   return (
     <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} step="0.1"
-      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#4a4a4a]"
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#7a7670]"
     />
   )
 }
@@ -458,7 +469,7 @@ function Input({ value, onChange, placeholder, type = 'text' }: { value: string;
 function Textarea({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#4a4a4a] resize-y min-h-[72px] leading-[1.7]"
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#7a7670] resize-y min-h-[72px] leading-[1.7]"
     />
   )
 }
@@ -466,7 +477,7 @@ function Textarea({ value, onChange, placeholder }: { value: string; onChange: (
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors appearance-none"
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors appearance-none"
     >
       <option value="">Select</option>
       {options.map((o) => (
@@ -486,7 +497,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       className={`inline-block px-4 py-2 border rounded-[2px] text-xs font-normal font-sans cursor-pointer transition-all ${
         active
           ? 'border-[rgba(255,255,255,0.3)] text-[#f0ece4] bg-[rgba(255,255,255,0.03)]'
-          : 'border-[rgba(255,255,255,0.07)] text-[#666] hover:border-[rgba(255,255,255,0.15)] hover:text-[#d8d0c8]'
+          : 'border-[rgba(255,255,255,0.24)] text-[#a8a49c] hover:border-[rgba(255,255,255,0.26)] hover:text-[#e0d8cc]'
       }`}
     >
       {children}
@@ -504,11 +515,11 @@ function IconPill({ active, onClick, label, icon }: { active: boolean; onClick: 
       className={`flex flex-col items-center gap-1.5 px-1.5 py-3.5 border rounded-md cursor-pointer transition-all ${
         active
           ? 'border-[rgba(255,255,255,0.25)] bg-[rgba(255,255,255,0.02)]'
-          : 'border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.15)]'
+          : 'border-[rgba(255,255,255,0.24)] hover:border-[rgba(255,255,255,0.26)]'
       }`}
     >
       {icon}
-      <span className={`text-[9px] text-center font-normal leading-[1.4] ${active ? 'text-[#e8e0d4]' : 'text-[#4a4a4a]'}`}>{label}</span>
+      <span className={`text-[9px] text-center font-normal leading-[1.4] ${active ? 'text-[#e8e0d4]' : 'text-[#7a7670]'}`}>{label}</span>
     </button>
   )
 }

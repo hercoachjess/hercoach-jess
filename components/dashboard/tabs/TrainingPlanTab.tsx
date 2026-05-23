@@ -129,8 +129,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       <Card>
         <CardBody className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-[#6b6764]">
-              Status: <span className="text-[#c8c4bc]">{trainingPlan?.status ?? 'No plan'}</span>
+            <p className="text-xs text-[#b8b4ac]">
+              Status: <span className="text-[#e0d8cc]">{trainingPlan?.status ?? 'No plan'}</span>
               {trainingPlan?.updated_at && (
                 <span className="ml-3">Last edited: {formatDate(trainingPlan.updated_at)}</span>
               )}
@@ -153,7 +153,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardBody>
-            <p className="text-xs text-[#6b6764] mb-1">Experience level</p>
+            <p className="text-xs text-[#b8b4ac] mb-1">Experience level</p>
             {editing ? (
               <select className="input-underline text-sm" value={level} onChange={(e) => setLevel(e.target.value as TrainingPlan['level'])}>
                 <option value="beginner">Beginner</option>
@@ -167,7 +167,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         </Card>
         <Card>
           <CardBody>
-            <p className="text-xs text-[#6b6764] mb-1">Training days / week</p>
+            <p className="text-xs text-[#b8b4ac] mb-1">Training days / week</p>
             {editing ? (
               <input
                 type="number" min="1" max="7"
@@ -184,7 +184,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
 
       {/* Sessions */}
       {editedSessions.length === 0 && !editing && (
-        <div className="text-center py-16 text-[#6b6764] text-sm">
+        <div className="text-center py-16 text-[#b8b4ac] text-sm">
           No training plan yet. Use &ldquo;AI draft new version&rdquo; or &ldquo;Edit&rdquo; to create one.
         </div>
       )}
@@ -209,24 +209,24 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
             </CardHeader>
             <CardBody>
               {isRest ? (
-                <p className="text-sm text-[#6b6764] italic">Rest day</p>
+                <p className="text-sm text-[#b8b4ac] italic">Rest day</p>
               ) : editing && editingSessionIdx === sIdx ? (
                 <div className="flex flex-col gap-3">
                   <div className="grid grid-cols-2 gap-3 mb-2">
                     <div>
-                      <p className="text-xs text-[#6b6764] mb-1">Day</p>
+                      <p className="text-xs text-[#b8b4ac] mb-1">Day</p>
                       <input className="input-underline text-sm" value={session.day}
                         onChange={(e) => setEditedSessions((s) => { const u=[...s]; u[sIdx]={...u[sIdx],day:e.target.value}; return u })} />
                     </div>
                     <div>
-                      <p className="text-xs text-[#6b6764] mb-1">Focus</p>
+                      <p className="text-xs text-[#b8b4ac] mb-1">Focus</p>
                       <input className="input-underline text-sm" value={session.focus}
                         onChange={(e) => setEditedSessions((s) => { const u=[...s]; u[sIdx]={...u[sIdx],focus:e.target.value}; return u })} />
                     </div>
                   </div>
 
                   {/* Exercise rows */}
-                  <div className="grid grid-cols-[1fr_60px_60px_auto] gap-2 text-xs text-[#6b6764] tracking-wider uppercase mb-1">
+                  <div className="grid grid-cols-[1fr_60px_60px_auto] gap-2 text-xs text-[#b8b4ac] tracking-wider uppercase mb-1">
                     <span>Exercise</span><span>Sets</span><span>Reps</span><span />
                   </div>
                   {session.exercises.map((ex, eIdx) => (
@@ -238,18 +238,18 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
                           onChange={(e) => updateExercise(sIdx, eIdx, 'sets', Number(e.target.value))} />
                         <input className="input-underline text-sm text-center" value={ex.reps} placeholder="8–10"
                           onChange={(e) => updateExercise(sIdx, eIdx, 'reps', e.target.value)} />
-                        <button className="text-[#6b6764] hover:text-[#b06060] transition-colors"
+                        <button className="text-[#b8b4ac] hover:text-[#b06060] transition-colors"
                           onClick={() => removeExercise(sIdx, eIdx)}>
                           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
                             <path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" />
                           </svg>
                         </button>
                       </div>
-                      <input className="input-underline text-xs text-[#6b6764]" value={ex.notes || ''} placeholder="Notes (optional)"
+                      <input className="input-underline text-xs text-[#b8b4ac]" value={ex.notes || ''} placeholder="Notes (optional)"
                         onChange={(e) => updateExercise(sIdx, eIdx, 'notes', e.target.value)} />
                     </div>
                   ))}
-                  <button className="text-xs text-[#6b6764] hover:text-[#c8c4bc] text-left transition-colors mt-1"
+                  <button className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors mt-1"
                     onClick={() => addExercise(sIdx)}>
                     + Add exercise
                   </button>
@@ -257,19 +257,19 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-[#6b6764] uppercase tracking-widest">
+                    <tr className="text-xs text-[#b8b4ac] uppercase tracking-widest">
                       <th className="text-left pb-2 font-normal">Exercise</th>
                       <th className="text-right pb-2 font-normal">Sets × Reps</th>
                     </tr>
                   </thead>
                   <tbody>
                     {session.exercises.map((ex, eIdx) => (
-                      <tr key={eIdx} className="border-t border-[rgba(255,255,255,0.05)]">
+                      <tr key={eIdx} className="border-t border-[rgba(255,255,255,0.10)]">
                         <td className="py-2">
-                          <p className="text-[#c8c4bc]">{ex.name}</p>
-                          {ex.notes && <p className="text-xs text-[#4a4744] italic">{ex.notes}</p>}
+                          <p className="text-[#e0d8cc]">{ex.name}</p>
+                          {ex.notes && <p className="text-xs text-[#8a8680] italic">{ex.notes}</p>}
                         </td>
-                        <td className="py-2 text-right text-[#6b6764]">
+                        <td className="py-2 text-right text-[#b8b4ac]">
                           {ex.sets} × {ex.reps}
                         </td>
                       </tr>
@@ -286,12 +286,12 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       {(editing || coachNotes) && (
         <Card>
           <CardBody>
-            <p className="text-xs text-[#6b6764] tracking-widest uppercase mb-2">Coach notes</p>
+            <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Coach notes</p>
             {editing ? (
               <textarea className="input-underline text-sm" rows={3} value={coachNotes}
                 onChange={(e) => setCoachNotes(e.target.value)} placeholder="Optional notes..." />
             ) : (
-              <p className="text-sm text-[#c8c4bc] leading-relaxed italic">{coachNotes}</p>
+              <p className="text-sm text-[#e0d8cc] leading-relaxed italic">{coachNotes}</p>
             )}
           </CardBody>
         </Card>
@@ -299,7 +299,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
 
       {error && <p className="text-sm text-[#b06060]">{error}</p>}
 
-      <p className="text-xs text-[#4a4744] leading-relaxed">
+      <p className="text-xs text-[#8a8680] leading-relaxed">
         AI uses evidence-based programming (progressive overload, balanced volume, injury adaptations) — you always review before saving.
       </p>
 

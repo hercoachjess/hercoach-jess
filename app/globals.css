@@ -6,10 +6,10 @@
   --color-bg-elevated: #141414;
   --color-bg-hover: #1a1a1a;
   --color-text-primary: #f0ece4;
-  --color-text-secondary: #c8c4bc;
-  --color-text-muted: #6b6764;
-  --color-border: rgba(255,255,255,0.07);
-  --color-border-hover: rgba(255,255,255,0.14);
+  --color-text-secondary: #e0d8cc;
+  --color-text-muted: #b8b4ac;
+  --color-border: rgba(255,255,255,0.24);
+  --color-border-hover: rgba(255,255,255,0.24);
   --color-accent-orange: #c89a6a;
   --color-accent-green: #7da87d;
   --color-accent-red: #b06060;
@@ -96,7 +96,7 @@ select.input-underline {
 input[type="range"] {
   appearance: none;
   height: 2px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.26);
   border-radius: 1px;
   outline: none;
 }
@@ -129,10 +129,10 @@ input[type="range"]::-webkit-slider-thumb {
 /* Recharts custom styles */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: rgba(255,255,255,0.05);
+  stroke: rgba(255,255,255,0.10);
 }
 .recharts-text {
-  fill: #6b6764;
+  fill: #b8b4ac;
   font-family: var(--font-jost), sans-serif;
   font-size: 11px;
 }

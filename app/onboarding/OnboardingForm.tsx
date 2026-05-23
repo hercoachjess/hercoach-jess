@@ -311,13 +311,13 @@ export default function OnboardingForm() {
           <div className="text-center py-20 fade-in">
             <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
             <h2 className="font-serif text-[34px] font-light text-[#f0ece4] mb-3.5">You&apos;re all set.</h2>
-            <p className="text-sm text-[#666] leading-[1.8] font-light max-w-[400px] mx-auto mb-2.5">
+            <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[400px] mx-auto mb-2.5">
               Your form and signed declaration have been received. Jess will review your health screening carefully and be in touch within 24 hours with your payment details and next steps.
             </p>
-            <p className="text-xs text-[#4a4a4a] mt-2 italic font-serif">
+            <p className="text-xs text-[#7a7670] mt-2 italic font-serif">
               You&apos;ve taken the first step — that matters.
             </p>
-            <span className="font-serif italic text-[17px] text-[#4a4a4a] block mt-7">Less restriction. More you.</span>
+            <span className="font-serif italic text-[17px] text-[#7a7670] block mt-7">Less restriction. More you.</span>
           </div>
           <Footer />
         </div>
@@ -328,21 +328,21 @@ export default function OnboardingForm() {
   const tip = (n: number) => (step >= n ? (step === n ? 'active' : 'done') : '')
 
   return (
-    <div className="bg-[#080808] min-h-screen relative" style={{ fontFamily: 'var(--font-jost), sans-serif', color: '#d8d0c8' }}>
+    <div className="bg-[#080808] min-h-screen relative" style={{ fontFamily: 'var(--font-jost), sans-serif', color: '#e0d8cc' }}>
       <NoiseOverlay />
 
       <div className="relative z-10 max-w-[640px] mx-auto px-7 pb-24">
         {/* ─── HERO ─── */}
-        <div className="pt-20 pb-[60px] text-center border-b border-[rgba(255,255,255,0.07)] mb-[52px]">
-          <span className="text-[9px] tracking-[7px] uppercase text-[#4a4a4a] font-light block mb-2">Welcome to</span>
+        <div className="pt-20 pb-[60px] text-center border-b border-[rgba(255,255,255,0.24)] mb-[52px]">
+          <span className="text-[9px] tracking-[7px] uppercase text-[#7a7670] font-light block mb-2">Welcome to</span>
           <span className="font-serif italic text-[44px] font-light text-[#f0ece4] tracking-[-1px] block leading-none">hercoach Jess</span>
           <div className="w-full h-px my-[10px] mb-[9px]" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)' }} />
-          <span className="text-[9px] tracking-[5px] uppercase text-[#4a4a4a] font-light block mb-8">Less restriction. More you.</span>
+          <span className="text-[9px] tracking-[5px] uppercase text-[#7a7670] font-light block mb-8">Less restriction. More you.</span>
 
-          <div className="inline-flex flex-col items-center gap-1.5 border border-[rgba(255,255,255,0.07)] rounded px-6 py-3.5 mb-9">
-            <span className="text-[10px] tracking-[3px] uppercase text-[#4a4a4a]">Your Coach</span>
+          <div className="inline-flex flex-col items-center gap-1.5 border border-[rgba(255,255,255,0.24)] rounded px-6 py-3.5 mb-9">
+            <span className="text-[10px] tracking-[3px] uppercase text-[#7a7670]">Your Coach</span>
             <span className="font-serif italic text-[18px] text-[#f0ece4] font-light">Jess — Registered Dietitian</span>
-            <span className="text-[9px] tracking-[2px] uppercase text-[#4a4a4a] font-light">
+            <span className="text-[9px] tracking-[2px] uppercase text-[#7a7670] font-light">
               HCPC Registered &nbsp;·&nbsp; BSc Dietetics &nbsp;·&nbsp; England &amp; Wales
             </span>
           </div>
@@ -350,11 +350,11 @@ export default function OnboardingForm() {
           <h1 className="font-serif font-light text-[clamp(28px,5vw,40px)] text-[#f0ece4] tracking-[-0.5px] mb-4 leading-[1.2]">
             Let&apos;s build something<br /><em className="italic">made for you.</em>
           </h1>
-          <p className="text-[13px] text-[#666] leading-[1.9] font-light max-w-[440px] mx-auto">
+          <p className="text-[13px] text-[#a8a49c] leading-[1.9] font-light max-w-[440px] mx-auto">
             This form takes around 5–8 minutes and gives Jess everything she needs to build a plan that is nutritionally sound, evidence-based, and genuinely tailored to your real life. Everything you share is completely confidential.
           </p>
 
-          <div className="grid grid-cols-3 gap-px border border-[rgba(255,255,255,0.07)] rounded mt-7 overflow-hidden bg-[rgba(255,255,255,0.07)]">
+          <div className="grid grid-cols-3 gap-px border border-[rgba(255,255,255,0.24)] rounded mt-7 overflow-hidden bg-[rgba(255,255,255,0.24)]">
             <CredItem label="Qualification" value="Registered Dietitian" />
             <CredItem label="Registered with" value="HCPC & BDA" />
             <CredItem label="Nutrition advice" value="Clinically credible" />
@@ -656,23 +656,23 @@ export default function OnboardingForm() {
 
             <Card>
               <div className="mt-4">
-                <label className="block text-[10px] tracking-[2px] uppercase text-[#4a4a4a] mb-2">Full Name — typed signature</label>
+                <label className="block text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-2">Full Name — typed signature</label>
                 <input
                   type="text" value={sigName} onChange={(e) => setSigName(e.target.value)}
                   placeholder="Type your full name to sign"
-                  className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 font-serif italic text-[22px] text-[#f0ece4] outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors"
+                  className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 font-serif italic text-[22px] text-[#f0ece4] outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors"
                 />
               </div>
               <div className="mt-5">
-                <label className="block text-[10px] tracking-[2px] uppercase text-[#4a4a4a] mb-2">Date</label>
+                <label className="block text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-2">Date</label>
                 <input
                   type="text" value={sigDate} onChange={(e) => setSigDate(e.target.value)}
                   placeholder="e.g. 18 May 2026"
-                  className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 font-serif italic text-[22px] text-[#f0ece4] outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors"
+                  className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 font-serif italic text-[22px] text-[#f0ece4] outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors"
                 />
               </div>
-              <div className="mt-4 pt-3.5 border-t border-[rgba(255,255,255,0.07)]">
-                <p className="text-[11px] text-[#4a4a4a] font-light leading-[1.7] italic font-serif">
+              <div className="mt-4 pt-3.5 border-t border-[rgba(255,255,255,0.24)]">
+                <p className="text-[11px] text-[#7a7670] font-light leading-[1.7] italic font-serif">
                   By typing your name above, you confirm that you have read, understood, and agree to all declarations on this page. This constitutes a valid electronic signature under the Electronic Communications Act 2000 (England and Wales).
                 </p>
               </div>
@@ -680,7 +680,7 @@ export default function OnboardingForm() {
 
             {(warn || error) && (
               <div className="mt-3 px-4 py-3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] rounded">
-                <p className="text-[11px] text-[#666] font-light">
+                <p className="text-[11px] text-[#a8a49c] font-light">
                   {error || 'Please tick all declarations and enter your full name and date before submitting.'}
                 </p>
               </div>
@@ -712,8 +712,8 @@ function NoiseOverlay() {
 function CredItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-[#0e0e0e] py-3.5 px-2.5 text-center">
-      <span className="text-[8px] tracking-[2.5px] uppercase text-[#4a4a4a] block mb-1">{label}</span>
-      <span className="font-serif italic text-[13px] text-[#d8d0c8] font-light">{value}</span>
+      <span className="text-[8px] tracking-[2.5px] uppercase text-[#7a7670] block mb-1">{label}</span>
+      <span className="font-serif italic text-[13px] text-[#e0d8cc] font-light">{value}</span>
     </div>
   )
 }
@@ -721,9 +721,9 @@ function CredItem({ label, value }: { label: string; value: string }) {
 function StepWrap({ eyebrow, title, sub, children }: { eyebrow: string; title: string; sub: string; children: React.ReactNode }) {
   return (
     <div className="fade-in">
-      <span className="text-[9px] tracking-[4px] uppercase text-[#4a4a4a] mb-2.5 block">{eyebrow}</span>
+      <span className="text-[9px] tracking-[4px] uppercase text-[#7a7670] mb-2.5 block">{eyebrow}</span>
       <h2 className="font-serif text-[30px] font-light text-[#f0ece4] mb-1.5 tracking-[-0.3px]">{title}</h2>
-      <p className="text-[13px] text-[#666] leading-[1.7] font-light mb-8">{sub}</p>
+      <p className="text-[13px] text-[#a8a49c] leading-[1.7] font-light mb-8">{sub}</p>
       {children}
     </div>
   )
@@ -731,7 +731,7 @@ function StepWrap({ eyebrow, title, sub, children }: { eyebrow: string; title: s
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.07)] rounded-2xl p-7 mb-3">
+    <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-2xl p-7 mb-3">
       {children}
     </div>
   )
@@ -739,7 +739,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardSection({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[9px] tracking-[3px] uppercase text-[#4a4a4a] block mb-[18px] pb-3.5 border-b border-[rgba(255,255,255,0.07)]">
+    <span className="text-[9px] tracking-[3px] uppercase text-[#7a7670] block mb-[18px] pb-3.5 border-b border-[rgba(255,255,255,0.24)]">
       {children}
     </span>
   )
@@ -748,7 +748,7 @@ function CardSection({ children }: { children: React.ReactNode }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-6 last:mb-0">
-      <label className="block text-[10px] tracking-[2px] uppercase text-[#666] mb-[9px]">{label}</label>
+      <label className="block text-[10px] tracking-[2px] uppercase text-[#a8a49c] mb-[9px]">{label}</label>
       {children}
     </div>
   )
@@ -765,7 +765,7 @@ function Input({ value, onChange, placeholder, type = 'text' }: { value: string;
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#4a4a4a]"
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#7a7670]"
     />
   )
 }
@@ -776,7 +776,7 @@ function Textarea({ value, onChange, placeholder }: { value: string; onChange: (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#4a4a4a] resize-y min-h-[80px] leading-[1.7]"
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#7a7670] resize-y min-h-[80px] leading-[1.7]"
     />
   )
 }
@@ -786,7 +786,7 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.07)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors appearance-none"
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors appearance-none"
     >
       <option value="">Select</option>
       {options.map((o) => (
@@ -810,7 +810,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       className={`inline-block px-[18px] py-2 border rounded-[2px] text-xs font-normal font-sans cursor-pointer transition-all ${
         active
           ? 'border-[rgba(255,255,255,0.3)] text-[#f0ece4] bg-[rgba(255,255,255,0.03)]'
-          : 'border-[rgba(255,255,255,0.07)] text-[#666] hover:border-[rgba(255,255,255,0.15)] hover:text-[#d8d0c8]'
+          : 'border-[rgba(255,255,255,0.24)] text-[#a8a49c] hover:border-[rgba(255,255,255,0.26)] hover:text-[#e0d8cc]'
       }`}
     >
       {children}
@@ -830,11 +830,11 @@ function IconPill({ active, onClick, label, icon }: { active: boolean; onClick: 
       className={`flex flex-col items-center gap-2 px-2 py-4 border rounded-md cursor-pointer transition-all ${
         active
           ? 'border-[rgba(255,255,255,0.25)] bg-[rgba(255,255,255,0.02)]'
-          : 'border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.15)]'
+          : 'border-[rgba(255,255,255,0.24)] hover:border-[rgba(255,255,255,0.26)]'
       }`}
     >
       {icon}
-      <span className={`text-[11px] text-center font-normal leading-[1.4] ${active ? 'text-[#e8e0d4]' : 'text-[#666]'}`}>{label}</span>
+      <span className={`text-[11px] text-center font-normal leading-[1.4] ${active ? 'text-[#e8e0d4]' : 'text-[#a8a49c]'}`}>{label}</span>
     </button>
   )
 }
@@ -842,24 +842,24 @@ function IconPill({ active, onClick, label, icon }: { active: boolean; onClick: 
 function FlagNote({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-2 px-3.5 py-2.5 bg-[rgba(255,255,255,0.02)] rounded-r" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-      <p className="text-[11px] text-[#4a4a4a] leading-[1.6] font-light italic font-serif">{children}</p>
+      <p className="text-[11px] text-[#7a7670] leading-[1.6] font-light italic font-serif">{children}</p>
     </div>
   )
 }
 
 function LegalBlock({ title, jurisdiction, children }: { title: string; jurisdiction: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#141414] border border-[rgba(255,255,255,0.07)] rounded-xl p-6 mb-3">
+    <div className="bg-[#141414] border border-[rgba(255,255,255,0.24)] rounded-xl p-6 mb-3">
       <div className="font-serif text-[18px] font-light text-[#f0ece4] mb-1 tracking-[-0.2px]">{title}</div>
-      <span className="text-[9px] tracking-[2.5px] uppercase text-[#4a4a4a] block mb-4">{jurisdiction}</span>
-      <div className="text-xs text-[#666] leading-[1.95] font-light max-h-[170px] overflow-y-auto pr-2 mb-4 legal-body">
+      <span className="text-[9px] tracking-[2.5px] uppercase text-[#7a7670] block mb-4">{jurisdiction}</span>
+      <div className="text-xs text-[#a8a49c] leading-[1.95] font-light max-h-[170px] overflow-y-auto pr-2 mb-4 legal-body">
         {children}
       </div>
       <style jsx>{`
         .legal-body :global(p) { margin-bottom: 10px; }
         .legal-body :global(ul) { padding-left: 16px; margin-bottom: 10px; }
         .legal-body :global(li) { margin-bottom: 6px; }
-        .legal-body :global(strong) { color: #d8d0c8; font-weight: 400; }
+        .legal-body :global(strong) { color: #e0d8cc; font-weight: 400; }
         .legal-body::-webkit-scrollbar { width: 2px; }
         .legal-body::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 2px; }
       `}</style>
@@ -870,12 +870,12 @@ function LegalBlock({ title, jurisdiction, children }: { title: string; jurisdic
 function CheckRow({ ticked, onToggle, children }: { ticked: boolean; onToggle: () => void; children: React.ReactNode }) {
   return (
     <label
-      className="flex items-start gap-3.5 py-3.5 px-6 mb-3 -mt-3 bg-[#141414] border-l border-r border-b border-[rgba(255,255,255,0.07)] rounded-b-xl cursor-pointer"
+      className="flex items-start gap-3.5 py-3.5 px-6 mb-3 -mt-3 bg-[#141414] border-l border-r border-b border-[rgba(255,255,255,0.24)] rounded-b-xl cursor-pointer"
       onClick={(e) => { e.preventDefault(); onToggle() }}
     >
       <div
         className={`w-[18px] h-[18px] border rounded-[2px] flex-shrink-0 mt-0.5 flex items-center justify-center transition-all ${
-          ticked ? 'border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.05)]' : 'border-[rgba(255,255,255,0.07)]'
+          ticked ? 'border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.10)]' : 'border-[rgba(255,255,255,0.24)]'
         }`}
       >
         {ticked && (
@@ -884,7 +884,7 @@ function CheckRow({ ticked, onToggle, children }: { ticked: boolean; onToggle: (
           </svg>
         )}
       </div>
-      <span className="text-xs text-[#666] leading-[1.7] font-light flex-1 [&_strong]:text-[#d8d0c8] [&_strong]:font-normal">
+      <span className="text-xs text-[#a8a49c] leading-[1.7] font-light flex-1 [&_strong]:text-[#e0d8cc] [&_strong]:font-normal">
         {children}
       </span>
     </label>
@@ -900,7 +900,7 @@ function Nav({
   return (
     <div className="flex justify-between items-center mt-8">
       {onBack ? (
-        <button onClick={onBack} className="bg-transparent border-0 text-[#4a4a4a] text-[10px] tracking-[2.5px] uppercase cursor-pointer font-sans transition-colors hover:text-[#d8d0c8] p-0">← Back</button>
+        <button onClick={onBack} className="bg-transparent border-0 text-[#7a7670] text-[10px] tracking-[2.5px] uppercase cursor-pointer font-sans transition-colors hover:text-[#e0d8cc] p-0">← Back</button>
       ) : <span />}
       {onSubmit ? (
         <button onClick={onSubmit} disabled={submitting} className="bg-[#f0ece4] border-0 text-[#080808] px-[38px] py-3 text-[10px] font-medium tracking-[3px] uppercase cursor-pointer font-sans rounded-[2px] transition-all hover:bg-[#e8e0d4] disabled:opacity-50">
@@ -917,7 +917,7 @@ function Nav({
 
 function Footer() {
   return (
-    <div className="text-center pt-10 text-[9px] tracking-[4px] uppercase text-[#4a4a4a] border-t border-[rgba(255,255,255,0.07)] mt-[60px] font-light">
+    <div className="text-center pt-10 text-[9px] tracking-[4px] uppercase text-[#7a7670] border-t border-[rgba(255,255,255,0.24)] mt-[60px] font-light">
       hercoach jess &nbsp;·&nbsp; registered dietitian &nbsp;·&nbsp; hcpc registered &nbsp;·&nbsp; england &amp; wales
     </div>
   )

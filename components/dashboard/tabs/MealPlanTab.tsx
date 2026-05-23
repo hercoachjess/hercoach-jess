@@ -130,8 +130,8 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
       <Card>
         <CardBody className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-[#6b6764] mb-1">
-              Status: <span className="text-[#c8c4bc]">{mealPlan?.status ?? 'No plan'}</span>
+            <p className="text-xs text-[#b8b4ac] mb-1">
+              Status: <span className="text-[#e0d8cc]">{mealPlan?.status ?? 'No plan'}</span>
               {mealPlan?.updated_at && (
                 <span className="ml-3">Last edited: {formatDate(mealPlan.updated_at)}</span>
               )}
@@ -160,7 +160,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
         ].map(({ key, label, unit }) => (
           <Card key={key}>
             <CardBody className="py-3">
-              <p className="text-xs text-[#6b6764] mb-1">{label}</p>
+              <p className="text-xs text-[#b8b4ac] mb-1">{label}</p>
               {editing ? (
                 <input
                   type="number"
@@ -170,7 +170,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
                 />
               ) : (
                 <p className="text-xl text-[#f0ece4]">
-                  {editedTargets[key as keyof typeof editedTargets]}<span className="text-sm text-[#6b6764] ml-1">{unit}</span>
+                  {editedTargets[key as keyof typeof editedTargets]}<span className="text-sm text-[#b8b4ac] ml-1">{unit}</span>
                 </p>
               )}
             </CardBody>
@@ -180,7 +180,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
 
       {/* Meals */}
       {editedMeals.length === 0 && !editing && (
-        <div className="text-center py-16 text-[#6b6764] text-sm">
+        <div className="text-center py-16 text-[#b8b4ac] text-sm">
           No meal plan yet. Use &ldquo;AI draft new version&rdquo; or &ldquo;Edit&rdquo; to create one.
         </div>
       )}
@@ -205,7 +205,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
               <div className="flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <p className="text-xs text-[#6b6764] mb-1">Meal name</p>
+                    <p className="text-xs text-[#b8b4ac] mb-1">Meal name</p>
                     <input
                       className="input-underline text-sm"
                       value={meal.name}
@@ -219,7 +219,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
                     />
                   </div>
                   <div>
-                    <p className="text-xs text-[#6b6764] mb-1">Time</p>
+                    <p className="text-xs text-[#b8b4ac] mb-1">Time</p>
                     <input
                       className="input-underline text-sm"
                       value={meal.time}
@@ -242,7 +242,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
                       placeholder="e.g. 150g chicken breast"
                     />
                     <button
-                      className="text-[#6b6764] hover:text-[#b06060] transition-colors flex-shrink-0"
+                      className="text-[#b8b4ac] hover:text-[#b06060] transition-colors flex-shrink-0"
                       onClick={() => removeMealItem(mealIdx, itemIdx)}
                     >
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
@@ -252,7 +252,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
                   </div>
                 ))}
                 <button
-                  className="text-xs text-[#6b6764] hover:text-[#c8c4bc] text-left transition-colors mt-1"
+                  className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors mt-1"
                   onClick={() => addMealItem(mealIdx)}
                 >
                   + Add item
@@ -261,8 +261,8 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
             ) : (
               <ul className="flex flex-col gap-1">
                 {meal.items.map((item, i) => (
-                  <li key={i} className="text-sm text-[#c8c4bc] flex items-start gap-2">
-                    <span className="text-[#6b6764] mt-0.5">·</span>
+                  <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
+                    <span className="text-[#b8b4ac] mt-0.5">·</span>
                     {item}
                   </li>
                 ))}
@@ -276,7 +276,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
       {(editing || coachNotes) && (
         <Card>
           <CardBody>
-            <p className="text-xs text-[#6b6764] tracking-widest uppercase mb-2">Coach notes</p>
+            <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Coach notes</p>
             {editing ? (
               <textarea
                 className="input-underline text-sm"
@@ -286,7 +286,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
                 placeholder="Optional notes about this plan..."
               />
             ) : (
-              <p className="text-sm text-[#c8c4bc] leading-relaxed italic">{coachNotes}</p>
+              <p className="text-sm text-[#e0d8cc] leading-relaxed italic">{coachNotes}</p>
             )}
           </CardBody>
         </Card>
@@ -295,7 +295,7 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
       {error && <p className="text-sm text-[#b06060]">{error}</p>}
 
       {/* AI disclaimer */}
-      <p className="text-xs text-[#4a4744] leading-relaxed">
+      <p className="text-xs text-[#8a8680] leading-relaxed">
         AI suggests meals using clinically approved nutritional research — you always edit and approve before saving.
       </p>
 

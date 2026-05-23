@@ -9,7 +9,7 @@ interface CardProps {
 export default function Card({ children, className = '', elevated }: CardProps) {
   const bg = elevated ? 'bg-[#141414]' : 'bg-[#0e0e0e]'
   return (
-    <div className={`${bg} border border-[rgba(255,255,255,0.07)] rounded-sm ${className}`}>
+    <div className={`${bg} border border-[rgba(255,255,255,0.24)] rounded-sm ${className}`}>
       {children}
     </div>
   )
@@ -17,7 +17,7 @@ export default function Card({ children, className = '', elevated }: CardProps) 
 
 export function CardHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`px-5 py-4 border-b border-[rgba(255,255,255,0.07)] ${className}`}>
+    <div className={`px-5 py-4 border-b border-[rgba(255,255,255,0.24)] ${className}`}>
       {children}
     </div>
   )

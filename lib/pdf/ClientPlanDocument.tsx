@@ -1,25 +1,13 @@
 /* eslint-disable jsx-a11y/alt-text, @typescript-eslint/no-explicit-any */
 import {
-  Document, Page, Text, View, StyleSheet, Font,
+  Document, Page, Text, View, StyleSheet,
 } from '@react-pdf/renderer'
 import type { Client, MealPlan, TrainingPlan } from '@/types'
 
-// ───────────────── FONT REGISTRATION ─────────────────
-// Cormorant Garamond → italic serif (logo + section headings, like FreeSerif-Italic)
-// EB Garamond → bold serif for day headings (like Caladea-Bold)
-// Jost / Helvetica → sans-serif body text (like Carlito)
-Font.register({
-  family: 'CormorantItalic',
-  src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3WmX5slCNuHLi8bLeY9MK7whWMhyjornFLsS6V7w.ttf',
-})
-Font.register({
-  family: 'EBGaramond',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/ebgaramond/v27/SlGDmQSNjdsmc35JDF1K5FRyRZmnNGQOoiOaO_iUOHWiKAYf.ttf' },
-    { src: 'https://fonts.gstatic.com/s/ebgaramond/v27/SlGFmQSNjdsmc35JDF1K5GRwSDw_ZQMlNHaOoiOaO_iUOHWiKAYf.ttf', fontWeight: 700 },
-    { src: 'https://fonts.gstatic.com/s/ebgaramond/v27/SlGDmQSNjdsmc35JDF1K5FRyRZmnNGQOoiOaO_iUOHWiKAYf.ttf', fontStyle: 'italic' },
-  ],
-})
+// ───────────────── FONTS ─────────────────
+// Using PDF built-in fonts (Helvetica + Times-Italic) so PDFs always generate
+// without depending on external font URLs that can break. Times-Italic gives
+// the serif-italic look for the logo wordmark and section titles.
 
 // ───────────────── COLOURS (match Python) ─────────────────
 const C = {
@@ -57,9 +45,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 50, paddingTop: 26,
   },
   logoRow: { flexDirection: 'row', alignItems: 'baseline' },
-  logoMain: { fontFamily: 'CormorantItalic', fontSize: 26, color: C.WARM_WHITE },
+  logoMain: { fontFamily: 'Times-Italic', fontSize: 26, color: C.WARM_WHITE },
   logoDot:  { fontSize: 22, color: C.LIGHT_GREY, marginHorizontal: 4 },
-  logoJess: { fontFamily: 'CormorantItalic', fontSize: 28, color: C.WARM_WHITE },
+  logoJess: { fontFamily: 'Times-Italic', fontSize: 28, color: C.WARM_WHITE },
   tagline:  { fontSize: 7, color: '#666666', marginTop: 6, letterSpacing: 2.5 },
   taglineRule: { borderBottomWidth: 0.4, borderBottomColor: C.ACCENT, width: 220, marginTop: 3 },
   rdBadge: {
@@ -95,7 +83,7 @@ const s = StyleSheet.create({
   // Section heading
   eyebrow: { fontSize: 7, color: C.MID_GREY, letterSpacing: 1.2, marginBottom: 2 },
   sectionTitle: {
-    fontFamily: 'CormorantItalic', fontSize: 18, color: C.BLACK,
+    fontFamily: 'Times-Italic', fontSize: 18, color: C.BLACK,
     marginBottom: 6,
   },
   sectionRule: { borderBottomWidth: 0.5, borderBottomColor: C.RULE_LIGHT, marginBottom: 12 },
@@ -133,7 +121,7 @@ const s = StyleSheet.create({
     flex: 1, alignItems: 'center', paddingVertical: 10,
     borderRightWidth: 0.5, borderRightColor: C.RULE_LIGHT,
   },
-  chipValue: { fontFamily: 'CormorantItalic', fontSize: 15, color: C.BLACK },
+  chipValue: { fontFamily: 'Times-Italic', fontSize: 15, color: C.BLACK },
   chipLabel: { fontSize: 7, color: C.MID_GREY, marginTop: 3, letterSpacing: 0.5 },
 
   // Two-column linen
@@ -165,7 +153,7 @@ const s = StyleSheet.create({
     backgroundColor: C.LINEN, borderWidth: 0.5, borderColor: C.RULE_LIGHT,
     padding: 22, marginTop: 16, alignItems: 'center',
   },
-  closeLogo: { fontFamily: 'CormorantItalic', fontSize: 24, color: C.BLACK, marginBottom: 4 },
+  closeLogo: { fontFamily: 'Times-Italic', fontSize: 24, color: C.BLACK, marginBottom: 4 },
   closeTag:  { fontFamily: 'Helvetica-Oblique', fontSize: 9, color: C.MID_GREY, marginTop: 4 },
   closeCred: { fontSize: 8, color: C.MID_GREY, marginTop: 10, textAlign: 'center' },
   closeRule: { borderBottomWidth: 0.4, borderBottomColor: C.RULE_LIGHT, width: '60%', marginVertical: 8 },

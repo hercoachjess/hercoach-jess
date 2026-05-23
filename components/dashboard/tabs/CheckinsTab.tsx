@@ -16,7 +16,7 @@ export default function CheckinsTab({ checkins }: Props) {
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
   if (checkins.length === 0) {
-    return <div className="text-center py-20 text-[#6b6764] text-sm">No check-ins yet.</div>
+    return <div className="text-center py-20 text-[#b8b4ac] text-sm">No check-ins yet.</div>
   }
 
   return (
@@ -31,7 +31,7 @@ export default function CheckinsTab({ checkins }: Props) {
             <button className="w-full flex items-center justify-between px-5 py-4 text-left" onClick={() => setExpanded(isOpen ? null : checkin.id)}>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-[#f0ece4]">Week {checkin.week_number ?? '—'}</span>
-                <span className="text-xs text-[#6b6764]">{formatDate(checkin.created_at)}</span>
+                <span className="text-xs text-[#b8b4ac]">{formatDate(checkin.created_at)}</span>
                 {isNew && <Badge variant="active">Needs review</Badge>}
               </div>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" className={`transition-transform ${isOpen ? 'rotate-90' : ''}`}>
@@ -40,7 +40,7 @@ export default function CheckinsTab({ checkins }: Props) {
             </button>
 
             {isOpen && (
-              <div className="px-5 pb-5 flex flex-col gap-5 border-t border-[rgba(255,255,255,0.07)]">
+              <div className="px-5 pb-5 flex flex-col gap-5 border-t border-[rgba(255,255,255,0.24)]">
                 {/* Body & weight */}
                 <Section title="Body">
                   {p.weight_kg != null && <Row label="Weight" value={`${p.weight_kg} kg`} />}
@@ -76,25 +76,25 @@ export default function CheckinsTab({ checkins }: Props) {
                 {p.biggest_win && (
                   <div>
                     <p className="text-xs tracking-widest uppercase mb-1 text-[#7da87d]">Biggest win</p>
-                    <p className="text-sm text-[#c8c4bc] leading-relaxed">{p.biggest_win}</p>
+                    <p className="text-sm text-[#e0d8cc] leading-relaxed">{p.biggest_win}</p>
                   </div>
                 )}
                 {p.hardest_part && (
                   <div>
                     <p className="text-xs tracking-widest uppercase mb-1 text-[#c89a6a]">Hardest part</p>
-                    <p className="text-sm text-[#c8c4bc] leading-relaxed">{p.hardest_part}</p>
+                    <p className="text-sm text-[#e0d8cc] leading-relaxed">{p.hardest_part}</p>
                   </div>
                 )}
                 {p.mood && (
                   <div>
-                    <p className="text-xs tracking-widest uppercase mb-1 text-[#6b6764]">Mood</p>
-                    <p className="text-sm text-[#c8c4bc]">{p.mood}</p>
+                    <p className="text-xs tracking-widest uppercase mb-1 text-[#b8b4ac]">Mood</p>
+                    <p className="text-sm text-[#e0d8cc]">{p.mood}</p>
                   </div>
                 )}
                 {p.questions_for_jess && (
                   <div>
-                    <p className="text-xs tracking-widest uppercase mb-1 text-[#6b6764]">Questions for Jess</p>
-                    <p className="text-sm text-[#c8c4bc] leading-relaxed">{p.questions_for_jess}</p>
+                    <p className="text-xs tracking-widest uppercase mb-1 text-[#b8b4ac]">Questions for Jess</p>
+                    <p className="text-sm text-[#e0d8cc] leading-relaxed">{p.questions_for_jess}</p>
                   </div>
                 )}
               </div>
@@ -111,7 +111,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   if (!hasContent) return null
   return (
     <div className="pt-4">
-      <p className="text-xs text-[#6b6764] tracking-widest uppercase mb-2">{title}</p>
+      <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">{title}</p>
       <div className="grid grid-cols-2 gap-x-6 gap-y-2">{children}</div>
     </div>
   )
@@ -120,8 +120,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-[#6b6764] mb-0.5">{label}</p>
-      <p className="text-sm text-[#c8c4bc]">{value}</p>
+      <p className="text-xs text-[#b8b4ac] mb-0.5">{label}</p>
+      <p className="text-sm text-[#e0d8cc]">{value}</p>
     </div>
   )
 }
@@ -129,8 +129,8 @@ function Row({ label, value }: { label: string; value: string }) {
 function RowFull({ label, value }: { label: string; value: string }) {
   return (
     <div className="col-span-2">
-      <p className="text-xs text-[#6b6764] mb-0.5">{label}</p>
-      <p className="text-sm text-[#c8c4bc] leading-relaxed">{value}</p>
+      <p className="text-xs text-[#b8b4ac] mb-0.5">{label}</p>
+      <p className="text-sm text-[#e0d8cc] leading-relaxed">{value}</p>
     </div>
   )
 }
