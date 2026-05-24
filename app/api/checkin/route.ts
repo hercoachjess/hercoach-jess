@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const payload: CheckinPayload = body.payload
+    const bodyMeasurements = (body.body_measurements && typeof body.body_measurements === 'object') ? body.body_measurements : null
+    const photos: string[] = Array.isArray(body.photos) ? body.photos.filter((u: unknown) => typeof u === 'string') : []
 
     if (!payload?.name || !payload?.email) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
       client_id: client.id,
       week_number: weeksCoached,
       payload,
+      body_measurements: bodyMeasurements ?? {},
+      photos,
     })
 
     if (checkinError) {

@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import Badge from '@/components/ui/Badge'
-import { getInitials, resolvePaymentStatus, getWeeksSince } from '@/lib/utils'
+import { resolvePaymentStatus } from '@/lib/utils'
 import type { Client, CheckinSubmission, Payment } from '@/types'
 import AddClientButton from '@/components/dashboard/AddClientButton'
 import CopyLink from '@/components/ui/CopyLink'
+import ClientListSection from '@/components/dashboard/ClientListSection'
 
 function getHour() {
   return new Date().getHours()
@@ -123,69 +122,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Client list */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm text-[#e0d8cc] tracking-widest uppercase">Clients</h2>
-      </div>
-
-      <div className="flex flex-col gap-2 mb-6">
-        {clientList.length === 0 && (
-          <div className="text-center py-16 text-[#b8b4ac] text-sm">
-            No clients yet. Add your first client below.
-          </div>
-        )}
-        {clientList.map((client) => {
-          const checkin = latestCheckin[client.id]
-          const pStatus = paymentStatus[client.id]
-          const weeksCoached = getWeeksSince(client.created_at)
-
-          return (
-            <Link
-              key={client.id}
-              href={`/dashboard/client/${client.id}`}
-              className="flex items-center gap-4 bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] hover:border-[rgba(255,255,255,0.24)] rounded-sm px-5 py-4 transition-colors group"
-            >
-              {/* Avatar */}
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.10)', color: '#e0d8cc' }}
-              >
-                {getInitials(client.full_name)}
-              </div>
-
-              {/* Main info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-0.5">
-                  <span className="text-sm font-medium text-[#f0ece4] group-hover:text-white transition-colors">
-                    {client.full_name}
-                  </span>
-                  <Badge variant={client.status as 'active' | 'paused' | 'archived'} dot>
-                    {client.status}
-                  </Badge>
-                </div>
-                <p className="text-xs text-[#b8b4ac] truncate">
-                  {client.goal || 'No goal set'}
-                  {client.checkin_day && ` · Check-in: ${client.checkin_day}s`}
-                  {weeksCoached > 0 && ` · Week ${weeksCoached}`}
-                </p>
-              </div>
-
-              {/* Right-side badges */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {checkin && new Date(checkin.created_at) > oneWeekAgo && (
-                  <Badge variant="default">New check-in</Badge>
-                )}
-                {pStatus && (
-                  <Badge variant={pStatus}>{pStatus === 'overdue' ? 'Overdue' : pStatus === 'paid' ? 'Paid' : 'Pending'}</Badge>
-                )}
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2">
-                  <path d="M5 2l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </Link>
-          )
-        })}
-      </div>
+      {/* Client list — interactive search + status filters live in the client component */}
+      <ClientListSection
+        clients={clientList}
+        latestCheckin={latestCheckin}
+        paymentStatus={paymentStatus}
+        oneWeekAgoIso={oneWeekAgo.toISOString()}
+      />
 
       <AddClientButton />
     </div>

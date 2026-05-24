@@ -21,6 +21,7 @@ export interface Client {
   hr_zone2_high: number | null
   checkin_day: string | null
   coach_notes: string | null
+  pinned_note: string | null
 }
 
 export interface OnboardingSubmission {
@@ -102,6 +103,16 @@ export interface CheckinSubmission {
   created_at: string
   week_number: number | null
   payload: CheckinPayload
+  body_measurements?: BodyMeasurements
+  photos?: string[]
+}
+
+export interface BodyMeasurements {
+  waist_cm?: number | null
+  hips_cm?: number | null
+  chest_cm?: number | null
+  thigh_cm?: number | null
+  arm_cm?: number | null
 }
 
 // Categorical check-in answers (the form uses pills/icons/selects rather than 1–10 sliders)

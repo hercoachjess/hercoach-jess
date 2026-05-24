@@ -198,6 +198,46 @@ export default function CheckinForm() {
   const [mood, setMood] = useState('')
   const [questions, setQuestions] = useState('')
 
+  // Optional body measurements (cm) + progress photos
+  const [waistCm, setWaistCm] = useState('')
+  const [hipsCm, setHipsCm] = useState('')
+  const [chestCm, setChestCm] = useState('')
+  const [thighCm, setThighCm] = useState('')
+  const [armCm, setArmCm] = useState('')
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+
+  async function handlePhotoUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setPhotoUploading(true); setPhotoError('')
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const uploaded: string[] = []
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+        const path = `${crypto.randomUUID()}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('checkin-photos')
+          .upload(path, file, { contentType: file.type, upsert: false })
+        if (uploadErr) { setPhotoError(uploadErr.message); continue }
+        const { data: urlData } = supabase.storage.from('checkin-photos').getPublicUrl(path)
+        uploaded.push(urlData.publicUrl)
+      }
+      setPhotoUrls((prev) => [...prev, ...uploaded])
+    } catch (e: unknown) {
+      setPhotoError(e instanceof Error ? e.message : 'Upload failed.')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  function removePhoto(url: string) {
+    setPhotoUrls((prev) => prev.filter((u) => u !== url))
+  }
+
   async function submitForm() {
     if (!name.trim() || !email.trim()) {
       setError('Please enter your name and email so Jess can find your file.')
@@ -231,11 +271,23 @@ export default function CheckinForm() {
       questions_for_jess: questions,
     }
 
+    // Optional body measurements — only send fields that were filled in
+    const bodyMeasurements: Record<string, number> = {}
+    if (waistCm) bodyMeasurements.waist_cm = parseFloat(waistCm)
+    if (hipsCm) bodyMeasurements.hips_cm = parseFloat(hipsCm)
+    if (chestCm) bodyMeasurements.chest_cm = parseFloat(chestCm)
+    if (thighCm) bodyMeasurements.thigh_cm = parseFloat(thighCm)
+    if (armCm) bodyMeasurements.arm_cm = parseFloat(armCm)
+
     try {
       const res = await fetch('/api/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload }),
+        body: JSON.stringify({
+          payload,
+          body_measurements: Object.keys(bodyMeasurements).length > 0 ? bodyMeasurements : undefined,
+          photos: photoUrls.length > 0 ? photoUrls : undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Submission failed.')
@@ -381,6 +433,66 @@ export default function CheckinForm() {
               <Field label="Questions or notes for Jess?">
                 <Textarea value={questions} onChange={setQuestions} placeholder="Anything at all — this is your space." />
               </Field>
+            </Card>
+
+            {/* OPTIONAL — Body measurements + progress photos. Completely skippable. */}
+            <Card>
+              <CardLabel>Optional — measurements &amp; photos</CardLabel>
+              <p className="text-[12px] text-[#7a7670] italic font-serif mb-5 leading-relaxed">
+                These are completely optional and you can skip them. Many clients find measurements and photos useful — they catch shape change the scale can&apos;t see.
+              </p>
+
+              <div className="mb-7">
+                <p className="text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-3">Tape measurements (cm)</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-7 gap-y-0">
+                  <Field label="Waist"><Input type="number" value={waistCm} onChange={setWaistCm} placeholder="e.g. 78" /></Field>
+                  <Field label="Hips"><Input type="number" value={hipsCm} onChange={setHipsCm} placeholder="e.g. 95" /></Field>
+                  <Field label="Chest"><Input type="number" value={chestCm} onChange={setChestCm} placeholder="e.g. 88" /></Field>
+                  <Field label="Thigh"><Input type="number" value={thighCm} onChange={setThighCm} placeholder="e.g. 56" /></Field>
+                  <Field label="Arm"><Input type="number" value={armCm} onChange={setArmCm} placeholder="e.g. 30" /></Field>
+                </div>
+                <p className="text-[11px] text-[#7a7670] leading-[1.6] mt-2 italic font-serif">
+                  Measure first thing in the morning, same time of day each week, relaxed (not flexed).
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-3">Progress photos</p>
+                <p className="text-[11px] text-[#7a7670] leading-[1.6] mb-3 italic font-serif">
+                  Front + side, same lighting and time of day. Completely private — only Jess will see them.
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={photoUploading}
+                  onChange={(e) => handlePhotoUpload(e.target.files)}
+                  className="block text-[12px] text-[#a8a49c] file:mr-3 file:py-2 file:px-4 file:border file:border-[rgba(255,255,255,0.24)] file:rounded-[2px] file:bg-transparent file:text-[#e0d8cc] file:text-[10px] file:tracking-[2px] file:uppercase file:cursor-pointer file:hover:border-[rgba(255,255,255,0.4)]"
+                />
+                {photoUploading && (
+                  <p className="text-[11px] text-[#a8a49c] mt-2 italic">Uploading…</p>
+                )}
+                {photoError && (
+                  <p className="text-[11px] text-[#b06060] mt-2">{photoError}</p>
+                )}
+                {photoUrls.length > 0 && (
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {photoUrls.map((url) => (
+                      <div key={url} className="relative aspect-[3/4] border border-[rgba(255,255,255,0.14)] rounded-sm overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="Progress" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(url)}
+                          className="absolute top-1 right-1 bg-[rgba(0,0,0,0.65)] text-[#f0ece4] text-[10px] tracking-[1.5px] uppercase px-2 py-0.5 rounded-[2px] hover:bg-[rgba(0,0,0,0.85)]"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
 
             {error && (

@@ -8,10 +8,11 @@ import Badge from '@/components/ui/Badge'
 import Modal from '@/components/ui/Modal'
 import { formatDate, nextVersionNumber } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { MealPlan, TrainingPlan, PlanHistory } from '@/types'
+import type { Client, MealPlan, TrainingPlan, PlanHistory } from '@/types'
 
 interface Props {
   clientId: string
+  client?: Client
   planHistory: PlanHistory[]
   currentMealPlan: MealPlan | null
   currentTrainingPlan: TrainingPlan | null
@@ -19,6 +20,7 @@ interface Props {
 
 export default function PlanHistoryTab({
   clientId,
+  client,
   planHistory,
   currentMealPlan,
   currentTrainingPlan,
@@ -159,6 +161,7 @@ export default function PlanHistoryTab({
                         <Button size="sm" variant="ghost">Download</Button>
                       </a>
                       <CopyPdfLinkButton url={entry.pdf_url} />
+                      <SendToClientButton url={entry.pdf_url} client={client} version={entry.version} />
                     </>
                   )}
                   {!entry.is_current && (
@@ -293,5 +296,58 @@ function CopyPdfLinkButton({ url }: { url: string }) {
     <Button size="sm" variant="ghost" onClick={handleCopy}>
       {copied ? '✓ Copied' : 'Copy link'}
     </Button>
+  )
+}
+
+// Share menu — uses native Web Share when available (mobile), otherwise
+// shows a dropdown of WhatsApp / email / SMS / copy-message-text fallbacks
+// pre-populated with a templated coach-to-client message.
+function SendToClientButton({ url, client, version }: { url: string; client?: Client; version: string }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const firstName = client?.full_name?.split(' ')[0] || 'there'
+  const message = `Hi ${firstName} — your ${version} plan is ready. Have a read through and let me know what you think. Any questions just shout. — Jess
+
+${url}`
+
+  async function tryNativeShare(): Promise<boolean> {
+    // Web Share API on mobile (Safari, Chrome) opens the OS share sheet.
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({ title: `Your ${version} plan`, text: message, url })
+        return true
+      } catch {
+        return false
+      }
+    }
+    return false
+  }
+
+  async function handleClick() {
+    const shared = await tryNativeShare()
+    if (!shared) setMenuOpen((o) => !o)
+  }
+
+  const enc = encodeURIComponent
+  const phoneRaw = (client?.phone || '').replace(/[^0-9+]/g, '')
+  const whatsappUrl = phoneRaw
+    ? `https://wa.me/${phoneRaw.replace(/^\+/, '')}?text=${enc(message)}`
+    : `https://wa.me/?text=${enc(message)}`
+  const smsUrl = phoneRaw ? `sms:${phoneRaw}?body=${enc(message)}` : `sms:?body=${enc(message)}`
+  const mailUrl = `mailto:${client?.email || ''}?subject=${enc(`Your ${version} plan from Jess`)}&body=${enc(message)}`
+
+  return (
+    <div className="relative inline-block">
+      <Button size="sm" onClick={handleClick}>Send to client</Button>
+      {menuOpen && (
+        <div className="absolute right-0 top-full mt-1 z-20 min-w-[200px] bg-[#141414] border border-[rgba(255,255,255,0.24)] rounded-sm shadow-lg flex flex-col py-1">
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">WhatsApp</a>
+          <a href={mailUrl} onClick={() => setMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">Email</a>
+          <a href={smsUrl} onClick={() => setMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">SMS</a>
+          <button onClick={async () => { await navigator.clipboard.writeText(message); setMenuOpen(false) }} className="text-left px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">
+            Copy full message
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

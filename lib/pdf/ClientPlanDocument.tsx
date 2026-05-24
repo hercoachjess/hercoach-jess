@@ -519,6 +519,24 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
                 '5 slow deep breaths — bring your heart rate back to Zone 1 before leaving the gym',
               ]}
             />
+
+            {/* Multi-week progression — listed when programme is longer than 1 week */}
+            {trainingPlan.programme_length_weeks && trainingPlan.programme_length_weeks > 1 && trainingPlan.weekly_progression && trainingPlan.weekly_progression.length > 0 && (
+              <View wrap={false} style={{ marginTop: 18 }}>
+                <Text style={[s.dayHead, { fontSize: 12 }]}>{trainingPlan.programme_length_weeks}-Week Progression</Text>
+                <Text style={[s.noteText, { marginBottom: 6 }]}>
+                  Week 1 is detailed above. The following weeks build on that base — keep the same structure unless told otherwise, and apply the modifications listed.
+                </Text>
+                {trainingPlan.weekly_progression.map((wp, i) => (
+                  <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
+                    <Text style={[s.dayHead, { fontSize: 10 }]}>
+                      Week {wp.week} — {wp.focus}{wp.intensity_target ? `  ·  ${wp.intensity_target}` : ''}
+                    </Text>
+                    <Text style={s.noteText}>{wp.modifications}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </>
         )}
 
@@ -678,6 +696,23 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
                 'Following the portions in this plan takes care of the balance for you',
               ]}
             />
+
+            {/* Food facts — evidence-based one-liners with sources */}
+            {mealPlan.food_facts && mealPlan.food_facts.length > 0 && (
+              <View wrap={false} style={{ marginTop: 18 }}>
+                <Text style={[s.dayHead, { fontSize: 12 }]}>The Science Behind Your Plan</Text>
+                <Text style={[s.noteText, { marginBottom: 6 }]}>
+                  Short evidence-based facts about the foods in this plan — for context, not prescription.
+                </Text>
+                {mealPlan.food_facts.map((f, i) => (
+                  <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
+                    <Text style={[s.dayHead, { fontSize: 10 }]}>{f.food}</Text>
+                    <Text style={[s.noteText, { fontFamily: 'Helvetica', color: C.BLACK }]}>{f.fact}</Text>
+                    <Text style={s.noteText}>Source: {f.source}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
 

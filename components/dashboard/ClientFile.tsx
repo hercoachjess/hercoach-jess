@@ -83,6 +83,9 @@ export default function ClientFile({
             {client.goal || 'No goal set'}
             {weeksCoached > 0 && ` · Week ${weeksCoached}`}
           </p>
+          {client.pinned_note && (
+            <p className="text-sm text-[#c89a6a] italic mt-2 leading-relaxed">📌 {client.pinned_note}</p>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-1">
           <Badge variant={client.status as 'active' | 'paused' | 'archived'} dot>
@@ -126,7 +129,7 @@ export default function ClientFile({
           <OverviewTab client={client} checkins={checkins} onboarding={onboarding} />
         )}
         {activeTab === 1 && (
-          <CheckinsTab checkins={checkins} clientId={client.id} />
+          <CheckinsTab checkins={checkins} clientId={client.id} client={client} onboarding={onboarding} />
         )}
         {activeTab === 2 && (
           <CompareTab checkins={checkins} client={client} />
@@ -143,6 +146,7 @@ export default function ClientFile({
         {activeTab === 6 && (
           <PlanHistoryTab
             clientId={client.id}
+            client={client}
             planHistory={planHistory}
             currentMealPlan={mealPlan}
             currentTrainingPlan={trainingPlan}

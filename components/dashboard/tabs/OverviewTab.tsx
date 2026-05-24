@@ -47,6 +47,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
     full_name: client.full_name ?? '',
     phone: client.phone ?? '',
     email: client.email ?? '',
+    pinned_note: client.pinned_note ?? '',
     checkin_day: client.checkin_day ?? '',
     coach_notes: client.coach_notes ?? '',
     status: client.status,
@@ -112,6 +113,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
       full_name: contact.full_name.trim() || client.full_name,
       phone: contact.phone,
       email: contact.email,
+      pinned_note: contact.pinned_note.trim() || null,
       checkin_day: contact.checkin_day || null,
       coach_notes: contact.coach_notes || null,
       status: contact.status,
@@ -207,6 +209,15 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                     <option value="paused">Paused</option>
                     <option value="archived">Archived</option>
                   </select>
+                </div>
+                <div>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Pinned note <span className="text-[#8a8680] italic">(shown at top of client file)</span></p>
+                  <input
+                    className="input-underline text-sm"
+                    value={contact.pinned_note}
+                    placeholder="e.g. Period week 23 May — expect water retention"
+                    onChange={(e) => setContact((c) => ({ ...c, pinned_note: e.target.value }))}
+                  />
                 </div>
                 <div>
                   <p className="text-xs text-[#b8b4ac] mb-1">Coach notes</p>
