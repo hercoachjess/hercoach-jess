@@ -20,6 +20,9 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   const [editing, setEditing] = useState(false)
   const [editingMealIdx, setEditingMealIdx] = useState<number | null>(null)
   const [aiDrafting, setAiDrafting] = useState(false)
+  const [aiRevising, setAiRevising] = useState(false)
+  const [reviseInstructions, setReviseInstructions] = useState('')
+  const [exporting, setExporting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -97,6 +100,98 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     }
   }
 
+  async function aiRevise() {
+    if (!reviseInstructions.trim()) {
+      setError('Please describe what to change.')
+      return
+    }
+    setAiRevising(true)
+    setError('')
+    try {
+      const food = ob?.food_preferences
+      const health = ob?.health_screening
+      const dietaryParts: string[] = []
+      if (food?.diet_type && food.diet_type.toLowerCase() !== 'no restrictions') dietaryParts.push(food.diet_type)
+      if (food?.foods_loved) dietaryParts.push(`Foods loved: ${food.foods_loved}`)
+      if (food?.eating_pattern) dietaryParts.push(`Eating pattern: ${food.eating_pattern}`)
+      const allergyParts: string[] = []
+      if (food?.allergies) allergyParts.push(food.allergies)
+      if (health?.conditions?.length) {
+        const flags = health.conditions.filter((c) => c && c.toLowerCase() !== 'none of the above')
+        if (flags.length) allergyParts.push(`Diagnosed: ${flags.join(', ')}`)
+      }
+      if (health?.pregnancy && health.pregnancy.toLowerCase() !== 'no') {
+        allergyParts.push(`Pregnancy status: ${health.pregnancy}`)
+      }
+
+      const res = await fetch('/api/ai/revise-meal-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client.full_name,
+          goal: client.goal || '',
+          targets: editedTargets,
+          currentMeals: editedMeals,
+          currentCoachNotes: coachNotes,
+          instructions: reviseInstructions,
+          foodPreferences: dietaryParts.join(' | ') || 'No specific preferences recorded',
+          allergies: allergyParts.join(' | ') || 'None reported',
+          dislikes: food?.foods_disliked || '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setEditedMeals(data.meals)
+      if (data.coach_notes) setCoachNotes(data.coach_notes)
+      setReviseInstructions('')
+      setEditing(true)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Revision failed.')
+    } finally {
+      setAiRevising(false)
+    }
+  }
+
+  async function exportPdf() {
+    setExporting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/pdf/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.id,
+          mealPlan: {
+            ...(mealPlan ?? {}),
+            targets: editedTargets,
+            meals: editedMeals,
+            coach_notes: coachNotes,
+          },
+          trainingPlan: null,
+          version: mealPlan?.status === 'saved' ? 'current' : 'draft',
+          includeNumbers: true,
+          scope: 'meal',
+          mode: 'inline',
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Export failed.' }))
+        throw new Error(data.error || 'Export failed.')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-meal-plan.pdf`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Export failed.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   async function saveDraft() {
     setSaving(true)
     setError('')
@@ -170,10 +265,15 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
               )}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button variant="outline" size="sm" loading={aiDrafting} onClick={aiDraft}>
               AI draft new version
             </Button>
+            {editedMeals.length > 0 && (
+              <Button variant="outline" size="sm" loading={exporting} onClick={exportPdf}>
+                Export as PDF
+              </Button>
+            )}
             {mealPlan && !editing && (
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
                 Edit
@@ -182,6 +282,32 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           </div>
         </CardBody>
       </Card>
+
+      {/* Ask AI to change */}
+      {editedMeals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Ask AI to change this plan</span>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-3">
+            <textarea
+              className="input-underline text-sm"
+              rows={3}
+              placeholder="e.g. Swap chicken for salmon at lunch · Add a higher-carb breakfast on training days · Make it dairy-free · Lower the calories by 200 across the day"
+              value={reviseInstructions}
+              onChange={(e) => setReviseInstructions(e.target.value)}
+            />
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-[#8a8680] leading-relaxed flex-1">
+                The AI rewrites only what you ask — everything else stays as it is. You always review and approve before saving.
+              </p>
+              <Button size="sm" loading={aiRevising} disabled={!reviseInstructions.trim()} onClick={aiRevise}>
+                Update plan
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Targets row */}
       <div className="grid grid-cols-4 gap-3">

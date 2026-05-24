@@ -20,6 +20,9 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [editing, setEditing] = useState(false)
   const [editingSessionIdx, setEditingSessionIdx] = useState<number | null>(null)
   const [aiDrafting, setAiDrafting] = useState(false)
+  const [aiRevising, setAiRevising] = useState(false)
+  const [reviseInstructions, setReviseInstructions] = useState('')
+  const [exporting, setExporting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -55,6 +58,83 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       setError(e instanceof Error ? e.message : 'AI draft failed.')
     } finally {
       setAiDrafting(false)
+    }
+  }
+
+  async function aiRevise() {
+    if (!reviseInstructions.trim()) {
+      setError('Please describe what to change.')
+      return
+    }
+    setAiRevising(true)
+    setError('')
+    try {
+      const res = await fetch('/api/ai/revise-training-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client.full_name,
+          goal: client.goal || '',
+          level,
+          daysPerWeek,
+          gymAccess: ob?.lifestyle?.training_location || 'Gym',
+          injuries: ob?.health_screening?.injuries || '',
+          currentSessions: editedSessions,
+          currentCoachNotes: coachNotes,
+          instructions: reviseInstructions,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setEditedSessions(data.sessions)
+      if (data.coach_notes) setCoachNotes(data.coach_notes)
+      setReviseInstructions('')
+      setEditing(true)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Revision failed.')
+    } finally {
+      setAiRevising(false)
+    }
+  }
+
+  async function exportPdf() {
+    setExporting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/pdf/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.id,
+          mealPlan: null,
+          trainingPlan: {
+            ...(trainingPlan ?? {}),
+            level,
+            days_per_week: daysPerWeek,
+            sessions: editedSessions,
+            coach_notes: coachNotes,
+          },
+          version: trainingPlan?.status === 'saved' ? 'current' : 'draft',
+          includeNumbers: true,
+          scope: 'training',
+          mode: 'inline',
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Export failed.' }))
+        throw new Error(data.error || 'Export failed.')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-training-plan.pdf`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Export failed.')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -136,10 +216,15 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
               )}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button variant="outline" size="sm" loading={aiDrafting} onClick={aiDraft}>
               AI draft new version
             </Button>
+            {editedSessions.length > 0 && (
+              <Button variant="outline" size="sm" loading={exporting} onClick={exportPdf}>
+                Export as PDF
+              </Button>
+            )}
             {trainingPlan && !editing && (
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
                 Edit
@@ -148,6 +233,32 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           </div>
         </CardBody>
       </Card>
+
+      {/* Ask AI to change */}
+      {editedSessions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Ask AI to change this plan</span>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-3">
+            <textarea
+              className="input-underline text-sm"
+              rows={3}
+              placeholder="e.g. Add a fourth day with conditioning · Swap back squats for goblet squats (knee issue) · Make Wednesday upper-body push-focused · Reduce volume on Friday"
+              value={reviseInstructions}
+              onChange={(e) => setReviseInstructions(e.target.value)}
+            />
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-[#8a8680] leading-relaxed flex-1">
+                The AI rewrites only what you ask — everything else stays as it is. You always review and approve before saving.
+              </p>
+              <Button size="sm" loading={aiRevising} disabled={!reviseInstructions.trim()} onClick={aiRevise}>
+                Update plan
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3">

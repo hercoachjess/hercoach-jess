@@ -5,6 +5,9 @@ import { requireCoach } from '@/lib/supabase/require-coach'
 import ClientPlanDocument from '@/lib/pdf/ClientPlanDocument'
 import type { MealPlan, TrainingPlan, Client } from '@/types'
 
+type Scope = 'meal' | 'training' | 'full'
+type Mode = 'save' | 'inline'
+
 export async function POST(request: NextRequest) {
   const unauthorized = await requireCoach()
   if (unauthorized) return unauthorized
@@ -15,12 +18,16 @@ export async function POST(request: NextRequest) {
       trainingPlan,
       version,
       includeNumbers = true,
+      scope = 'full',
+      mode = 'save',
     }: {
       clientId: string
       mealPlan: MealPlan | null
       trainingPlan: TrainingPlan | null
       version: string
       includeNumbers?: boolean
+      scope?: Scope
+      mode?: Mode
     } = await request.json()
 
     const supabase = createAdminClient()
@@ -35,13 +42,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Client not found.' }, { status: 404 })
     }
 
+    // Scope strips the section the caller doesn't want.
+    const docMealPlan = scope === 'training' ? null : mealPlan
+    const docTrainingPlan = scope === 'meal' ? null : trainingPlan
+
     // Dynamic import to avoid ESM/CJS issues at module load time
     const { renderToBuffer } = await import('@react-pdf/renderer')
 
     const doc = createElement(ClientPlanDocument, {
       client: client as Client,
-      mealPlan,
-      trainingPlan,
+      mealPlan: docMealPlan,
+      trainingPlan: docTrainingPlan,
       version,
       includeNumbers,
     })
@@ -49,7 +60,24 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfBuffer = await renderToBuffer(doc as any)
 
-    const fileName = `${clientId}/${version}_${Date.now()}.pdf`
+    // Inline mode: stream the PDF straight back to the browser for download — no storage write.
+    if (mode === 'inline') {
+      const safeName = (client.full_name as string).replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+      const sectionTag = scope === 'meal' ? 'meal-plan' : scope === 'training' ? 'training-plan' : 'full-plan'
+      const filename = `${safeName}-${sectionTag}-${version}.pdf`
+      return new NextResponse(new Uint8Array(pdfBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
+
+    // Save mode (default): upload to storage and return public URL.
+    const scopeFolder = scope === 'full' ? '' : `${scope}/`
+    const fileName = `${clientId}/${scopeFolder}${version}_${Date.now()}.pdf`
 
     const { error: uploadError } = await supabase.storage
       .from('plan-pdfs')
