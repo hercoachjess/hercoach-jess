@@ -11,7 +11,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
+    let supabase
+    try {
+      supabase = createAdminClient()
+    } catch (envErr) {
+      const msg = envErr instanceof Error ? envErr.message : String(envErr)
+      console.error('[checkin] createAdminClient failed:', msg)
+      return NextResponse.json(
+        { error: `Server is misconfigured. ${msg}` },
+        { status: 500 }
+      )
+    }
 
     // Find the client by email (case-insensitive)
     const { data: client, error: clientError } = await supabase
@@ -21,6 +31,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (clientError || !client) {
+      if (clientError) console.error('[checkin] clients lookup error:', clientError)
       return NextResponse.json(
         { error: 'No client found with that email address. Please contact your coach.' },
         { status: 404 }
@@ -41,8 +52,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (checkinError) {
-      console.error('Checkin insert error:', checkinError)
-      return NextResponse.json({ error: 'Failed to save check-in.' }, { status: 500 })
+      console.error('[checkin] checkin_submissions insert error:', checkinError)
+      return NextResponse.json(
+        {
+          error: `Failed to save check-in: ${checkinError.message}`,
+          code: checkinError.code ?? null,
+          hint: checkinError.hint ?? null,
+          details: checkinError.details ?? null,
+        },
+        { status: 500 }
+      )
     }
 
     // Update current weight if provided
@@ -55,7 +74,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('Checkin route error:', err)
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    const stack = err instanceof Error ? err.stack : undefined
+    console.error('[checkin] unhandled error:', msg, stack)
+    return NextResponse.json(
+      { error: `Check-in submission failed: ${msg}` },
+      { status: 500 }
+    )
   }
 }

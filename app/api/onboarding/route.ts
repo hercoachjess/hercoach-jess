@@ -14,7 +14,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
+    let supabase
+    try {
+      supabase = createAdminClient()
+    } catch (envErr) {
+      const msg = envErr instanceof Error ? envErr.message : String(envErr)
+      console.error('[onboarding] createAdminClient failed:', msg)
+      return NextResponse.json(
+        { error: `Server is misconfigured. ${msg}` },
+        { status: 500 }
+      )
+    }
 
     // Approximate DOB from age — Jan 1 of (this year - age)
     let dob: string | null = null
@@ -43,8 +53,16 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (clientError) {
-      console.error('Client insert error:', clientError)
-      return NextResponse.json({ error: 'Failed to create client record.' }, { status: 500 })
+      console.error('[onboarding] clients insert error:', clientError)
+      return NextResponse.json(
+        {
+          error: `Failed to create client record: ${clientError.message}`,
+          code: clientError.code ?? null,
+          hint: clientError.hint ?? null,
+          details: clientError.details ?? null,
+        },
+        { status: 500 }
+      )
     }
 
     const { error: submissionError } = await supabase.from('onboarding_submissions').insert({
@@ -55,13 +73,26 @@ export async function POST(request: NextRequest) {
     })
 
     if (submissionError) {
-      console.error('Submission insert error:', submissionError)
-      return NextResponse.json({ error: 'Failed to save onboarding submission.' }, { status: 500 })
+      console.error('[onboarding] onboarding_submissions insert error:', submissionError)
+      return NextResponse.json(
+        {
+          error: `Failed to save onboarding submission: ${submissionError.message}`,
+          code: submissionError.code ?? null,
+          hint: submissionError.hint ?? null,
+          details: submissionError.details ?? null,
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ success: true, client_id: client.id })
   } catch (err) {
-    console.error('Onboarding route error:', err)
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    const stack = err instanceof Error ? err.stack : undefined
+    console.error('[onboarding] unhandled error:', msg, stack)
+    return NextResponse.json(
+      { error: `Onboarding submission failed: ${msg}` },
+      { status: 500 }
+    )
   }
 }
