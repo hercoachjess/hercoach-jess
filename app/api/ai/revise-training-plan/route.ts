@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       programmeLengthWeeks,
       gymAccess,
       injuries,
+      exerciseDislikes,
       currentSessions,
       currentWeeklyProgression,
       currentCoachNotes,
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
       programmeLengthWeeks?: number
       gymAccess?: string
       injuries?: string
+      exerciseDislikes?: string
       currentSessions: TrainingSession[]
       currentWeeklyProgression?: WeeklyProgression[]
       currentCoachNotes: string
@@ -53,6 +55,10 @@ Intensity preference: ${intensity || 'moderate'} (light = RPE 5–6 / moderate =
 Training style: ${trainingStyle || 'preserve current split unless instructions say otherwise'}
 Equipment / location: ${gymAccess || 'Gym'}
 Injuries / limitations to respect: ${injuries || 'None reported'}
+Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
+
+DO-NOT-PROGRAMME RULE — CRITICAL:
+The "Injuries / limitations" and "Exercises the client does NOT want" lists are absolute. NEVER include any exercise that hits a contraindicated joint, replicates a disliked movement pattern, or otherwise causes the client distress — even if the coach instructions don't explicitly forbid it. If the current programme already includes one, this is your chance to swap it for an equivalent that respects the limitation.
 
 Programme length: ${lengthWeeks} week${lengthWeeks > 1 ? 's' : ''}
 

@@ -53,6 +53,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           programmeLengthWeeks,
           gymAccess: ob?.lifestyle?.training_location || 'Gym',
           injuries: ob?.health_screening?.injuries || '',
+          exerciseDislikes: client.exercise_dislikes || '',
           trainingGoals: ob?.goals?.why || client.goal || '',
         }),
       })
@@ -90,6 +91,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           programmeLengthWeeks,
           gymAccess: ob?.lifestyle?.training_location || 'Gym',
           injuries: ob?.health_screening?.injuries || '',
+          exerciseDislikes: client.exercise_dislikes || '',
           currentSessions: editedSessions,
           currentWeeklyProgression: weeklyProgression,
           currentCoachNotes: coachNotes,
@@ -277,6 +279,34 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
                 Update plan
               </Button>
             </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Things to avoid — injuries from onboarding plus coach-managed exercise dislikes.
+          Always shown at the top so it's visible before generating or editing the plan. */}
+      {(ob?.health_screening?.injuries || client.exercise_dislikes) && (
+        <Card>
+          <CardHeader>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Things to avoid in training</span>
+          </CardHeader>
+          <CardBody>
+            <div className="px-3 py-2 border-l-2 border-[#c89a6a] bg-[rgba(200,154,106,0.05)]">
+              <p className="text-xs tracking-wider uppercase text-[#c89a6a] mb-1">AI will never programme these</p>
+              {ob?.health_screening?.injuries && (
+                <p className="text-sm text-[#e0d8cc] leading-relaxed">
+                  <span className="text-[#b8b4ac]">Injuries / limitations:</span> {ob.health_screening.injuries}
+                </p>
+              )}
+              {client.exercise_dislikes && (
+                <p className="text-sm text-[#e0d8cc] leading-relaxed mt-0.5">
+                  <span className="text-[#b8b4ac]">Exercises they don&apos;t want:</span> {client.exercise_dislikes}
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-[#8a8680] italic leading-relaxed mt-2">
+              Add or update exercise dislikes on Overview → Edit contact (the &ldquo;exercise dislikes&rdquo; field). Useful when a client tells you mid-block they hate burpees / running / overhead pressing etc.
+            </p>
           </CardBody>
         </Card>
       )}

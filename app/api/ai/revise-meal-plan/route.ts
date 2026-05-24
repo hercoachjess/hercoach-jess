@@ -49,19 +49,30 @@ ${JSON.stringify({ meals: currentMeals, coach_notes: currentCoachNotes }, null, 
 COACH INSTRUCTIONS:
 ${instructions.trim()}
 
+DO-NOT-USE RULE — CRITICAL:
+The Allergies and Foods disliked lists are absolute. Every meal AND every alternative must contain ZERO of those ingredients, including hidden forms (e.g. if "fish" is disliked, no anchovies, fish sauce, Worcestershire sauce, Caesar dressing). If a typical recipe relies on a disliked ingredient, swap it for something equivalent. Treat breaking this as if it would harm the client.
+
 Rules:
 - Apply only the changes requested — preserve everything else
-- Continue to use UK supermarket foods; quantities in grams or ml
+- Continue to use UK supermarket foods, naming specific products where helpful (Tesco / Sainsbury's / Aldi / M&S / Waitrose). Mix branded examples with generic items to keep the plan affordable.
+- Quantities in grams or ml
 - Re-balance macros if the changes have shifted them, but stay within ±5% of the daily targets
 - Keep meal times consistent unless instructions say to change them
-- Respect existing allergies / dietary restrictions at all times
+- For each meal, also produce 2 alternatives (same macro target ±10%, same dislike/allergy rules) labelled briefly
 
 Also refresh the "food facts" — short evidence-based one-liners on 4–6 clinically interesting ingredients in the revised plan. Each must cite a credible source (BDA Food Fact Sheet, British Nutrition Foundation, NHS Eatwell Guide, NICE, EFSA, peer-reviewed nutrition journals).
 
 Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 {
   "meals": [
-    { "name": "Breakfast", "time": "07:30", "items": ["80g rolled oats", "..."] }
+    {
+      "name": "Breakfast", "time": "07:30",
+      "items": ["80g rolled oats (Tesco Wholegrain Porridge Oats)", "..."],
+      "alternatives": [
+        { "label": "Higher-protein swap", "items": ["170g Sainsbury's Skyr", "30g granola", "..."] },
+        { "label": "Quick prep", "items": ["1 Belvita Breakfast", "200ml semi-skimmed milk", "..."] }
+      ]
+    }
   ],
   "food_facts": [
     { "food": "Salmon", "fact": "Provides ~2g long-chain omega-3 (EPA+DHA) per 100g — exceeds the SACN target of 250mg/day from a single serving twice a week.", "source": "SACN Advice on Fish Consumption (2004) + NHS Eatwell Guide" }
@@ -71,7 +82,7 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 2500,
+      max_tokens: 4500,
       messages: [{ role: 'user', content: prompt }],
     })
 

@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       programmeLengthWeeks,
       gymAccess,
       injuries,
+      exerciseDislikes,
       trainingGoals,
     }: {
       clientName: string
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
       programmeLengthWeeks?: number
       gymAccess: string
       injuries: string
+      exerciseDislikes?: string
       trainingGoals: string
     } = await request.json()
     const lengthWeeks = [1, 4, 8, 12].includes(programmeLengthWeeks || 1) ? (programmeLengthWeeks as number) : 1
@@ -44,7 +46,16 @@ Training style: ${trainingStyle || 'coach to choose the appropriate split for go
 Programme length: ${lengthWeeks} week${lengthWeeks > 1 ? 's' : ''}
 Equipment / gym access: ${gymAccess || 'Full gym'}
 Injuries / limitations: ${injuries || 'None'}
+Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
 Training goals: ${trainingGoals || goal}
+
+DO-NOT-PROGRAMME RULE — CRITICAL:
+The "Injuries / limitations" and "Exercises the client does NOT want" lists above are absolute. NEVER include any exercise that targets a contraindicated joint, replicates a movement pattern the client dislikes, or causes the client distress. Examples:
+- If they dislike burpees → no burpees, no burpee variations, no thrusters as a substitute either
+- If they dislike running → no running, no jump rope-as-cardio if jumping is the issue; offer cycling/rowing instead
+- If knee injury → no deep squats, lunges or jumping; substitute hip hinge / glute bridge / leg press to safe ROM
+- If shoulder injury → no overhead pressing, no upright rows, no behind-neck pulldowns
+If a programme typically uses one of these movements, swap to an equivalent that respects the limitation.
 
 Rules:
 - Output the WEEK 1 detailed sessions as the "sessions" array

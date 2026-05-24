@@ -48,6 +48,8 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
     phone: client.phone ?? '',
     email: client.email ?? '',
     pinned_note: client.pinned_note ?? '',
+    food_dislikes_override: client.food_dislikes_override ?? '',
+    exercise_dislikes: client.exercise_dislikes ?? '',
     checkin_day: client.checkin_day ?? '',
     coach_notes: client.coach_notes ?? '',
     status: client.status,
@@ -114,6 +116,8 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
       phone: contact.phone,
       email: contact.email,
       pinned_note: contact.pinned_note.trim() || null,
+      food_dislikes_override: contact.food_dislikes_override.trim() || null,
+      exercise_dislikes: contact.exercise_dislikes.trim() || null,
       checkin_day: contact.checkin_day || null,
       coach_notes: contact.coach_notes || null,
       status: contact.status,
@@ -217,6 +221,26 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                     value={contact.pinned_note}
                     placeholder="e.g. Period week 23 May — expect water retention"
                     onChange={(e) => setContact((c) => ({ ...c, pinned_note: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Extra food dislikes <span className="text-[#8a8680] italic">(in addition to onboarding — AI will never include)</span></p>
+                  <textarea
+                    className="input-underline text-sm"
+                    rows={2}
+                    value={contact.food_dislikes_override}
+                    placeholder="e.g. cottage cheese, anchovies, anything with a strong smell"
+                    onChange={(e) => setContact((c) => ({ ...c, food_dislikes_override: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Exercise dislikes <span className="text-[#8a8680] italic">(AI will never programme these)</span></p>
+                  <textarea
+                    className="input-underline text-sm"
+                    rows={2}
+                    value={contact.exercise_dislikes}
+                    placeholder="e.g. burpees, running, overhead pressing, any jumping"
+                    onChange={(e) => setContact((c) => ({ ...c, exercise_dislikes: e.target.value }))}
                   />
                 </div>
                 <div>

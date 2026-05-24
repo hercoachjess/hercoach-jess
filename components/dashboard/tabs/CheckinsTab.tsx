@@ -1,11 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import Modal from '@/components/ui/Modal'
 import { formatDate } from '@/lib/utils'
-import type { CheckinSubmission, Client, OnboardingSubmission } from '@/types'
+import { createClient } from '@/lib/supabase/client'
+import type { CheckinSubmission, CheckinPayload, BodyMeasurements, Client, OnboardingSubmission } from '@/types'
 
 interface Props {
   checkins: CheckinSubmission[]
@@ -14,10 +17,80 @@ interface Props {
   onboarding?: OnboardingSubmission | null
 }
 
+// Editable check-in fields with display labels — drives the Edit modal UI.
+// Free-text fields render as textareas, the others as text inputs.
+const CHECKIN_FIELDS: { key: keyof CheckinPayload; label: string; long?: boolean }[] = [
+  { key: 'weight_kg',           label: 'Weight (kg)' },
+  { key: 'clothes_fit',         label: 'Clothes fit' },
+  { key: 'body_feel',           label: 'Body feel' },
+  { key: 'nutrition_adherence', label: 'Nutrition adherence' },
+  { key: 'hunger',              label: 'Hunger' },
+  { key: 'cravings',            label: 'Cravings', long: true },
+  { key: 'threw_off',           label: 'What threw them off', long: true },
+  { key: 'training_sessions',   label: 'Training sessions' },
+  { key: 'training_feel',       label: 'How training felt' },
+  { key: 'prs',                 label: 'PBs / improvements', long: true },
+  { key: 'discomfort',          label: 'Discomfort / pain', long: true },
+  { key: 'sleep_quality',       label: 'Sleep quality' },
+  { key: 'stress_level',        label: 'Stress level' },
+  { key: 'energy',              label: 'Energy' },
+  { key: 'water_intake',        label: 'Water intake' },
+  { key: 'biggest_win',         label: 'Biggest win', long: true },
+  { key: 'hardest_part',        label: 'Hardest part', long: true },
+  { key: 'mood',                label: 'Mood' },
+  { key: 'questions_for_jess',  label: 'Questions / notes for Jess', long: true },
+]
+
+const MEASUREMENT_FIELDS: { key: keyof BodyMeasurements; label: string }[] = [
+  { key: 'waist_cm', label: 'Waist (cm)' },
+  { key: 'hips_cm',  label: 'Hips (cm)' },
+  { key: 'chest_cm', label: 'Chest (cm)' },
+  { key: 'thigh_cm', label: 'Thigh (cm)' },
+  { key: 'arm_cm',   label: 'Arm (cm)' },
+]
+
 export default function CheckinsTab({ checkins, client, onboarding }: Props) {
+  const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(checkins[0]?.id ?? null)
   const [aiReplyState, setAiReplyState] = useState<Record<string, { loading: boolean; reply: string; concerns: string[]; copied: boolean; error?: string }>>({})
+  const [editing, setEditing] = useState<CheckinSubmission | null>(null)
+  const [editPayload, setEditPayload] = useState<CheckinPayload | null>(null)
+  const [editMeasurements, setEditMeasurements] = useState<BodyMeasurements>({})
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState('')
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+  function openEdit(checkin: CheckinSubmission) {
+    setEditing(checkin)
+    setEditPayload({ ...checkin.payload })
+    setEditMeasurements({ ...(checkin.body_measurements ?? {}) })
+    setEditError('')
+  }
+
+  async function saveEdit() {
+    if (!editing || !editPayload) return
+    setSavingEdit(true); setEditError('')
+    // Trim empty measurement entries so we don't write {waist_cm: null} when blank.
+    const cleanedMeasurements: BodyMeasurements = {}
+    for (const f of MEASUREMENT_FIELDS) {
+      const v = editMeasurements[f.key]
+      if (v != null && v !== ('' as unknown as number)) cleanedMeasurements[f.key] = Number(v)
+    }
+    const supabase = createClient()
+    const { error: e } = await supabase
+      .from('checkin_submissions')
+      .update({
+        payload: editPayload,
+        body_measurements: cleanedMeasurements,
+      })
+      .eq('id', editing.id)
+    setSavingEdit(false)
+    if (e) { setEditError(e.message); return }
+    setEditing(null)
+    setEditPayload(null)
+    setEditMeasurements({})
+    router.refresh()
+  }
 
   async function draftAiReply(checkin: CheckinSubmission) {
     if (!client) return
@@ -172,6 +245,13 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   </div>
                 )}
 
+                {/* Edit check-in — for coach fixes when client tells her they made a typo */}
+                <div className="pt-3">
+                  <Button size="sm" variant="ghost" onClick={() => openEdit(checkin)}>
+                    Edit this check-in
+                  </Button>
+                </div>
+
                 {/* AI-drafted reply — edit before sending */}
                 {client && (
                   <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
@@ -218,6 +298,97 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
           </Card>
         )
       })}
+
+      {/* Edit check-in modal — coach fixes typos / client mistakes */}
+      <Modal
+        open={!!editing && !!editPayload}
+        onClose={() => { setEditing(null); setEditPayload(null); setEditMeasurements({}); setEditError('') }}
+        title={editing ? `Edit Week ${editing.week_number} check-in` : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setEditing(null); setEditPayload(null); setEditMeasurements({}); setEditError('') }}>Cancel</Button>
+            <Button onClick={saveEdit} loading={savingEdit}>Save changes</Button>
+          </>
+        }
+      >
+        {editPayload && (
+          <div className="flex flex-col gap-5">
+            <p className="text-xs text-[#8a8680] italic leading-relaxed">
+              Use this when the client tells you something was a typo or mis-clicked. Saves overwrite the original submission — the date stays the same.
+            </p>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Name (as submitted)</label>
+              <input
+                className="input-underline text-sm"
+                value={editPayload.name}
+                onChange={(e) => setEditPayload({ ...editPayload, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Email (as submitted)</label>
+              <input
+                className="input-underline text-sm"
+                value={editPayload.email}
+                onChange={(e) => setEditPayload({ ...editPayload, email: e.target.value })}
+              />
+            </div>
+            {CHECKIN_FIELDS.map((f) => {
+              const v = editPayload[f.key]
+              const displayValue = v == null ? '' : String(v)
+              return (
+                <div key={String(f.key)}>
+                  <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">{f.label}</label>
+                  {f.long ? (
+                    <textarea
+                      className="input-underline text-sm"
+                      rows={3}
+                      value={displayValue}
+                      onChange={(e) => setEditPayload({ ...editPayload, [f.key]: e.target.value } as CheckinPayload)}
+                    />
+                  ) : (
+                    <input
+                      type={f.key === 'weight_kg' ? 'number' : 'text'}
+                      step={f.key === 'weight_kg' ? '0.1' : undefined}
+                      className="input-underline text-sm"
+                      value={displayValue}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        const next = f.key === 'weight_kg' ? (raw === '' ? null : Number(raw)) : raw
+                        setEditPayload({ ...editPayload, [f.key]: next } as CheckinPayload)
+                      }}
+                    />
+                  )}
+                </div>
+              )
+            })}
+
+            <div className="pt-2 border-t border-[rgba(255,255,255,0.14)]">
+              <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Body measurements (cm) — optional</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {MEASUREMENT_FIELDS.map((f) => (
+                  <div key={f.key}>
+                    <label className="text-xs text-[#b8b4ac] block mb-1">{f.label}</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="input-underline text-sm"
+                      value={editMeasurements[f.key] == null ? '' : String(editMeasurements[f.key])}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        setEditMeasurements((m) => ({
+                          ...m,
+                          [f.key]: raw === '' ? undefined : Number(raw),
+                        }))
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {editError && <p className="text-sm text-[#b06060]">{editError}</p>}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

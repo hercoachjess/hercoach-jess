@@ -22,6 +22,8 @@ export interface Client {
   checkin_day: string | null
   coach_notes: string | null
   pinned_note: string | null
+  food_dislikes_override: string | null
+  exercise_dislikes: string | null
 }
 
 export interface OnboardingSubmission {
@@ -169,6 +171,12 @@ export interface MacroTargets {
 export interface Meal {
   name: string
   time: string
+  items: string[]
+  alternatives?: MealAlternative[]
+}
+
+export interface MealAlternative {
+  label: string
   items: string[]
 }
 
