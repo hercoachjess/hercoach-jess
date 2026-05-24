@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createElement } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireCoach } from '@/lib/supabase/require-coach'
 import ClientPlanDocument from '@/lib/pdf/ClientPlanDocument'
 import type { MealPlan, TrainingPlan, Client } from '@/types'
 
 export async function POST(request: NextRequest) {
+  const unauthorized = await requireCoach()
+  if (unauthorized) return unauthorized
   try {
     const {
       clientId,

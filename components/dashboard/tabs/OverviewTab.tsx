@@ -42,6 +42,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   })
 
   const [contact, setContact] = useState({
+    full_name: client.full_name ?? '',
     phone: client.phone ?? '',
     email: client.email ?? '',
     checkin_day: client.checkin_day ?? '',
@@ -106,6 +107,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
     setSaving(true)
     const supabase = createClient()
     await supabase.from('clients').update({
+      full_name: contact.full_name.trim() || client.full_name,
       phone: contact.phone,
       email: contact.email,
       checkin_day: contact.checkin_day || null,
@@ -173,6 +175,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
             {editingContact ? (
               <>
                 {[
+                  { key: 'full_name', label: 'Full name' },
                   { key: 'email', label: 'Email', type: 'email' },
                   { key: 'phone', label: 'Phone' },
                 ].map(({ key, label, type }) => (

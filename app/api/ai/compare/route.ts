@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { requireCoach } from '@/lib/supabase/require-coach'
 import type { CheckinPayload } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(request: NextRequest) {
+  const unauthorized = await requireCoach()
+  if (unauthorized) return unauthorized
   try {
     const body = await request.json()
     const {
