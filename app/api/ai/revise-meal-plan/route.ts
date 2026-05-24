@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
-import type { Meal, MacroTargets } from '@/types'
+import type { Meal, MacroTargets, FoodFact } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -56,23 +56,28 @@ Rules:
 - Keep meal times consistent unless instructions say to change them
 - Respect existing allergies / dietary restrictions at all times
 
+Also refresh the "food facts" — short evidence-based one-liners on 4–6 clinically interesting ingredients in the revised plan. Each must cite a credible source (BDA Food Fact Sheet, British Nutrition Foundation, NHS Eatwell Guide, NICE, EFSA, peer-reviewed nutrition journals).
+
 Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 {
   "meals": [
     { "name": "Breakfast", "time": "07:30", "items": ["80g rolled oats", "..."] }
+  ],
+  "food_facts": [
+    { "food": "Salmon", "fact": "Provides ~2g long-chain omega-3 (EPA+DHA) per 100g — exceeds the SACN target of 250mg/day from a single serving twice a week.", "source": "SACN Advice on Fish Consumption (2004) + NHS Eatwell Guide" }
   ],
   "coach_notes": "Brief note on what changed and why"
 }`
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1800,
+      max_tokens: 2500,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
 
-    let parsed: { meals: Meal[]; coach_notes?: string }
+    let parsed: { meals: Meal[]; food_facts?: FoodFact[]; coach_notes?: string }
     try {
       const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       parsed = JSON.parse(cleaned)
@@ -80,7 +85,11 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 })
     }
 
-    return NextResponse.json({ meals: parsed.meals, coach_notes: parsed.coach_notes || '' })
+    return NextResponse.json({
+      meals: parsed.meals,
+      food_facts: parsed.food_facts ?? [],
+      coach_notes: parsed.coach_notes || '',
+    })
   } catch (err) {
     console.error('AI revise meal plan error:', err)
     return NextResponse.json({ error: 'Failed to revise meal plan.' }, { status: 500 })

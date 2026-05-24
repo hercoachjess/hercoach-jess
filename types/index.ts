@@ -137,8 +137,15 @@ export interface MealPlan {
   status: 'draft' | 'saved' | 'archived'
   targets: MacroTargets
   meals: Meal[]
+  food_facts: FoodFact[]
   coach_notes: string | null
   is_current: boolean
+}
+
+export interface FoodFact {
+  food: string
+  fact: string
+  source: string
 }
 
 export interface MacroTargets {
@@ -164,9 +171,18 @@ export interface TrainingPlan {
   days_per_week: number
   intensity: 'light' | 'moderate' | 'high'
   training_style: string | null
+  programme_length_weeks: 1 | 4 | 8 | 12
+  weekly_progression: WeeklyProgression[]
   sessions: TrainingSession[]
   coach_notes: string | null
   is_current: boolean
+}
+
+export interface WeeklyProgression {
+  week: number
+  focus: string
+  modifications: string
+  intensity_target?: string
 }
 
 export interface TrainingSession {

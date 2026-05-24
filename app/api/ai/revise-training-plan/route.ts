@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
-import type { TrainingSession } from '@/types'
+import type { TrainingSession, WeeklyProgression } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -16,9 +16,11 @@ export async function POST(request: NextRequest) {
       daysPerWeek,
       intensity,
       trainingStyle,
+      programmeLengthWeeks,
       gymAccess,
       injuries,
       currentSessions,
+      currentWeeklyProgression,
       currentCoachNotes,
       instructions,
     }: {
@@ -28,12 +30,15 @@ export async function POST(request: NextRequest) {
       daysPerWeek: number
       intensity?: string
       trainingStyle?: string
+      programmeLengthWeeks?: number
       gymAccess?: string
       injuries?: string
       currentSessions: TrainingSession[]
+      currentWeeklyProgression?: WeeklyProgression[]
       currentCoachNotes: string
       instructions: string
     } = await request.json()
+    const lengthWeeks = [1, 4, 8, 12].includes(programmeLengthWeeks || 1) ? (programmeLengthWeeks as number) : 1
 
     if (!instructions || !instructions.trim()) {
       return NextResponse.json({ error: 'Please describe what to change.' }, { status: 400 })
@@ -49,14 +54,17 @@ Training style: ${trainingStyle || 'preserve current split unless instructions s
 Equipment / location: ${gymAccess || 'Gym'}
 Injuries / limitations to respect: ${injuries || 'None reported'}
 
+Programme length: ${lengthWeeks} week${lengthWeeks > 1 ? 's' : ''}
+
 CURRENT TRAINING PROGRAMME (JSON):
-${JSON.stringify({ sessions: currentSessions, coach_notes: currentCoachNotes }, null, 2)}
+${JSON.stringify({ sessions: currentSessions, weekly_progression: currentWeeklyProgression ?? [], coach_notes: currentCoachNotes }, null, 2)}
 
 COACH INSTRUCTIONS:
 ${instructions.trim()}
 
 Rules:
 - Apply only the changes requested — preserve everything else
+- The "sessions" array is Week 1's detailed plan; "weekly_progression" describes weeks 2–${lengthWeeks} (focus + modifications + intensity_target). If the instructions target a specific later week ("make week 5 lighter") modify only that entry in weekly_progression.
 - Maintain balanced volume across muscle groups unless explicitly changing it
 - Respect injuries / limitations at all times — never programme contraindicated movements
 - Keep day labels (Mon/Tue/etc) and overall week structure unless asked to change them
@@ -73,18 +81,21 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       ]
     }
   ],
+  "weekly_progression": [
+    { "week": 2, "focus": "Accumulation", "modifications": "+2.5 kg on main lifts, RPE 7.5", "intensity_target": "RPE 7.5" }
+  ],
   "coach_notes": "Brief note on what changed and why"
 }`
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 2200,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
 
-    let parsed: { sessions: TrainingSession[]; coach_notes?: string }
+    let parsed: { sessions: TrainingSession[]; weekly_progression?: WeeklyProgression[]; coach_notes?: string }
     try {
       const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       parsed = JSON.parse(cleaned)
@@ -92,7 +103,11 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 })
     }
 
-    return NextResponse.json({ sessions: parsed.sessions, coach_notes: parsed.coach_notes || '' })
+    return NextResponse.json({
+      sessions: parsed.sessions,
+      weekly_progression: parsed.weekly_progression ?? [],
+      coach_notes: parsed.coach_notes || '',
+    })
   } catch (err) {
     console.error('AI revise training plan error:', err)
     return NextResponse.json({ error: 'Failed to revise training plan.' }, { status: 500 })

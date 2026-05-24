@@ -6,7 +6,7 @@ import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Client, TrainingPlan, TrainingSession, OnboardingSubmission } from '@/types'
+import type { Client, TrainingPlan, TrainingSession, WeeklyProgression, OnboardingSubmission } from '@/types'
 
 interface Props {
   client: Client
@@ -32,6 +32,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [daysPerWeek, setDaysPerWeek] = useState(trainingPlan?.days_per_week ?? 3)
   const [intensity, setIntensity] = useState<TrainingPlan['intensity']>(trainingPlan?.intensity ?? 'moderate')
   const [trainingStyle, setTrainingStyle] = useState<string>(trainingPlan?.training_style ?? '')
+  const [programmeLengthWeeks, setProgrammeLengthWeeks] = useState<TrainingPlan['programme_length_weeks']>(trainingPlan?.programme_length_weeks ?? 1)
+  const [weeklyProgression, setWeeklyProgression] = useState<WeeklyProgression[]>(trainingPlan?.weekly_progression ?? [])
   const [coachNotes, setCoachNotes] = useState(trainingPlan?.coach_notes ?? '')
 
   async function aiDraft() {
@@ -48,6 +50,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           daysPerWeek,
           intensity,
           trainingStyle: trainingStyle || 'coach to choose appropriate split',
+          programmeLengthWeeks,
           gymAccess: ob?.lifestyle?.training_location || 'Gym',
           injuries: ob?.health_screening?.injuries || '',
           trainingGoals: ob?.goals?.why || client.goal || '',
@@ -56,6 +59,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEditedSessions(data.sessions)
+      if (data.weekly_progression) setWeeklyProgression(data.weekly_progression)
       if (data.coach_notes) setCoachNotes(data.coach_notes)
       setEditing(true)
     } catch (e: unknown) {
@@ -83,9 +87,11 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           daysPerWeek,
           intensity,
           trainingStyle: trainingStyle || '',
+          programmeLengthWeeks,
           gymAccess: ob?.lifestyle?.training_location || 'Gym',
           injuries: ob?.health_screening?.injuries || '',
           currentSessions: editedSessions,
+          currentWeeklyProgression: weeklyProgression,
           currentCoachNotes: coachNotes,
           instructions: reviseInstructions,
         }),
@@ -93,6 +99,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEditedSessions(data.sessions)
+      if (data.weekly_progression) setWeeklyProgression(data.weekly_progression)
       if (data.coach_notes) setCoachNotes(data.coach_notes)
       setReviseInstructions('')
       setEditing(true)
@@ -157,6 +164,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         days_per_week: daysPerWeek,
         intensity,
         training_style: trainingStyle || null,
+        programme_length_weeks: programmeLengthWeeks,
+        weekly_progression: weeklyProgression,
         coach_notes: coachNotes,
         status: 'draft',
         updated_at: now,
@@ -169,6 +178,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         days_per_week: daysPerWeek,
         intensity,
         training_style: trainingStyle || null,
+        programme_length_weeks: programmeLengthWeeks,
+        weekly_progression: weeklyProgression,
         coach_notes: coachNotes,
         status: 'draft',
         is_current: true,
@@ -330,8 +341,77 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
               <p className="text-sm text-[#f0ece4]">{trainingStyle || '—'}</p>
             )}
           </div>
+          <div>
+            <p className="text-xs text-[#b8b4ac] mb-1">Programme length</p>
+            {editing ? (
+              <select
+                className="input-underline text-sm"
+                value={programmeLengthWeeks}
+                onChange={(e) => setProgrammeLengthWeeks(Number(e.target.value) as TrainingPlan['programme_length_weeks'])}
+              >
+                <option value={1}>1 week (single week)</option>
+                <option value={4}>4 weeks</option>
+                <option value={8}>8 weeks</option>
+                <option value={12}>12 weeks</option>
+              </select>
+            ) : (
+              <p className="text-sm text-[#f0ece4]">{programmeLengthWeeks} week{programmeLengthWeeks > 1 ? 's' : ''}</p>
+            )}
+          </div>
         </CardBody>
       </Card>
+
+      {/* Weekly progression — shows weeks 2..N when programme length > 1 */}
+      {programmeLengthWeeks > 1 && weeklyProgression.length > 0 && (
+        <Card>
+          <CardHeader>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Weekly progression · weeks 2–{programmeLengthWeeks}</span>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-3">
+            {weeklyProgression.map((wp, i) => (
+              <div key={i} className="border border-[rgba(255,255,255,0.14)] rounded-sm p-3">
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <span className="text-sm font-medium text-[#f0ece4]">Week {wp.week}</span>
+                  {wp.intensity_target && (
+                    <span className="text-xs text-[#c89a6a]">{wp.intensity_target}</span>
+                  )}
+                </div>
+                {editing ? (
+                  <div className="flex flex-col gap-1.5">
+                    <input
+                      className="input-underline text-sm"
+                      value={wp.focus}
+                      placeholder="Focus (e.g. Accumulation)"
+                      onChange={(e) => setWeeklyProgression((arr) => arr.map((x, j) => j === i ? { ...x, focus: e.target.value } : x))}
+                    />
+                    <textarea
+                      className="input-underline text-xs"
+                      rows={2}
+                      value={wp.modifications}
+                      placeholder="Modifications from previous week"
+                      onChange={(e) => setWeeklyProgression((arr) => arr.map((x, j) => j === i ? { ...x, modifications: e.target.value } : x))}
+                    />
+                    <input
+                      className="input-underline text-xs"
+                      value={wp.intensity_target || ''}
+                      placeholder="Intensity target (e.g. RPE 7.5)"
+                      onChange={(e) => setWeeklyProgression((arr) => arr.map((x, j) => j === i ? { ...x, intensity_target: e.target.value } : x))}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-[#e0d8cc] mb-0.5">{wp.focus}</p>
+                    <p className="text-xs text-[#b8b4ac] leading-relaxed">{wp.modifications}</p>
+                  </>
+                )}
+              </div>
+            ))}
+            <p className="text-xs text-[#8a8680] italic leading-relaxed">
+              Week 1 sessions are detailed below. To revise a specific later week, use &ldquo;Ask AI to change&rdquo; — e.g. <em>&quot;Make week 5 a deload, RPE 6 only, drop one accessory per session&quot;</em>.
+            </p>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Long-term plan card — 12-week coaching arc derived from goal + level */}
       {client.goal && (

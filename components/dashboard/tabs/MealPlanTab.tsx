@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import { formatDate } from '@/lib/utils'
+import { formatDate, macrosForKcal, macroGuidance } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Client, MealPlan, Meal, OnboardingSubmission } from '@/types'
+import type { Client, MealPlan, Meal, FoodFact, OnboardingSubmission } from '@/types'
 
 interface Props {
   client: Client
@@ -39,6 +39,10 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     }
   )
   const [coachNotes, setCoachNotes] = useState(mealPlan?.coach_notes ?? '')
+  const [foodFacts, setFoodFacts] = useState<FoodFact[]>(mealPlan?.food_facts ?? [])
+
+  // Live guidance ranges based on the current edited targets.
+  const guidance = macroGuidance(editedTargets.protein_g, editedTargets.fat_g, editedTargets.carbs_g)
 
   async function aiDraft() {
     setAiDrafting(true)
@@ -91,6 +95,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEditedMeals(data.meals)
+      if (data.food_facts) setFoodFacts(data.food_facts)
       if (data.coach_notes) setCoachNotes(data.coach_notes)
       setEditing(true)
     } catch (e: unknown) {
@@ -142,6 +147,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEditedMeals(data.meals)
+      if (data.food_facts) setFoodFacts(data.food_facts)
       if (data.coach_notes) setCoachNotes(data.coach_notes)
       setReviseInstructions('')
       setEditing(true)
@@ -202,6 +208,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       await supabase.from('meal_plans').update({
         meals: editedMeals,
         targets: editedTargets,
+        food_facts: foodFacts,
         coach_notes: coachNotes,
         status: 'draft',
         updated_at: now,
@@ -211,6 +218,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         client_id: client.id,
         meals: editedMeals,
         targets: editedTargets,
+        food_facts: foodFacts,
         coach_notes: coachNotes,
         status: 'draft',
         is_current: true,
@@ -309,14 +317,14 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </Card>
       )}
 
-      {/* Targets row */}
+      {/* Targets row — editing kcal auto-snaps protein/fat/carbs to the goal-tiered split */}
       <div className="grid grid-cols-4 gap-3">
-        {[
-          { key: 'kcal', label: 'Calories', unit: 'kcal' },
-          { key: 'protein_g', label: 'Protein', unit: 'g' },
-          { key: 'fat_g', label: 'Fat', unit: 'g' },
-          { key: 'carbs_g', label: 'Carbs', unit: 'g' },
-        ].map(({ key, label, unit }) => (
+        {([
+          { key: 'kcal',      label: 'Calories', unit: 'kcal', range: undefined as [number, number] | undefined },
+          { key: 'protein_g', label: 'Protein',  unit: 'g',    range: guidance.protein },
+          { key: 'fat_g',     label: 'Fat',      unit: 'g',    range: guidance.fat },
+          { key: 'carbs_g',   label: 'Carbs',    unit: 'g',    range: guidance.carbs },
+        ] as const).map(({ key, label, unit, range }) => (
           <Card key={key}>
             <CardBody className="py-3">
               <p className="text-xs text-[#b8b4ac] mb-1">{label}</p>
@@ -324,18 +332,39 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                 <input
                   type="number"
                   className="input-underline text-lg w-full"
-                  value={editedTargets[key as keyof typeof editedTargets]}
-                  onChange={(e) => setEditedTargets((t) => ({ ...t, [key]: Number(e.target.value) }))}
+                  value={editedTargets[key]}
+                  onChange={(e) => {
+                    const v = Number(e.target.value)
+                    if (key === 'kcal') {
+                      const recomputed = macrosForKcal(v, client.current_weight_kg, client.goal)
+                      setEditedTargets((t) => ({
+                        ...t,
+                        kcal: v,
+                        ...(recomputed ?? {}),
+                      }))
+                    } else {
+                      setEditedTargets((t) => ({ ...t, [key]: v }))
+                    }
+                  }}
                 />
               ) : (
                 <p className="text-xl text-[#f0ece4]">
-                  {editedTargets[key as keyof typeof editedTargets]}<span className="text-sm text-[#b8b4ac] ml-1">{unit}</span>
+                  {editedTargets[key]}<span className="text-sm text-[#b8b4ac] ml-1">{unit}</span>
                 </p>
+              )}
+              {range && (
+                <p className="text-xs text-[#8a8680] mt-1">Aim {range[0]}–{range[1]} g</p>
               )}
             </CardBody>
           </Card>
         ))}
       </div>
+
+      {editing && (
+        <p className="text-xs text-[#8a8680] italic leading-relaxed -mt-2">
+          Changing calories snaps protein / fat / carbs to the research-based split for the client&apos;s goal — override any field by hand if needed. To change the client&apos;s overall macro defaults, edit Coach Targets on Overview.
+        </p>
+      )}
 
       {/* Meals */}
       {editedMeals.length === 0 && !editing && (
@@ -430,6 +459,73 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           </CardBody>
         </Card>
       ))}
+
+      {/* Food facts — short, sourced one-liners from the AI dietitian */}
+      {foodFacts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Food facts · evidence-based</span>
+              {editing && (
+                <button
+                  className="text-xs text-[#8a8680] hover:text-[#e0d8cc] transition-colors"
+                  onClick={() => setFoodFacts([])}
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-3">
+            {foodFacts.map((f, i) => (
+              <div key={i} className="border-l border-[rgba(255,255,255,0.14)] pl-3">
+                {editing ? (
+                  <div className="flex flex-col gap-1.5">
+                    <input
+                      className="input-underline text-sm"
+                      value={f.food}
+                      placeholder="Food"
+                      onChange={(e) => setFoodFacts((arr) => arr.map((x, j) => j === i ? { ...x, food: e.target.value } : x))}
+                    />
+                    <textarea
+                      className="input-underline text-sm"
+                      rows={2}
+                      value={f.fact}
+                      placeholder="Evidence-based fact"
+                      onChange={(e) => setFoodFacts((arr) => arr.map((x, j) => j === i ? { ...x, fact: e.target.value } : x))}
+                    />
+                    <input
+                      className="input-underline text-xs"
+                      value={f.source}
+                      placeholder="Source (e.g. BDA Food Fact Sheet — Calcium)"
+                      onChange={(e) => setFoodFacts((arr) => arr.map((x, j) => j === i ? { ...x, source: e.target.value } : x))}
+                    />
+                    <button
+                      className="text-xs text-[#b8b4ac] hover:text-[#b06060] self-start mt-0.5 transition-colors"
+                      onClick={() => setFoodFacts((arr) => arr.filter((_, j) => j !== i))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-[#f0ece4] mb-0.5"><span className="text-[#c89a6a]">{f.food}</span> — {f.fact}</p>
+                    <p className="text-xs text-[#8a8680] italic">{f.source}</p>
+                  </>
+                )}
+              </div>
+            ))}
+            {editing && (
+              <button
+                className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors"
+                onClick={() => setFoodFacts((arr) => [...arr, { food: '', fact: '', source: '' }])}
+              >
+                + Add fact
+              </button>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       {/* Coach notes */}
       {(editing || coachNotes) && (
