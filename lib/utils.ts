@@ -15,11 +15,138 @@ export function calculateBMR(
   sex: string | null
 ): number | null {
   if (!weightKg || !heightCm || !age || !sex) return null
-  // Harris-Benedict revised (Mifflin-St Jeor)
+  // Mifflin–St Jeor equation (Mifflin et al, 1990) — the modern, more accurate
+  // refinement of the original Harris–Benedict and the formula used in current
+  // BDA / Academy of Nutrition and Dietetics practice.
   if (sex.toLowerCase() === 'female' || sex.toLowerCase() === 'f') {
     return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161)
   }
   return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5)
+}
+
+// Physical activity multipliers as used with Mifflin–St Jeor / Harris–Benedict.
+export function activityFactor(level: string | undefined | null): { value: number; label: string } {
+  const k = (level ?? '').trim().toLowerCase()
+  if (k.startsWith('sedentary'))  return { value: 1.2,   label: 'Sedentary (desk job, little/no exercise)' }
+  if (k.startsWith('lightly'))    return { value: 1.375, label: 'Lightly active (1–3 sessions/week)' }
+  if (k.startsWith('moderate'))   return { value: 1.55,  label: 'Moderate (3–5 sessions/week)' }
+  if (k.startsWith('very'))       return { value: 1.725, label: 'Very active (6+ sessions/week or physical job)' }
+  return { value: 1.4, label: 'Default (no activity level recorded)' }
+}
+
+// Goal-based calorie adjustment to TDEE.
+export function goalAdjustment(goal: string | undefined | null): { factor: number; label: string; rationale: string } {
+  const k = (goal ?? '').trim().toLowerCase()
+  if (k.includes('fat loss'))     return { factor: 0.80, label: '−20% deficit', rationale: 'Sustainable fat loss ≈ 0.5 kg/week (BDA weight-management guidance, NICE CG189)' }
+  if (k.includes('build muscle')) return { factor: 1.10, label: '+10% surplus', rationale: 'Lean muscle gain with minimal fat accrual (Aragon & Schoenfeld, 2013)' }
+  if (k.includes('recomp'))       return { factor: 1.00, label: 'Maintenance', rationale: 'Body recomposition — eat at maintenance, prioritise protein & resistance training (Barakat et al, 2020)' }
+  if (k.includes('maintain'))     return { factor: 1.00, label: 'Maintenance', rationale: 'Hold current weight while improving body composition' }
+  if (k.includes('health'))       return { factor: 1.00, label: 'Maintenance', rationale: 'General health & wellbeing' }
+  return { factor: 1.0, label: 'Maintenance', rationale: 'No primary goal recorded — defaulting to maintenance' }
+}
+
+// Protein requirement per kg bodyweight, goal-adjusted.
+export function proteinPerKg(goal: string | undefined | null): { value: number; basis: string } {
+  const k = (goal ?? '').trim().toLowerCase()
+  if (k.includes('fat loss'))     return { value: 2.2, basis: 'Higher protein in a deficit to preserve lean mass (Helms et al, 2014; ISSN position stand 2017)' }
+  if (k.includes('build muscle')) return { value: 2.0, basis: 'Maximises muscle protein synthesis in a surplus (ISSN position stand, 2017)' }
+  if (k.includes('recomp'))       return { value: 2.2, basis: 'Body recomposition protocols require higher protein (Barakat et al, 2020)' }
+  if (k.includes('maintain'))     return { value: 1.8, basis: 'Active adult maintenance (BDA Food Fact Sheet — Protein)' }
+  if (k.includes('health'))       return { value: 1.6, basis: 'General active adult (BDA Food Fact Sheet — Protein)' }
+  return { value: 1.8, basis: 'Active adult default' }
+}
+
+export interface EstimatedTargets {
+  inputs: {
+    weight_kg: number
+    height_cm: number
+    age: number
+    sex: string
+    activity_level: string
+    activity_label: string
+    activity_factor: number
+    goal: string
+  }
+  bmr: number
+  bmr_formula: string
+  tdee: number
+  goal_factor: number
+  goal_label: string
+  goal_rationale: string
+  kcal: number
+  protein_g: number
+  protein_per_kg: number
+  protein_basis: string
+  fat_g: number
+  fat_basis: string
+  carbs_g: number
+  carbs_basis: string
+}
+
+// Estimate calorie + macro targets from a client's vitals and onboarding payload.
+// Returns null if any of weight / height / age / sex is missing.
+export function estimateTargets(
+  client: { current_weight_kg: number | null; height_cm: number | null; sex: string | null; date_of_birth: string | null },
+  payload: { lifestyle?: { activity?: string }; goals?: { primary_goal?: string } } | null | undefined
+): EstimatedTargets | null {
+  const age = calculateAge(client.date_of_birth)
+  const weight = client.current_weight_kg
+  const height = client.height_cm
+  const sex = client.sex
+  if (!weight || !height || !age || !sex) return null
+
+  const activity = payload?.lifestyle?.activity || ''
+  const goal = payload?.goals?.primary_goal || ''
+
+  const bmr = calculateBMR(weight, height, age, sex)
+  if (bmr == null) return null
+
+  const sexTerm = sex.toLowerCase().startsWith('f') ? '− 161' : '+ 5'
+  const bmrFormula = `(10 × ${weight}) + (6.25 × ${height}) − (5 × ${age}) ${sexTerm} = ${bmr} kcal/day`
+
+  const af = activityFactor(activity)
+  const tdee = Math.round(bmr * af.value)
+  const ga = goalAdjustment(goal)
+  const kcal = Math.round((tdee * ga.factor) / 10) * 10
+
+  const ppk = proteinPerKg(goal)
+  const proteinG = Math.round((weight * ppk.value) / 5) * 5
+
+  // Fat: max of 25% kcal (Institute of Medicine guidance) or 0.8 g/kg floor for hormonal health
+  const fatFromKcal = (kcal * 0.25) / 9
+  const fatFromKg = weight * 0.8
+  const fatG = Math.round(Math.max(fatFromKcal, fatFromKg) / 5) * 5
+  const fatBasis =
+    fatFromKcal >= fatFromKg
+      ? '25% of total kcal (Institute of Medicine AMDR — satiety & hormonal health)'
+      : '0.8 g/kg bodyweight floor (minimum for hormonal & cellular health)'
+
+  const remainingKcal = kcal - proteinG * 4 - fatG * 9
+  const carbsG = Math.max(50, Math.round(remainingKcal / 4 / 5) * 5)
+
+  return {
+    inputs: {
+      weight_kg: weight, height_cm: height, age, sex,
+      activity_level: activity || 'not recorded',
+      activity_label: af.label,
+      activity_factor: af.value,
+      goal: goal || 'not recorded',
+    },
+    bmr,
+    bmr_formula: bmrFormula,
+    tdee,
+    goal_factor: ga.factor,
+    goal_label: ga.label,
+    goal_rationale: ga.rationale,
+    kcal,
+    protein_g: proteinG,
+    protein_per_kg: ppk.value,
+    protein_basis: ppk.basis,
+    fat_g: fatG,
+    fat_basis: fatBasis,
+    carbs_g: carbsG,
+    carbs_basis: 'Remaining kcal after protein & fat — primary fuel for training intensity & recovery',
+  }
 }
 
 export function calculateMaxHR(age: number | null): number | null {

@@ -123,7 +123,7 @@ export default function ClientFile({
       {/* Tab content */}
       <div className="fade-in" key={activeTab}>
         {activeTab === 0 && (
-          <OverviewTab client={client} checkins={checkins} />
+          <OverviewTab client={client} checkins={checkins} onboarding={onboarding} />
         )}
         {activeTab === 1 && (
           <CheckinsTab checkins={checkins} clientId={client.id} />
@@ -135,7 +135,7 @@ export default function ClientFile({
           <ProgressTab checkins={checkins} />
         )}
         {activeTab === 4 && (
-          <MealPlanTab client={client} initialMealPlan={mealPlan} />
+          <MealPlanTab client={client} initialMealPlan={mealPlan} onboarding={onboarding} />
         )}
         {activeTab === 5 && (
           <TrainingPlanTab client={client} initialTrainingPlan={trainingPlan} onboarding={onboarding} />

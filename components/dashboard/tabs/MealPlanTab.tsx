@@ -6,14 +6,15 @@ import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Client, MealPlan, Meal } from '@/types'
+import type { Client, MealPlan, Meal, OnboardingSubmission } from '@/types'
 
 interface Props {
   client: Client
   initialMealPlan: MealPlan | null
+  onboarding: OnboardingSubmission | null
 }
 
-export default function MealPlanTab({ client, initialMealPlan }: Props) {
+export default function MealPlanTab({ client, initialMealPlan, onboarding }: Props) {
   const router = useRouter()
   const [mealPlan, setMealPlan] = useState<MealPlan | null>(initialMealPlan)
   const [editing, setEditing] = useState(false)
@@ -21,6 +22,8 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
   const [aiDrafting, setAiDrafting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const ob = onboarding?.payload
 
   // Local editable state
   const [editedMeals, setEditedMeals] = useState<Meal[]>(mealPlan?.meals ?? [])
@@ -38,6 +41,36 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
     setAiDrafting(true)
     setError('')
     try {
+      const food = ob?.food_preferences
+      const health = ob?.health_screening
+      // Translate "3 + snacks" / "4–5 meals" / etc. into a number for the prompt.
+      const mealsPerDay = (() => {
+        const raw = (food?.meals_per_day || '').toLowerCase()
+        if (raw.includes('2')) return 3
+        if (raw.includes('4')) return 5
+        if (raw.includes('snack')) return 4
+        if (raw.includes('3')) return 3
+        return 4
+      })()
+      // Merge dietary signals so the AI gets a single clear preference string.
+      const dietaryParts: string[] = []
+      if (food?.diet_type && food.diet_type.toLowerCase() !== 'no restrictions') dietaryParts.push(food.diet_type)
+      if (food?.foods_loved) dietaryParts.push(`Foods loved: ${food.foods_loved}`)
+      if (food?.eating_pattern) dietaryParts.push(`Current eating pattern: ${food.eating_pattern}`)
+      if (food?.meal_prep) dietaryParts.push(`Meal prep: ${food.meal_prep}`)
+      if (food?.supplements) dietaryParts.push(`Supplements: ${food.supplements}`)
+      // Combine medical conditions + pregnancy / breastfeeding into allergy/contraindication context.
+      const allergyParts: string[] = []
+      if (food?.allergies) allergyParts.push(food.allergies)
+      if (health?.conditions?.length) {
+        const flags = health.conditions.filter((c) => c && c.toLowerCase() !== 'none of the above')
+        if (flags.length) allergyParts.push(`Diagnosed: ${flags.join(', ')}`)
+      }
+      if (health?.pregnancy && health.pregnancy.toLowerCase() !== 'no') {
+        allergyParts.push(`Pregnancy status: ${health.pregnancy} (apply NICE guidance — avoid contraindicated foods, adjust energy)`)
+      }
+      if (health?.medications) allergyParts.push(`Medications: ${health.medications}`)
+
       const res = await fetch('/api/ai/meal-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,11 +78,11 @@ export default function MealPlanTab({ client, initialMealPlan }: Props) {
           clientName: client.full_name,
           goal: client.goal || '',
           targets: editedTargets,
-          foodPreferences: '',
-          allergies: '',
-          dislikes: '',
-          cookingAbility: '',
-          mealsPerDay: 4,
+          foodPreferences: dietaryParts.join(' | ') || 'No specific preferences recorded',
+          allergies: allergyParts.join(' | ') || 'None reported',
+          dislikes: food?.foods_disliked || '',
+          cookingAbility: food?.cooking_confidence || '',
+          mealsPerDay,
         }),
       })
       const data = await res.json()
