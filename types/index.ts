@@ -233,6 +233,25 @@ export interface Payment {
   notes: string | null
 }
 
+// Lead capture — the public "coaching enquiries" form fills these rows.
+// Each enquiry is tracked through new → contacted → converted/closed.
+export interface Enquiry {
+  id: string
+  created_at: string
+  first_name: string
+  last_name: string | null
+  email: string
+  phone: string | null
+  goal: string | null
+  about: string | null
+  hear_from: string | null
+  best_contact: string | null
+  status: 'new' | 'contacted' | 'converted' | 'closed'
+  contacted_at: string | null
+  coach_notes: string | null
+  client_id: string | null
+}
+
 export interface DashboardStats {
   active_clients: number
   checkins_to_review: number

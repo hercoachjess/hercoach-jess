@@ -85,6 +85,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // If this email matches an open enquiry, mark it as converted and link
+    // the new client. Failure here is non-fatal — the onboarding still
+    // succeeds even if the enquiry update fails.
+    try {
+      await supabase
+        .from('enquiries')
+        .update({ status: 'converted', client_id: client.id })
+        .ilike('email', b.email)
+        .in('status', ['new', 'contacted'])
+    } catch (linkErr) {
+      console.error('[onboarding] enquiry link failed (non-fatal):', linkErr)
+    }
+
     return NextResponse.json({ success: true, client_id: client.id })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

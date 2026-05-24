@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Jost } from 'next/font/google'
 import './globals.css'
 
@@ -20,6 +20,16 @@ const jost = Jost({
 export const metadata: Metadata = {
   title: 'HerCoach Jess',
   description: 'Private coaching platform — nutrition & fitness by Jess, RD',
+}
+
+// iOS / Android polish: lock the viewport without preventing user zoom, paint
+// the iPhone status bar to match the dark UI, and respect the device safe
+// areas via env() in globals.css.
+export const viewport: Viewport = {
+  themeColor: '#080808',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

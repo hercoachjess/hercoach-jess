@@ -25,12 +25,35 @@ html {
   background-color: #080808;
   color: #f0ece4;
   font-family: var(--font-jost), system-ui, sans-serif;
+  /* Stop iOS from auto-resizing text on rotate */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background-color: #080808;
   color: #f0ece4;
-  min-height: 100vh;
+  /* dvh handles iOS Safari URL bar collapse correctly; vh would jump */
+  min-height: 100dvh;
+  /* Respect home-indicator + notch on iPhones */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* iOS Safari only zooms when input font-size < 16px. Force a 16px floor on
+   touch devices so taps into Email/Phone/Number inputs stop zooming the page.
+   :where() keeps specificity at 0 so component classes still win on desktop. */
+@media (pointer: coarse) {
+  input:where(:not([type='checkbox']):not([type='radio'])),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Faster tap response + no 300ms delay on iOS */
+button,
+[role='button'],
+a {
+  touch-action: manipulation;
 }
 
 /* Scrollbar */
