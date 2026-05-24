@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
       goal,
       level,
       daysPerWeek,
+      intensity,
+      trainingStyle,
       gymAccess,
       injuries,
       trainingGoals,
@@ -22,6 +24,8 @@ export async function POST(request: NextRequest) {
       goal: string
       level: string
       daysPerWeek: number
+      intensity?: string
+      trainingStyle?: string
       gymAccess: string
       injuries: string
       trainingGoals: string
@@ -32,6 +36,8 @@ export async function POST(request: NextRequest) {
 Overall goal: ${goal}
 Experience level: ${level}
 Training days per week: ${daysPerWeek}
+Intensity preference: ${intensity || 'moderate'} (light = RPE 5–6 / moderate = RPE 7–8 / high = RPE 8–9)
+Training style: ${trainingStyle || 'coach to choose the appropriate split for goal + days per week'}
 Equipment / gym access: ${gymAccess || 'Full gym'}
 Injuries / limitations: ${injuries || 'None'}
 Training goals: ${trainingGoals || goal}
@@ -39,6 +45,9 @@ Training goals: ${trainingGoals || goal}
 Rules:
 - Use evidence-based programming: progressive overload, balanced push/pull/legs volume
 - Match exercise selection to experience level and available equipment
+- Honour the requested training style — if "Push / Pull / Legs" is specified, structure the week accordingly; if a specific split is requested, use it
+- Match overall session difficulty to the requested intensity
+- Include progressive overload guidance in coach_notes (e.g. "+2.5 kg or +1 rep per week on main lifts, RIR 2")
 - Include rest days appropriately
 - Sets × reps format: e.g. "3 × 8–10"
 - Include brief notes for any technique cues or beginner modifications

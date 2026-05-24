@@ -162,6 +162,8 @@ export interface TrainingPlan {
   status: 'draft' | 'saved' | 'archived'
   level: 'beginner' | 'intermediate' | 'advanced'
   days_per_week: number
+  intensity: 'light' | 'moderate' | 'high'
+  training_style: string | null
   sessions: TrainingSession[]
   coach_notes: string | null
   is_current: boolean

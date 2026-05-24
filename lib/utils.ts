@@ -56,6 +56,55 @@ export function proteinPerKg(goal: string | undefined | null): { value: number; 
   return { value: 1.8, basis: 'Active adult default' }
 }
 
+// Recompute macro split from a given calorie target, weight, and goal.
+// Used when the coach overrides kcal manually — the macros snap to the
+// research-based split for that goal rather than staying out of date.
+export function macrosForKcal(
+  kcal: number,
+  weightKg: number | null,
+  goal: string | null | undefined
+): { protein_g: number; fat_g: number; carbs_g: number } | null {
+  if (!kcal || !weightKg) return null
+  const ppk = proteinPerKg(goal)
+  const proteinG = Math.round((weightKg * ppk.value) / 5) * 5
+  const fatFromKcal = (kcal * 0.25) / 9
+  const fatFromKg = weightKg * 0.8
+  const fatG = Math.round(Math.max(fatFromKcal, fatFromKg) / 5) * 5
+  const remainingKcal = kcal - proteinG * 4 - fatG * 9
+  const carbsG = Math.max(50, Math.round(remainingKcal / 4 / 5) * 5)
+  return { protein_g: proteinG, fat_g: fatG, carbs_g: carbsG }
+}
+
+// Guidance ranges for each macro (±15% for protein/fat — narrower than kcal
+// since hitting protein/fat targets matters more clinically; carbs is a wider
+// remainder so ±20%).
+export function macroGuidance(
+  protein_g: number,
+  fat_g: number,
+  carbs_g: number
+): { protein: [number, number]; fat: [number, number]; carbs: [number, number] } {
+  const span = (v: number, pct: number) => [
+    Math.max(0, Math.round((v * (1 - pct)) / 5) * 5),
+    Math.round((v * (1 + pct)) / 5) * 5,
+  ] as [number, number]
+  return {
+    protein: span(protein_g, 0.15),
+    fat: span(fat_g, 0.15),
+    carbs: span(carbs_g, 0.20),
+  }
+}
+
+// Add months to a date string (YYYY-MM-DD) and return the same format.
+// Handles month-end rollover safely.
+export function addMonths(dateStr: string, months: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  if (Number.isNaN(d.getTime())) return dateStr
+  const target = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + months, 1))
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate()
+  target.setUTCDate(Math.min(d.getUTCDate(), lastDay))
+  return target.toISOString().split('T')[0]
+}
+
 export interface EstimatedTargets {
   inputs: {
     weight_kg: number

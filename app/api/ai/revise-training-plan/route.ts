@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
       goal,
       level,
       daysPerWeek,
+      intensity,
+      trainingStyle,
       gymAccess,
       injuries,
       currentSessions,
@@ -24,6 +26,8 @@ export async function POST(request: NextRequest) {
       goal: string
       level: string
       daysPerWeek: number
+      intensity?: string
+      trainingStyle?: string
       gymAccess?: string
       injuries?: string
       currentSessions: TrainingSession[]
@@ -40,6 +44,8 @@ export async function POST(request: NextRequest) {
 Client goal: ${goal}
 Experience level: ${level}
 Training days / week: ${daysPerWeek}
+Intensity preference: ${intensity || 'moderate'} (light = RPE 5–6 / moderate = RPE 7–8 / high = RPE 8–9)
+Training style: ${trainingStyle || 'preserve current split unless instructions say otherwise'}
 Equipment / location: ${gymAccess || 'Gym'}
 Injuries / limitations to respect: ${injuries || 'None reported'}
 

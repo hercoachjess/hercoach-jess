@@ -15,6 +15,8 @@ import {
   formatDate,
   getWeeksSince,
   getWeightChange,
+  macrosForKcal,
+  macroGuidance,
 } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import CopyLink from '@/components/ui/CopyLink'
@@ -300,33 +302,71 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
           <CardBody className="flex flex-col gap-3">
             {editingTargets ? (
               <>
-                {[
-                  { key: 'primary_goal_kcal', label: 'Calories (kcal)', est: estimate?.kcal },
-                  { key: 'protein_target_g', label: 'Protein (g)', est: estimate?.protein_g },
-                  { key: 'fat_target_g', label: 'Fat (g)', est: estimate?.fat_g },
-                  { key: 'carbs_target_g', label: 'Carbs (g)', est: estimate?.carbs_g },
-                ].map(({ key, label, est }) => (
-                  <div key={key}>
-                    <div className="flex items-baseline justify-between mb-1">
-                      <p className="text-xs text-[#b8b4ac]">{label}</p>
-                      {est != null && (
-                        <button
-                          type="button"
-                          className="text-xs text-[#8a8680] hover:text-[#e0d8cc] transition-colors"
-                          onClick={() => setTargets((t) => ({ ...t, [key]: String(est) }))}
-                        >
-                          estimate: {est}
-                        </button>
+                {(() => {
+                  // Guidance ranges shown beside each input field — recompute on every render
+                  // from current goal + weight so they shift when you change the kcal target.
+                  const live = macrosForKcal(
+                    Number(targets.primary_goal_kcal) || estimate?.kcal || 2000,
+                    client.current_weight_kg,
+                    client.goal,
+                  )
+                  const guidance = live ? macroGuidance(live.protein_g, live.fat_g, live.carbs_g) : null
+                  const fields: { key: keyof typeof targets; label: string; est: number | undefined; range: [number, number] | undefined }[] = [
+                    { key: 'primary_goal_kcal', label: 'Calories (kcal)', est: estimate?.kcal, range: undefined },
+                    { key: 'protein_target_g', label: 'Protein (g)',     est: estimate?.protein_g, range: guidance?.protein },
+                    { key: 'fat_target_g',     label: 'Fat (g)',         est: estimate?.fat_g,     range: guidance?.fat },
+                    { key: 'carbs_target_g',   label: 'Carbs (g)',       est: estimate?.carbs_g,   range: guidance?.carbs },
+                  ]
+                  return fields.map(({ key, label, est, range }) => (
+                    <div key={key}>
+                      <div className="flex items-baseline justify-between mb-1">
+                        <p className="text-xs text-[#b8b4ac]">{label}</p>
+                        {est != null && (
+                          <button
+                            type="button"
+                            className="text-xs text-[#8a8680] hover:text-[#e0d8cc] transition-colors"
+                            onClick={() => setTargets((t) => ({ ...t, [key]: String(est) }))}
+                          >
+                            estimate: {est}
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        className="input-underline text-sm"
+                        value={targets[key]}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          if (key === 'primary_goal_kcal') {
+                            // Coach has changed kcal — snap protein/fat/carbs to the research-based split
+                            // for the new calorie target (same goal-tiered formulas as the estimate).
+                            const kcalNum = Number(v)
+                            const recomputed = macrosForKcal(kcalNum, client.current_weight_kg, client.goal)
+                            setTargets((t) => ({
+                              ...t,
+                              primary_goal_kcal: v,
+                              ...(recomputed
+                                ? {
+                                    protein_target_g: String(recomputed.protein_g),
+                                    fat_target_g: String(recomputed.fat_g),
+                                    carbs_target_g: String(recomputed.carbs_g),
+                                  }
+                                : {}),
+                            }))
+                          } else {
+                            setTargets((t) => ({ ...t, [key]: v }))
+                          }
+                        }}
+                      />
+                      {range && (
+                        <p className="text-xs text-[#8a8680] mt-1">Aim {range[0]}–{range[1]} g</p>
                       )}
                     </div>
-                    <input
-                      type="number"
-                      className="input-underline text-sm"
-                      value={targets[key as keyof typeof targets]}
-                      onChange={(e) => setTargets((t) => ({ ...t, [key]: e.target.value }))}
-                    />
-                  </div>
-                ))}
+                  ))
+                })()}
+                <p className="text-xs text-[#8a8680] italic leading-relaxed mt-1">
+                  Changing the calorie target snaps protein, fat and carbs to the research-based split for the goal. You can still override any of them by hand.
+                </p>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={saveTargets} loading={saving}>Save targets</Button>
                   {estimate && (

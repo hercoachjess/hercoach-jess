@@ -30,6 +30,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [editedSessions, setEditedSessions] = useState<TrainingSession[]>(trainingPlan?.sessions ?? [])
   const [level, setLevel] = useState<TrainingPlan['level']>(trainingPlan?.level ?? 'beginner')
   const [daysPerWeek, setDaysPerWeek] = useState(trainingPlan?.days_per_week ?? 3)
+  const [intensity, setIntensity] = useState<TrainingPlan['intensity']>(trainingPlan?.intensity ?? 'moderate')
+  const [trainingStyle, setTrainingStyle] = useState<string>(trainingPlan?.training_style ?? '')
   const [coachNotes, setCoachNotes] = useState(trainingPlan?.coach_notes ?? '')
 
   async function aiDraft() {
@@ -44,6 +46,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           goal: client.goal || '',
           level,
           daysPerWeek,
+          intensity,
+          trainingStyle: trainingStyle || 'coach to choose appropriate split',
           gymAccess: ob?.lifestyle?.training_location || 'Gym',
           injuries: ob?.health_screening?.injuries || '',
           trainingGoals: ob?.goals?.why || client.goal || '',
@@ -77,6 +81,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           goal: client.goal || '',
           level,
           daysPerWeek,
+          intensity,
+          trainingStyle: trainingStyle || '',
           gymAccess: ob?.lifestyle?.training_location || 'Gym',
           injuries: ob?.health_screening?.injuries || '',
           currentSessions: editedSessions,
@@ -149,6 +155,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         sessions: editedSessions,
         level,
         days_per_week: daysPerWeek,
+        intensity,
+        training_style: trainingStyle || null,
         coach_notes: coachNotes,
         status: 'draft',
         updated_at: now,
@@ -159,6 +167,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         sessions: editedSessions,
         level,
         days_per_week: daysPerWeek,
+        intensity,
+        training_style: trainingStyle || null,
         coach_notes: coachNotes,
         status: 'draft',
         is_current: true,
@@ -260,11 +270,14 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         </Card>
       )}
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardBody>
-            <p className="text-xs text-[#b8b4ac] mb-1">Experience level</p>
+      {/* Programme setup — drives the AI draft + revise prompts */}
+      <Card>
+        <CardHeader>
+          <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Programme setup</span>
+        </CardHeader>
+        <CardBody className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-[#b8b4ac] mb-1">Experience</p>
             {editing ? (
               <select className="input-underline text-sm" value={level} onChange={(e) => setLevel(e.target.value as TrainingPlan['level'])}>
                 <option value="beginner">Beginner</option>
@@ -272,26 +285,76 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
                 <option value="advanced">Advanced</option>
               </select>
             ) : (
-              <p className="text-lg text-[#f0ece4] capitalize">{level}</p>
+              <p className="text-sm text-[#f0ece4] capitalize">{level}</p>
             )}
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs text-[#b8b4ac] mb-1">Training days / week</p>
+          </div>
+          <div>
+            <p className="text-xs text-[#b8b4ac] mb-1">Days / week</p>
             {editing ? (
               <input
                 type="number" min="1" max="7"
-                className="input-underline text-lg w-20"
+                className="input-underline text-sm"
                 value={daysPerWeek}
                 onChange={(e) => setDaysPerWeek(Number(e.target.value))}
               />
             ) : (
-              <p className="text-lg text-[#f0ece4]">{daysPerWeek} days</p>
+              <p className="text-sm text-[#f0ece4]">{daysPerWeek} days</p>
             )}
+          </div>
+          <div>
+            <p className="text-xs text-[#b8b4ac] mb-1">Intensity</p>
+            {editing ? (
+              <select className="input-underline text-sm" value={intensity} onChange={(e) => setIntensity(e.target.value as TrainingPlan['intensity'])}>
+                <option value="light">Light — RPE 5–6</option>
+                <option value="moderate">Moderate — RPE 7–8</option>
+                <option value="high">High — RPE 8–9</option>
+              </select>
+            ) : (
+              <p className="text-sm text-[#f0ece4] capitalize">{intensity}</p>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-[#b8b4ac] mb-1">Style</p>
+            {editing ? (
+              <select className="input-underline text-sm" value={trainingStyle} onChange={(e) => setTrainingStyle(e.target.value)}>
+                <option value="">Coach to choose</option>
+                <option value="Full body">Full body</option>
+                <option value="Upper / Lower split">Upper / Lower</option>
+                <option value="Push / Pull / Legs">Push / Pull / Legs</option>
+                <option value="Bro split (muscle-group per day)">Bro split</option>
+                <option value="Hybrid (strength + conditioning)">Hybrid</option>
+                <option value="Powerbuilding">Powerbuilding</option>
+                <option value="Athletic / functional">Athletic / functional</option>
+              </select>
+            ) : (
+              <p className="text-sm text-[#f0ece4]">{trainingStyle || '—'}</p>
+            )}
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Long-term plan card — 12-week coaching arc derived from goal + level */}
+      {client.goal && (
+        <Card>
+          <CardHeader>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Long-term plan · 12-week arc</span>
+          </CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-3 gap-3">
+              {longTermPhases(client.goal, level).map((phase, i) => (
+                <div key={i} className="border border-[rgba(255,255,255,0.14)] rounded-sm p-3">
+                  <p className="text-xs text-[#c89a6a] tracking-wider uppercase mb-1">Weeks {phase.weeks}</p>
+                  <p className="text-sm text-[#f0ece4] mb-1.5">{phase.title}</p>
+                  <p className="text-xs text-[#b8b4ac] leading-relaxed">{phase.focus}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-[#8a8680] italic mt-3 leading-relaxed">
+              Default progression for {client.goal.toLowerCase()} at {level} level — adjust pace based on weekly check-in feedback. Progressive overload: aim for 2.5–5% load increase or +1 rep per week on main lifts while RPE stays ≤8.
+            </p>
           </CardBody>
         </Card>
-      </div>
+      )}
 
       {/* Sessions */}
       {editedSessions.length === 0 && !editing && (
@@ -424,4 +487,42 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       )}
     </div>
   )
+}
+
+// 12-week coaching arc — three 4-week phases derived from goal + experience.
+// Used to give the client a sense of trajectory and the coach a default
+// programming framework to override.
+function longTermPhases(
+  goal: string,
+  level: 'beginner' | 'intermediate' | 'advanced',
+): { weeks: string; title: string; focus: string }[] {
+  const g = goal.toLowerCase()
+  if (g.includes('fat loss')) {
+    return [
+      { weeks: '1–4',  title: 'Foundation',  focus: 'Establish a consistent routine. Full-body or upper/lower split, RPE 6–7, focus on technique and habit. Aim for ~0.5 kg loss/week.' },
+      { weeks: '5–8',  title: 'Progression', focus: 'Add small load + volume increases. Introduce one extra accessory per session. Maintain protein, hit step target. Reassess kcal at week 6.' },
+      { weeks: '9–12', title: 'Refine',     focus: 'Auto-regulate via RPE — back off intensity any week sleep or stress is high. Diet break optional. Plan transition to maintenance.' },
+    ]
+  }
+  if (g.includes('build muscle')) {
+    return [
+      { weeks: '1–4',  title: 'Hypertrophy base', focus: 'Volume primer — 10–14 sets/muscle/week, RPE 7–8, slow eccentrics. Establish movement patterns at moderate load.' },
+      { weeks: '5–8',  title: 'Progressive overload', focus: 'Add load weekly on compounds (2.5–5%) or +1 rep per set. Introduce intensity techniques (drop sets / rest-pause) on isolations.' },
+      { weeks: '9–12', title: 'Peak + deload',  focus: 'Push to top sets RPE 8–9. Deload week 12 (−40% volume) before next block. Reassess macros at +0.2 kg/week target.' },
+    ]
+  }
+  if (g.includes('recomp')) {
+    return [
+      { weeks: '1–4',  title: 'Habit + base', focus: 'Maintenance kcal with high protein (2.0–2.2 g/kg). 3–4 resistance sessions, RPE 6–7. Track strength + waist weekly.' },
+      { weeks: '5–8',  title: 'Strength bias', focus: 'Push compound lifts up — barbell squat / hinge / press / row. Maintain volume, hit protein every day. Add 1 cardio session for recovery.' },
+      { weeks: '9–12', title: 'Composition shift', focus: 'Expect slow weight + faster shape change. Reassess via measurements and progress photos, not scale alone. Hold the line.' },
+    ]
+  }
+  // Maintain / General health / default
+  const beginnerNote = level === 'beginner' ? ' Lots of repetition of fundamentals — squat, hinge, push, pull, carry.' : ''
+  return [
+    { weeks: '1–4',  title: 'Foundation', focus: `Build the habit. 2–3 full-body sessions, RPE 6.${beginnerNote}` },
+    { weeks: '5–8',  title: 'Progression', focus: 'Small weekly progression on lifts. Add a 4th session if energy allows. Mobility 10 mins daily.' },
+    { weeks: '9–12', title: 'Consolidate', focus: 'Reassess goal — fat loss / muscle / maintain — and set the next block accordingly. Always end blocks with a deload.' },
+  ]
 }
