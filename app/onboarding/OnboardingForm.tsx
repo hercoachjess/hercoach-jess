@@ -312,7 +312,7 @@ export default function OnboardingForm() {
             <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
             <h2 className="font-serif text-[34px] font-light text-[#f0ece4] mb-3.5">You&apos;re all set.</h2>
             <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[400px] mx-auto mb-2.5">
-              Your form and signed declaration have been received. Jess will review your health screening carefully and be in touch within 24 hours with your payment details and next steps.
+              Your form and signed declaration have been received. Jess will review your health screening carefully and be in touch as soon as she can with your payment details and next steps.
             </p>
             <p className="text-xs text-[#7a7670] mt-2 italic font-serif">
               You&apos;ve taken the first step — that matters.

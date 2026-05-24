@@ -518,7 +518,7 @@ export default function CheckinForm() {
             <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
             <h2 className="font-serif text-[32px] font-light text-[#f0ece4] mb-3.5">Check-in received.</h2>
             <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[340px] mx-auto mb-2.5">
-              Jess will review this and send your feedback and any plan updates within 24 hours. Keep showing up — it&apos;s working.
+              Jess will review this carefully and send your feedback and any plan updates as soon as she can. Keep showing up — it&apos;s working.
             </p>
             <span className="font-serif italic text-base text-[#7a7670] block mt-7">Less restriction. More you.</span>
           </div>

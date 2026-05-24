@@ -83,7 +83,7 @@ export default function EnquiryForm() {
             <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
             <h2 className="font-serif text-[34px] font-light text-[#f0ece4] mb-3.5">Thank you, {firstName}.</h2>
             <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[420px] mx-auto mb-2.5">
-              I&apos;ve got your details. I read every enquiry personally and will be in touch within 24 hours — usually much sooner.
+              I&apos;ve got your details. I read every enquiry personally and will be in touch as soon as I can — thank you for taking the time to reach out.
             </p>
             <p className="text-xs text-[#7a7670] mt-2 italic font-serif">
               Reaching out is the hardest step. You&apos;ve done it.
@@ -112,7 +112,7 @@ export default function EnquiryForm() {
             Thinking about<br /><em className="italic">working together?</em>
           </h1>
           <p className="text-[13px] text-[#a8a49c] leading-[1.9] font-light max-w-[440px] mx-auto">
-            Tell me a little about you and where you&apos;d like to get to. No obligation, no scripts — I read every enquiry personally and reply within 24 hours.
+            Tell me a little about you and where you&apos;d like to get to. No obligation, no scripts — I read every enquiry personally and reply as soon as I can.
           </p>
 
           <div className="grid grid-cols-3 gap-px border border-[rgba(255,255,255,0.24)] rounded mt-7 overflow-hidden bg-[rgba(255,255,255,0.24)]">
@@ -175,7 +175,7 @@ export default function EnquiryForm() {
             {submitting ? 'Sending…' : 'Send enquiry'}
           </button>
           <span className="block text-[12px] text-[#7a7670] mt-3.5 italic font-serif">
-            Replies personally within 24 hours.
+            Read and replied to personally — as soon as I can.
           </span>
         </div>
 
