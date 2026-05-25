@@ -191,12 +191,18 @@ export default function CheckinForm() {
   const [stressLvl, setStressLvl] = useState('')
   const [energy, setEnergy] = useState('')
   const [water, setWater] = useState('')
+  const [dailySteps, setDailySteps] = useState('')
+
+  // Feel — separate from yes/no logistics
+  const [mealsFeel, setMealsFeel] = useState('')
+  const [trainingIntensity, setTrainingIntensity] = useState('')
 
   // Wins
   const [biggestWin, setBiggestWin] = useState('')
   const [hardestPart, setHardestPart] = useState('')
   const [mood, setMood] = useState('')
   const [questions, setQuestions] = useState('')
+  const [extraNotes, setExtraNotes] = useState('')
 
   // Optional body measurements (cm) + progress photos
   const [waistCm, setWaistCm] = useState('')
@@ -265,10 +271,14 @@ export default function CheckinForm() {
       stress_level: stressLvl,
       energy,
       water_intake: water,
+      daily_steps: dailySteps,
+      meals_feel: mealsFeel,
+      training_intensity: trainingIntensity,
       biggest_win: biggestWin,
       hardest_part: hardestPart,
       mood,
       questions_for_jess: questions,
+      extra_notes: extraNotes,
     }
 
     // Optional body measurements — only send fields that were filled in
@@ -388,6 +398,9 @@ export default function CheckinForm() {
               <Field label="Anything that felt uncomfortable or painful?">
                 <Input value={discomfort} onChange={setDiscomfort} placeholder="e.g. knee aching on squats, shoulder felt tight..." />
               </Field>
+              <Field label="How intense did training feel overall?">
+                <Select value={trainingIntensity} onChange={setTrainingIntensity} options={['Light — easy & comfortable','Moderate — a good push','Hard — felt the work','Very hard — finishing on fumes','Crushing — hardest yet']} />
+              </Field>
             </Card>
 
             {/* RECOVERY */}
@@ -405,6 +418,12 @@ export default function CheckinForm() {
                 </Field>
                 <Field label="Water intake">
                   <Select value={water} onChange={setWater} options={['2L+ consistently','About 1.5–2L','About 1–1.5L','Under 1L']} />
+                </Field>
+                <Field label="Daily steps (rough weekly average)">
+                  <Select value={dailySteps} onChange={setDailySteps} options={['Under 5,000','5,000–7,000','7,000–10,000','10,000–12,000','12,000+']} />
+                </Field>
+                <Field label="How did meals feel this week?">
+                  <Select value={mealsFeel} onChange={setMealsFeel} options={['Loved them — enjoying food','They worked — fine but ordinary','Got bored — same food too often','Cravings hit hard','Felt restrictive / not enough']} />
                 </Field>
               </G2>
             </Card>
@@ -432,6 +451,9 @@ export default function CheckinForm() {
               </Field>
               <Field label="Questions or notes for Jess?">
                 <Textarea value={questions} onChange={setQuestions} placeholder="Anything at all — this is your space." />
+              </Field>
+              <Field label="Anything else? (optional)">
+                <Textarea value={extraNotes} onChange={setExtraNotes} placeholder="Other things on your mind, life stuff, anything Jess should know for context..." />
               </Field>
             </Card>
 

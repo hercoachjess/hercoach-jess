@@ -94,7 +94,13 @@ export default function ClientListSection({ clients, latestCheckin, paymentStatu
           const checkin = latestCheckin[client.id]
           const pStatus = paymentStatus[client.id]
           const weeksCoached = getWeeksSince(client.created_at)
-          const hasRecentCheckin = checkin && new Date(checkin.created_at) > oneWeekAgo
+          // "New check-in" badge — show only if it landed recently AND coach
+          // hasn't marked it reviewed yet. Reviewing on the check-in card
+          // clears the badge automatically.
+          const hasRecentCheckin =
+            checkin
+            && new Date(checkin.created_at) > oneWeekAgo
+            && !checkin.coach_reviewed_at
 
           return (
             <Link

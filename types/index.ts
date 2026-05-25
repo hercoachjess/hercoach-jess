@@ -107,6 +107,9 @@ export interface CheckinSubmission {
   payload: CheckinPayload
   body_measurements?: BodyMeasurements
   photos?: string[]
+  coach_reviewed_at?: string | null
+  coach_response_sent?: string | null
+  ai_summary?: string[] | null
 }
 
 export interface BodyMeasurements {
@@ -136,6 +139,11 @@ export interface CheckinPayload {
   stress_level: string
   energy: string
   water_intake: string
+  // Added in v2 — these are optional so older check-ins still type-check.
+  daily_steps?: string             // Under 5k | 5–7k | 7–10k | 10–12k | 12k+
+  meals_feel?: string              // Loved them | They worked | Got bored | Cravings hit | Felt restrictive
+  training_intensity?: string      // Light | Moderate | Hard | Very hard | Crushing
+  extra_notes?: string             // free-text
   biggest_win: string
   hardest_part: string
   mood: string                     // Amazing | Positive | Neutral | Low | Struggling

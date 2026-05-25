@@ -53,12 +53,73 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
   const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(checkins[0]?.id ?? null)
   const [aiReplyState, setAiReplyState] = useState<Record<string, { loading: boolean; reply: string; concerns: string[]; copied: boolean; error?: string }>>({})
+  const [summaryState, setSummaryState] = useState<Record<string, { loading: boolean; error?: string }>>({})
+  const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({})
+  const [savingResponse, setSavingResponse] = useState<Record<string, boolean>>({})
   const [editing, setEditing] = useState<CheckinSubmission | null>(null)
   const [editPayload, setEditPayload] = useState<CheckinPayload | null>(null)
   const [editMeasurements, setEditMeasurements] = useState<BodyMeasurements>({})
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+  // Mark a check-in as reviewed — clears the notification + (if not yet cached)
+  // generates the AI summary in the background so it's ready for next week.
+  async function markReviewed(checkin: CheckinSubmission) {
+    const supabase = createClient()
+    await supabase
+      .from('checkin_submissions')
+      .update({ coach_reviewed_at: new Date().toISOString() })
+      .eq('id', checkin.id)
+    if (!checkin.ai_summary || checkin.ai_summary.length === 0) {
+      // Fire-and-refresh — don't block the click on summary generation.
+      generateSummary(checkin)
+    } else {
+      router.refresh()
+    }
+  }
+
+  async function unmarkReviewed(checkin: CheckinSubmission) {
+    const supabase = createClient()
+    await supabase
+      .from('checkin_submissions')
+      .update({ coach_reviewed_at: null })
+      .eq('id', checkin.id)
+    router.refresh()
+  }
+
+  async function saveResponseSent(checkin: CheckinSubmission, value: string) {
+    setSavingResponse((s) => ({ ...s, [checkin.id]: true }))
+    const supabase = createClient()
+    await supabase
+      .from('checkin_submissions')
+      .update({ coach_response_sent: value })
+      .eq('id', checkin.id)
+    setSavingResponse((s) => ({ ...s, [checkin.id]: false }))
+    router.refresh()
+  }
+
+  async function generateSummary(checkin: CheckinSubmission) {
+    setSummaryState((s) => ({ ...s, [checkin.id]: { loading: true } }))
+    try {
+      const res = await fetch('/api/ai/checkin-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkin }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const supabase = createClient()
+      await supabase
+        .from('checkin_submissions')
+        .update({ ai_summary: data.summary })
+        .eq('id', checkin.id)
+      setSummaryState((s) => ({ ...s, [checkin.id]: { loading: false } }))
+      router.refresh()
+    } catch (e: unknown) {
+      setSummaryState((s) => ({ ...s, [checkin.id]: { loading: false, error: e instanceof Error ? e.message : 'Failed to generate.' } }))
+    }
+  }
 
   function openEdit(checkin: CheckinSubmission) {
     setEditing(checkin)
@@ -138,21 +199,28 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      {checkins.map((checkin) => {
+      {checkins.map((checkin, idx) => {
         const isNew = new Date(checkin.created_at) > oneWeekAgo
         const isOpen = expanded === checkin.id
         const p = checkin.payload
         const measurements = checkin.body_measurements ?? {}
         const photos = checkin.photos ?? []
         const replyState = aiReplyState[checkin.id]
+        const reviewed = !!checkin.coach_reviewed_at
+        // The next item in the array is the chronologically PREVIOUS check-in
+        // (because the list is sorted desc). Its cached AI summary is what we
+        // show at the top of this one for context.
+        const previousCheckin = idx + 1 < checkins.length ? checkins[idx + 1] : null
+        const previousSummary = previousCheckin?.ai_summary && previousCheckin.ai_summary.length > 0 ? previousCheckin.ai_summary : null
 
         return (
           <Card key={checkin.id}>
-            <button className="w-full flex items-center justify-between px-5 py-4 text-left" onClick={() => setExpanded(isOpen ? null : checkin.id)}>
-              <div className="flex items-center gap-3">
+            <button className="w-full flex items-center justify-between px-5 py-4 text-left gap-3" onClick={() => setExpanded(isOpen ? null : checkin.id)}>
+              <div className="flex items-center gap-3 flex-wrap min-w-0">
                 <span className="text-sm font-medium text-[#f0ece4]">Week {checkin.week_number ?? '—'}</span>
                 <span className="text-xs text-[#b8b4ac]">{formatDate(checkin.created_at)}</span>
-                {isNew && <Badge variant="active">Needs review</Badge>}
+                {!reviewed && isNew && <Badge variant="active">Needs review</Badge>}
+                {reviewed && <Badge variant="paid">Reviewed</Badge>}
                 {photos.length > 0 && <Badge variant="default">{photos.length} photo{photos.length === 1 ? '' : 's'}</Badge>}
               </div>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" className={`transition-transform ${isOpen ? 'rotate-90' : ''}`}>
@@ -162,6 +230,21 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
 
             {isOpen && (
               <div className="px-5 pb-5 flex flex-col gap-5 border-t border-[rgba(255,255,255,0.24)]">
+                {/* Previous week's summary — top of card for quick context.
+                    Only shown when a cached summary exists from last time. */}
+                {previousSummary && previousCheckin && (
+                  <div className="pt-4 px-3 py-2 border-l-2 border-[#7da87d] bg-[rgba(125,168,125,0.05)]">
+                    <p className="text-xs text-[#7da87d] tracking-wider uppercase mb-1">
+                      Last week (Week {previousCheckin.week_number} · {formatDate(previousCheckin.created_at)})
+                    </p>
+                    <ul className="flex flex-col gap-0.5">
+                      {previousSummary.map((line, i) => (
+                        <li key={i} className="text-xs text-[#e0d8cc] leading-relaxed">{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Body & weight */}
                 <Section title="Body">
                   {p.weight_kg != null && <Row label="Weight" value={`${p.weight_kg} kg`} />}
@@ -207,6 +290,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                 <Section title="Training">
                   {p.training_sessions && <Row label="Sessions" value={p.training_sessions} />}
                   {p.training_feel && <Row label="How it felt" value={p.training_feel} />}
+                  {p.training_intensity && <Row label="Intensity" value={p.training_intensity} />}
                   {p.prs && <RowFull label="PBs / improvements" value={p.prs} />}
                   {p.discomfort && <RowFull label="Discomfort" value={p.discomfort} />}
                 </Section>
@@ -217,6 +301,8 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   {p.stress_level && <Row label="Stress" value={p.stress_level} />}
                   {p.energy && <Row label="Energy" value={p.energy} />}
                   {p.water_intake && <Row label="Water" value={p.water_intake} />}
+                  {p.daily_steps && <Row label="Daily steps" value={p.daily_steps} />}
+                  {p.meals_feel && <Row label="How meals felt" value={p.meals_feel} />}
                 </Section>
 
                 {/* Wins & struggles */}
@@ -242,6 +328,12 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   <div>
                     <p className="text-xs tracking-widest uppercase mb-1 text-[#b8b4ac]">Questions for Jess</p>
                     <p className="text-sm text-[#e0d8cc] leading-relaxed">{p.questions_for_jess}</p>
+                  </div>
+                )}
+                {p.extra_notes && (
+                  <div>
+                    <p className="text-xs tracking-widest uppercase mb-1 text-[#b8b4ac]">Extra notes</p>
+                    <p className="text-sm text-[#e0d8cc] leading-relaxed">{p.extra_notes}</p>
                   </div>
                 )}
 
@@ -293,6 +385,80 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                     )}
                   </div>
                 )}
+
+                {/* What you actually sent — captured separately so it appears on the record */}
+                <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-[#b8b4ac] tracking-widest uppercase">Your reply, as sent</p>
+                    {savingResponse[checkin.id] && <span className="text-xs text-[#8a8680] italic">Saving…</span>}
+                  </div>
+                  <textarea
+                    className="input-underline text-sm leading-relaxed w-full"
+                    rows={4}
+                    value={responseDrafts[checkin.id] ?? checkin.coach_response_sent ?? ''}
+                    placeholder="Paste the reply you actually sent to the client. Stored on this check-in so you can look back."
+                    onChange={(e) => setResponseDrafts((d) => ({ ...d, [checkin.id]: e.target.value }))}
+                    onBlur={(e) => {
+                      const value = e.target.value
+                      if (value !== (checkin.coach_response_sent ?? '')) {
+                        saveResponseSent(checkin, value)
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* AI summary of this check-in — a few bullets for fast scan next week */}
+                <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-[#b8b4ac] tracking-widest uppercase">Quick summary</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      loading={summaryState[checkin.id]?.loading}
+                      onClick={() => generateSummary(checkin)}
+                    >
+                      {checkin.ai_summary && checkin.ai_summary.length > 0 ? 'Regenerate' : 'Generate summary'}
+                    </Button>
+                  </div>
+                  {summaryState[checkin.id]?.error && (
+                    <p className="text-xs text-[#b06060] mb-2">{summaryState[checkin.id]?.error}</p>
+                  )}
+                  {checkin.ai_summary && checkin.ai_summary.length > 0 ? (
+                    <ul className="flex flex-col gap-0.5">
+                      {checkin.ai_summary.map((line, i) => (
+                        <li key={i} className="text-sm text-[#e0d8cc] leading-relaxed">{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-[#8a8680] italic leading-relaxed">
+                      Short bullet summary the AI cooks up from this check-in — shown at the top of next week&apos;s for context. Auto-generates when you mark this reviewed; or hit Generate.
+                    </p>
+                  )}
+                </div>
+
+                {/* Mark-reviewed — clears the notification from your dashboard */}
+                <div className="pt-4 border-t border-[rgba(255,255,255,0.14)] flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    {reviewed ? (
+                      <p className="text-xs text-[#7da87d] leading-relaxed">
+                        ✓ Reviewed on {formatDate(checkin.coach_reviewed_at!)} — cleared from your dashboard count.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-[#8a8680] italic leading-relaxed">
+                        Mark this reviewed once you&apos;ve replied. It clears from your &ldquo;Check-ins to review&rdquo; tile and from this client&apos;s &ldquo;New check-in&rdquo; badge.
+                      </p>
+                    )}
+                  </div>
+                  {reviewed ? (
+                    <Button size="sm" variant="ghost" onClick={() => unmarkReviewed(checkin)}>
+                      Mark unreviewed
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => markReviewed(checkin)}>
+                      Mark as reviewed
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </Card>

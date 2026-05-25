@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     supabase.from('clients').select('*').order('created_at', { ascending: false }),
     supabase
       .from('checkin_submissions')
-      .select('client_id, created_at, week_number, payload')
+      .select('client_id, created_at, week_number, payload, coach_reviewed_at')
       .order('created_at', { ascending: false })
       .limit(100),
     supabase
@@ -63,11 +63,11 @@ export default async function DashboardPage() {
 
   const activeClients = clientList.filter((c) => c.status === 'active').length
 
-  // Check-ins "to review": clients with a check-in in the last 7 days that hasn't been older than that
+  // Check-ins "to review": ANY check-in (regardless of age) that the coach
+  // hasn't marked reviewed yet. Once reviewed via the check-in card it falls
+  // off this count automatically.
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  const checkinsToReview = Object.values(latestCheckin).filter(
-    (c) => new Date(c.created_at) > oneWeekAgo
-  ).length
+  const checkinsToReview = checkinList.filter((c) => !c.coach_reviewed_at).length
 
   // Missed: active clients whose latest check-in is >7 days ago (or none)
   const missedCheckins = clientList.filter((c) => {
