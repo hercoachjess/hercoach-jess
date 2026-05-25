@@ -159,6 +159,26 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
     // Previous check-in for comparison context (next in the sorted list — checkins is desc by created_at).
     const idx = checkins.findIndex((c) => c.id === checkin.id)
     const previousCheckin = idx >= 0 && idx + 1 < checkins.length ? checkins[idx + 1] : null
+    // Pull the last 4 actual replies Jess sent so the AI knows what NOT to
+    // repeat and can mirror her voice. Also pull the cached summaries from
+    // older weeks for continuity. Both ordered most-recent-first.
+    const older = idx >= 0 ? checkins.slice(idx + 1) : []
+    const priorReplies = older
+      .filter((c) => c.coach_response_sent && c.coach_response_sent.trim().length > 0)
+      .slice(0, 4)
+      .map((c) => ({
+        week_number: c.week_number,
+        date: c.created_at.slice(0, 10),
+        reply: c.coach_response_sent as string,
+      }))
+    const priorSummaries = older
+      .filter((c) => c.ai_summary && c.ai_summary.length > 0)
+      .slice(0, 4)
+      .map((c) => ({
+        week_number: c.week_number,
+        date: c.created_at.slice(0, 10),
+        bullets: c.ai_summary as string[],
+      }))
     try {
       const res = await fetch('/api/ai/checkin-reply', {
         method: 'POST',
@@ -173,6 +193,8 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
           checkin,
           previousCheckin,
           onboardingPayload: onboarding?.payload ?? null,
+          priorReplies,
+          priorSummaries,
         }),
       })
       const data = await res.json()
