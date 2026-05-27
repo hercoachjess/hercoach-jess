@@ -6,18 +6,23 @@ import Card, { CardHeader, CardBody } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { createClient } from '@/lib/supabase/client'
-import type { OnboardingPayload, OnboardingSubmission } from '@/types'
+import type { Client, OnboardingPayload, OnboardingSubmission } from '@/types'
 
 interface Props {
   onboarding: OnboardingSubmission | null
+  client?: Client
 }
 
-export default function OnboardingFileTab({ onboarding }: Props) {
+export default function OnboardingFileTab({ onboarding, client }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [editPayload, setEditPayload] = useState<OnboardingPayload | null>(null)
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
+  const [pdfBusy, setPdfBusy] = useState<'view' | 'share' | null>(null)
+  const [pdfError, setPdfError] = useState('')
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
 
   if (!onboarding) {
     return (
@@ -74,13 +79,118 @@ export default function OnboardingFileTab({ onboarding }: Props) {
     router.refresh()
   }
 
+  // ── PDF: open the inline PDF in a new tab. Phones with their own PDF
+  // viewer (iOS Safari, Android Chrome) handle scrolling natively, which
+  // sidesteps the in-page modal scroll issue entirely.
+  async function viewPdf() {
+    setPdfBusy('view'); setPdfError('')
+    try {
+      if (!onboarding) throw new Error('No onboarding submission.')
+      const res = await fetch('/api/pdf/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: onboarding.client_id, mode: 'inline' }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(j.error || 'Failed to render PDF')
+      }
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank')
+      // Revoke after a delay so the new tab has time to load it.
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+    } catch (e: unknown) {
+      setPdfError(e instanceof Error ? e.message : 'Failed to open PDF.')
+    } finally {
+      setPdfBusy(null)
+    }
+  }
+
+  // ── PDF: upload to storage so we have a shareable URL. Tries native
+  // share sheet first (phone), falls back to the WhatsApp / Email / SMS /
+  // Copy dropdown on desktop.
+  async function sharePdf() {
+    setPdfBusy('share'); setPdfError('')
+    try {
+      if (!onboarding) throw new Error('No onboarding submission.')
+      let url = shareUrl
+      if (!url) {
+        const res = await fetch('/api/pdf/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: onboarding.client_id, mode: 'save' }),
+        })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({ error: 'Unknown error' }))
+          throw new Error(j.error || 'Failed to generate PDF')
+        }
+        const data = await res.json()
+        url = data.pdf_url as string
+        setShareUrl(url)
+      }
+
+      const firstName = client?.full_name?.split(' ')[0] || 'there'
+      const message = `Hi ${firstName} — here's a copy of the onboarding file you submitted, including the declaration you signed. Keep this for your records. — Jess\n\n${url}`
+
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        try {
+          await navigator.share({ title: 'Your onboarding file', text: message, url })
+          return
+        } catch {
+          // user cancelled or share unavailable — fall through to dropdown
+        }
+      }
+      setShareMenuOpen(true)
+    } catch (e: unknown) {
+      setPdfError(e instanceof Error ? e.message : 'Failed to share PDF.')
+    } finally {
+      setPdfBusy(null)
+    }
+  }
+
+  const firstName = client?.full_name?.split(' ')[0] || 'there'
+  const shareMessage = shareUrl
+    ? `Hi ${firstName} — here's a copy of the onboarding file you submitted, including the declaration you signed. Keep this for your records. — Jess\n\n${shareUrl}`
+    : ''
+  const enc = encodeURIComponent
+  const phoneRaw = (client?.phone || '').replace(/[^0-9+]/g, '')
+  const whatsappUrl = phoneRaw
+    ? `https://wa.me/${phoneRaw.replace(/^\+/, '')}?text=${enc(shareMessage)}`
+    : `https://wa.me/?text=${enc(shareMessage)}`
+  const smsUrl = phoneRaw ? `sms:${phoneRaw}?body=${enc(shareMessage)}` : `sms:?body=${enc(shareMessage)}`
+  const mailUrl = `mailto:${client?.email || ''}?subject=${enc('Your onboarding file from Jess')}&body=${enc(shareMessage)}`
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex justify-end">
+      <div className="flex justify-end flex-wrap gap-2">
+        <Button size="sm" variant="outline" loading={pdfBusy === 'view'} onClick={viewPdf}>
+          View full PDF
+        </Button>
+        <div className="relative">
+          <Button size="sm" loading={pdfBusy === 'share'} onClick={sharePdf}>
+            Send to client
+          </Button>
+          {shareMenuOpen && shareUrl && (
+            <div className="absolute right-0 top-full mt-1 z-20 min-w-[200px] bg-[#141414] border border-[rgba(255,255,255,0.24)] rounded-sm shadow-lg flex flex-col py-1">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={() => setShareMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">WhatsApp</a>
+              <a href={mailUrl} onClick={() => setShareMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">Email</a>
+              <a href={smsUrl} onClick={() => setShareMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors">SMS</a>
+              <button
+                onClick={async () => { await navigator.clipboard.writeText(shareMessage); setShareMenuOpen(false) }}
+                className="text-left px-4 py-2 text-xs tracking-widest uppercase text-[#e0d8cc] hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+              >
+                Copy full message
+              </button>
+              <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => setShareMenuOpen(false)} className="px-4 py-2 text-xs tracking-widest uppercase text-[#b8b4ac] border-t border-[rgba(255,255,255,0.10)] hover:bg-[rgba(255,255,255,0.06)] transition-colors">Open PDF link</a>
+            </div>
+          )}
+        </div>
         <Button size="sm" variant="outline" onClick={openEdit}>
           Edit onboarding answers
         </Button>
       </div>
+      {pdfError && <p className="text-xs text-[#b06060] text-right -mt-3">{pdfError}</p>}
       <Card>
         <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Basics</span></CardHeader>
         <CardBody className="grid grid-cols-2 gap-3">
@@ -186,6 +296,7 @@ export default function OnboardingFileTab({ onboarding }: Props) {
         open={editing && !!editPayload}
         onClose={() => { setEditing(false); setEditPayload(null); setEditError('') }}
         title="Edit onboarding answers"
+        size="xl"
         footer={
           <>
             <Button variant="ghost" onClick={() => { setEditing(false); setEditPayload(null); setEditError('') }}>Cancel</Button>
