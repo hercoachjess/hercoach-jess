@@ -156,7 +156,7 @@ export default function ClientFile({
           <PaymentsTab clientId={client.id} payments={payments} />
         )}
         {activeTab === 8 && (
-          <OnboardingFileTab onboarding={onboarding} />
+          <OnboardingFileTab onboarding={onboarding} client={client} />
         )}
       </div>
     </div>
