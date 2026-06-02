@@ -55,12 +55,20 @@ DO-NOT-USE RULE — CRITICAL:
 The Allergies and Foods disliked lists are absolute. Every meal AND every alternative must contain ZERO of those ingredients, including hidden forms (e.g. if "fish" is disliked, no anchovies, fish sauce, Worcestershire sauce, Caesar dressing). If a typical recipe relies on a disliked ingredient, swap it for something equivalent. Treat breaking this as if it would harm the client.
 
 Rules:
-- Apply only the changes requested — preserve everything else
-- Continue to use UK supermarket foods, naming specific products where helpful (Tesco / Sainsbury's / Aldi / M&S / Waitrose). Mix branded examples with generic items to keep the plan affordable.
+- Apply only the changes requested — preserve everything else (including prep notes that aren't affected)
+- Continue to use UK supermarket foods, suggesting specific brands where they genuinely help (Tesco / Sainsbury's / Aldi / Lidl / M&S / Waitrose). Mix branded with generic items.
 - Quantities in grams or ml
 - Re-balance macros if the changes have shifted them, but stay within ±5% of the daily targets
 - Keep meal times consistent unless instructions say to change them
-- For each meal, also produce 2 alternatives (same macro target ±10%, same dislike/allergy rules) labelled briefly
+
+ITEM STRUCTURE — CRITICAL:
+Each item is structured: { "food": "<ingredient + quantity, no brand>", "brand": "<optional shop product name>" }. The "food" field never contains a brand. Generic items omit "brand" entirely.
+
+PREP NOTES — REQUIRED:
+Every meal (and every alternative) must include a "prep_notes" string — 1–3 sentences describing how to prepare it. Update prep notes when the items change.
+
+ALTERNATIVES — REQUIRED:
+For each meal, produce 2 alternatives (same macro target ±10%, same dislike/allergy rules, same structured items + prep_notes). Label each briefly.
 
 Also refresh the "food facts" — short evidence-based one-liners on 4–6 clinically interesting ingredients in the revised plan. Each must cite a credible source (BDA Food Fact Sheet, British Nutrition Foundation, NHS Eatwell Guide, NICE, EFSA, peer-reviewed nutrition journals).
 
@@ -69,10 +77,20 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
   "meals": [
     {
       "name": "Breakfast", "time": "07:30",
-      "items": ["80g rolled oats (Tesco Wholegrain Porridge Oats)", "..."],
+      "items": [
+        { "food": "80g rolled oats", "brand": "Tesco Wholegrain Porridge Oats" },
+        { "food": "250ml semi-skimmed milk" }
+      ],
+      "prep_notes": "Cook oats with the milk on the hob, simmer 5 mins, stirring.",
       "alternatives": [
-        { "label": "Higher-protein swap", "items": ["170g Sainsbury's Skyr", "30g granola", "..."] },
-        { "label": "Quick prep", "items": ["1 Belvita Breakfast", "200ml semi-skimmed milk", "..."] }
+        {
+          "label": "Higher-protein swap",
+          "items": [
+            { "food": "170g natural Skyr", "brand": "Sainsbury's Skyr" },
+            { "food": "30g granola" }
+          ],
+          "prep_notes": "Spoon Skyr into a bowl, layer granola on top."
+        }
       ]
     }
   ],
