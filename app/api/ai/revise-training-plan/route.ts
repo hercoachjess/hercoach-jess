@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { TrainingSession, WeeklyProgression } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -46,7 +47,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please describe what to change.' }, { status: 400 })
     }
 
-    const prompt = `You are Jess, an HCPC-registered Registered Dietitian and coach. You are revising an existing training programme for ${clientName} based on the coach's instructions. Apply ONLY the changes requested — keep everything else the same, including session structure, exercise selection and progressive overload logic — unless the instructions specifically ask otherwise.
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `You are Jess, an HCPC-registered Registered Dietitian and coach. You are revising an existing training programme for ${clientName} based on the coach's instructions. Apply ONLY the changes requested — keep everything else the same, including session structure, exercise selection and progressive overload logic — unless the instructions specifically ask otherwise.
 
 Client goal: ${goal}
 Experience level: ${level}

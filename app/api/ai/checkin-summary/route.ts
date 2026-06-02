@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { CheckinSubmission } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -11,7 +12,8 @@ export async function POST(request: NextRequest) {
   try {
     const { checkin }: { checkin: CheckinSubmission } = await request.json()
 
-    const prompt = `Summarise this client check-in into 3–5 SHORT bullet points the coach can scan in 5 seconds to remember what happened. Be specific (numbers and direct quotes where helpful) but ruthless about brevity — each bullet under 14 words. Focus on direction-of-change, wins, struggles, and anything to follow up next time. UK English. No fluff, no preamble, no "the client".
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `Summarise this client check-in into 3–5 SHORT bullet points the coach can scan in 5 seconds to remember what happened. Be specific (numbers and direct quotes where helpful) but ruthless about brevity — each bullet under 14 words. Focus on direction-of-change, wins, struggles, and anything to follow up next time. UK English. No fluff, no preamble, no "the client".
 
 Week ${checkin.week_number ?? '?'} check-in:
 ${JSON.stringify(checkin.payload, null, 2)}

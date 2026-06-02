@@ -41,6 +41,41 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   const [coachNotes, setCoachNotes] = useState(mealPlan?.coach_notes ?? '')
   const [foodFacts, setFoodFacts] = useState<FoodFact[]>(mealPlan?.food_facts ?? [])
 
+  // AI macro recommendation state. macroRec holds the AI's proposed targets +
+  // reasoning so the coach can review before applying. Null until requested.
+  const [macroRec, setMacroRec] = useState<{
+    recommendation: { kcal: number; protein_g: number; fat_g: number; carbs_g: number }
+    reasoning: string
+    confidence: 'low' | 'medium' | 'high'
+  } | null>(null)
+  const [macroRecBusy, setMacroRecBusy] = useState(false)
+  const [macroRecError, setMacroRecError] = useState('')
+
+  async function getMacroRecommendation() {
+    setMacroRecBusy(true); setMacroRecError(''); setMacroRec(null)
+    try {
+      const res = await fetch('/api/ai/macro-recommendation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, currentTargets: editedTargets }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to get recommendation.')
+      setMacroRec(data)
+    } catch (e: unknown) {
+      setMacroRecError(e instanceof Error ? e.message : 'Failed to get recommendation.')
+    } finally {
+      setMacroRecBusy(false)
+    }
+  }
+
+  function applyMacroRecommendation() {
+    if (!macroRec) return
+    setEditedTargets(macroRec.recommendation)
+    setMacroRec(null)
+    setEditing(true)
+  }
+
   // Live guidance ranges based on the current edited targets.
   const guidance = macroGuidance(editedTargets.protein_g, editedTargets.fat_g, editedTargets.carbs_g)
 
@@ -416,6 +451,71 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         <p className="text-xs text-[#8a8680] italic leading-relaxed -mt-2">
           Changing calories snaps protein / fat / carbs to the research-based split for the client&apos;s goal — override any field by hand if needed. To change the client&apos;s overall macro defaults, edit Coach Targets on Overview.
         </p>
+      )}
+
+      {/* AI macro recommendation — uses the latest 2 check-ins + goal to
+          suggest new targets with reasoning. Visible in edit mode only. */}
+      {editing && (
+        <div className="border border-[rgba(255,255,255,0.14)] rounded-sm p-4 bg-[rgba(125,168,125,0.04)]">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+            <div>
+              <p className="text-xs text-[#7da87d] tracking-widest uppercase mb-1">AI macro recommendation</p>
+              <p className="text-xs text-[#8a8680] italic leading-relaxed">
+                Asks the AI to read the latest check-in (and the one before for direction of travel) and suggest new targets — with reasoning grounded in the data so you can decide if it&apos;s the right call.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" loading={macroRecBusy} onClick={getMacroRecommendation}>
+              {macroRec ? 'Regenerate' : 'Get recommendation'}
+            </Button>
+          </div>
+
+          {macroRecError && (
+            <p className="text-xs text-[#b06060] mt-3">{macroRecError}</p>
+          )}
+
+          {macroRec && (
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { key: 'kcal',      label: 'Calories', unit: 'kcal' },
+                  { key: 'protein_g', label: 'Protein',  unit: 'g' },
+                  { key: 'fat_g',     label: 'Fat',      unit: 'g' },
+                  { key: 'carbs_g',   label: 'Carbs',    unit: 'g' },
+                ] as const).map(({ key, label, unit }) => {
+                  const cur = editedTargets[key]
+                  const next = macroRec.recommendation[key]
+                  const diff = next - cur
+                  const arrow = diff === 0 ? '→' : diff > 0 ? '↑' : '↓'
+                  const arrowColor = diff === 0 ? '#8a8680' : diff > 0 ? '#7da87d' : '#c89a6a'
+                  return (
+                    <div key={key} className="border border-[rgba(255,255,255,0.10)] rounded-sm p-2.5 bg-[#0e0e0e]">
+                      <p className="text-[10px] text-[#8a8680] tracking-widest uppercase mb-1">{label}</p>
+                      <p className="text-xs text-[#8a8680]">{cur}{unit}</p>
+                      <p className="text-base text-[#f0ece4] mt-0.5">
+                        <span style={{ color: arrowColor }}>{arrow}</span> {next}<span className="text-xs text-[#b8b4ac] ml-0.5">{unit}</span>
+                      </p>
+                      {diff !== 0 && (
+                        <p className="text-[10px] text-[#8a8680] mt-0.5">{diff > 0 ? '+' : ''}{diff}{unit}</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="border-l-2 border-[#7da87d] pl-3 py-1">
+                <p className="text-xs text-[#7da87d] tracking-wider uppercase mb-1">
+                  Why this — confidence {macroRec.confidence}
+                </p>
+                <p className="text-sm text-[#e0d8cc] leading-relaxed">{macroRec.reasoning}</p>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="ghost" onClick={() => setMacroRec(null)}>Dismiss</Button>
+                <Button size="sm" onClick={applyMacroRecommendation}>Apply to targets</Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Meals */}

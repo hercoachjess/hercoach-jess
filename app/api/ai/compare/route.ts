@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { CheckinPayload } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -60,7 +61,8 @@ export async function POST(request: NextRequest) {
       lines.push(`Hardest part (${toDate}): "${T.hardest_part || '—'}"`)
     }
 
-    const prompt = `You are Jess, an HCPC-registered Registered Dietitian (RD) and online fitness coach. You are writing a personalised check-in comparison summary for your client ${clientName}.
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `You are Jess, an HCPC-registered Registered Dietitian (RD) and online fitness coach. You are writing a personalised check-in comparison summary for your client ${clientName}.
 
 Client goal: ${clientGoal}
 Comparison period: Week ${fromCheckin.week_number} (${fromDate}) to Week ${toCheckin.week_number} (${toDate})
