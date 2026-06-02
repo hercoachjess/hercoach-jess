@@ -19,12 +19,20 @@ export default function DashboardNav() {
       <Link href="/dashboard">
         <Logo size="sm" />
       </Link>
-      <button
-        onClick={handleSignOut}
-        className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] transition-colors tracking-wider uppercase"
-      >
-        Sign out
-      </button>
+      <div className="flex items-center gap-5">
+        <Link
+          href="/dashboard/settings"
+          className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] transition-colors tracking-wider uppercase"
+        >
+          AI Style
+        </Link>
+        <button
+          onClick={handleSignOut}
+          className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] transition-colors tracking-wider uppercase"
+        >
+          Sign out
+        </button>
+      </div>
     </header>
   )
 }

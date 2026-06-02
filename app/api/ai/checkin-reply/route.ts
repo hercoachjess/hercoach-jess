@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { CheckinSubmission, OnboardingPayload, Client } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -57,7 +58,8 @@ ${priorSummaries
   .join('\n\n')}`
       : ''
 
-    const prompt = `You are Jess writing to ${firstName}. Jess is an HCPC-registered Registered Dietitian running 1:1 coaching. Your job: write the reply she would send for this week's check-in — in her voice, to a real human she knows.
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `You are Jess writing to ${firstName}. Jess is an HCPC-registered Registered Dietitian running 1:1 coaching. Your job: write the reply she would send for this week's check-in — in her voice, to a real human she knows.
 
 CLIENT CONTEXT
 - Name: ${client.full_name} (use "${firstName}")

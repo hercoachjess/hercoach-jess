@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { Meal, MacroTargets, FoodFact } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
       mealsPerDay: number
     } = await request.json()
 
-    const prompt = `You are Jess, an HCPC-registered Registered Dietitian (RD). Draft a one-day meal plan for your client ${clientName}.
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `You are Jess, an HCPC-registered Registered Dietitian (RD). Draft a one-day meal plan for your client ${clientName}.
 
 Goal: ${goal}
 Daily targets: ${targets.kcal} kcal, ${targets.protein_g}g protein, ${targets.fat_g}g fat, ${targets.carbs_g}g carbs

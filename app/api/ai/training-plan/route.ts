@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { TrainingSession, WeeklyProgression } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest) {
     } = await request.json()
     const lengthWeeks = [1, 4, 8, 12].includes(programmeLengthWeeks || 1) ? (programmeLengthWeeks as number) : 1
 
-    const prompt = `You are Jess, an online fitness coach and HCPC-registered Registered Dietitian. Draft a ${lengthWeeks}-week training programme for client ${clientName}.
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `You are Jess, an online fitness coach and HCPC-registered Registered Dietitian. Draft a ${lengthWeeks}-week training programme for client ${clientName}.
 
 Overall goal: ${goal}
 Experience level: ${level}

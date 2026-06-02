@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
+import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import type { Meal, MacroTargets, FoodFact } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please describe what to change.' }, { status: 400 })
     }
 
-    const prompt = `You are Jess, an HCPC-registered Registered Dietitian (RD). You are revising an existing meal plan for ${clientName} based on the coach's instructions. Apply ONLY the changes requested — keep everything else the same, including meal structure, timings and dietary suitability — unless the instructions specifically ask otherwise.
+    const coachStyle = await getCoachStyleBlock()
+    const prompt = coachStyle + `You are Jess, an HCPC-registered Registered Dietitian (RD). You are revising an existing meal plan for ${clientName} based on the coach's instructions. Apply ONLY the changes requested — keep everything else the same, including meal structure, timings and dietary suitability — unless the instructions specifically ask otherwise.
 
 Client goal: ${goal}
 Daily targets: ${targets.kcal} kcal, ${targets.protein_g}g protein, ${targets.fat_g}g fat, ${targets.carbs_g}g carbs
