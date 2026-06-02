@@ -76,21 +76,55 @@ export default function EnquiryForm() {
 
   if (submitted) {
     return (
-      <div className="bg-[#080808] min-h-screen relative">
-        <Noise />
+      <div className="min-h-screen relative" style={{ backgroundColor: '#F6F1E9' }}>
         <div className="relative z-10 max-w-[640px] mx-auto px-7 pb-24">
           <div className="text-center py-20 fade-in">
-            <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
-            <h2 className="font-serif text-[34px] font-light text-[#f0ece4] mb-3.5">Thank you, {firstName}.</h2>
-            <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[420px] mx-auto mb-2.5">
-              I&apos;ve got your details. I read every enquiry personally and will be in touch as soon as I can — thank you for taking the time to reach out.
+            <span className="font-serif italic text-[60px] font-light block mb-6 opacity-30" style={{ color: '#4A4038' }}>✦</span>
+
+            <h2 className="font-serif text-[34px] font-light mb-4 leading-[1.2]" style={{ color: '#4A4038' }}>
+              Thank you — Jess will be<br />in touch soon.
+            </h2>
+
+            <p className="text-sm leading-[1.8] font-light max-w-[420px] mx-auto mb-2.5" style={{ color: '#6a5e54' }}>
+              I&apos;ve got your details and I read every enquiry personally. Thank you for taking the time to reach out, {firstName}.
             </p>
-            <p className="text-xs text-[#7a7670] mt-2 italic font-serif">
+
+            <p className="text-xs mt-2 italic font-serif" style={{ color: '#8a7c70' }}>
               Reaching out is the hardest step. You&apos;ve done it.
             </p>
-            <span className="font-serif italic text-[17px] text-[#7a7670] block mt-7">Less restriction. More you.</span>
+
+            {/* Free guide block */}
+            <div className="mt-12 pt-10 border-t" style={{ borderColor: 'rgba(74,64,56,0.18)' }}>
+              <p className="text-[13px] leading-[1.7] font-light mb-5" style={{ color: '#4A4038' }}>
+                As a thank-you, here&apos;s your free guide <span aria-hidden>👇</span>
+              </p>
+
+              <a
+                href="https://drive.google.com/uc?export=download&id=1fBBdJ6TKelta7j6ShGJ_jqczX9zQWG9J"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-[42px] py-4 text-[11px] font-medium tracking-[2.5px] uppercase rounded-[2px] transition-all hover:opacity-90 hover:shadow-md"
+                style={{
+                  backgroundColor: '#C49A5E',
+                  color: '#F6F1E9',
+                  fontFamily: 'var(--font-jost), sans-serif',
+                  letterSpacing: '0.18em',
+                  boxShadow: '0 2px 10px rgba(196,154,94,0.25)',
+                  touchAction: 'manipulation',
+                }}
+              >
+                Download: Cut the Food Noise
+              </a>
+
+              <p className="text-[11px] mt-4 italic font-serif" style={{ color: '#8a7c70' }}>
+                Opens in a new tab — save it for whenever you need it.
+              </p>
+            </div>
+
+            <span className="font-serif italic text-[17px] block mt-12" style={{ color: '#8a7c70' }}>
+              Less restriction. More you.
+            </span>
           </div>
-          <Footer />
         </div>
       </div>
     )
