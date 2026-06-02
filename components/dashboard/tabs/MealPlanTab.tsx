@@ -6,7 +6,19 @@ import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { formatDate, macrosForKcal, macroGuidance } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Client, MealPlan, Meal, FoodFact, OnboardingSubmission } from '@/types'
+import type { Client, MealPlan, Meal, MealItem, FoodFact, OnboardingSubmission } from '@/types'
+import { normalizeMealItems } from '@/lib/meal'
+
+function normalizeMeals(meals: Meal[] | undefined | null): Meal[] {
+  return (meals ?? []).map((m) => ({
+    ...m,
+    items: normalizeMealItems(m.items),
+    alternatives: (m.alternatives ?? []).map((a) => ({
+      ...a,
+      items: normalizeMealItems(a.items),
+    })),
+  }))
+}
 
 interface Props {
   client: Client
@@ -28,8 +40,9 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
   const ob = onboarding?.payload
 
-  // Local editable state
-  const [editedMeals, setEditedMeals] = useState<Meal[]>(mealPlan?.meals ?? [])
+  // Local editable state — normalize legacy string items into { food, brand }.
+  const [editedMeals, setEditedMeals] = useState<Meal[]>(() => normalizeMeals(mealPlan?.meals))
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null)
   const [editedTargets, setEditedTargets] = useState(
     mealPlan?.targets ?? {
       kcal: client.primary_goal_kcal ?? 2000,
@@ -129,7 +142,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setEditedMeals(data.meals)
+      setEditedMeals(normalizeMeals(data.meals))
       if (data.food_facts) setFoodFacts(data.food_facts)
       if (data.coach_notes) setCoachNotes(data.coach_notes)
       setEditing(true)
@@ -181,7 +194,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setEditedMeals(data.meals)
+      setEditedMeals(normalizeMeals(data.meals))
       if (data.food_facts) setFoodFacts(data.food_facts)
       if (data.coach_notes) setCoachNotes(data.coach_notes)
       setReviseInstructions('')
@@ -266,11 +279,11 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     router.refresh()
   }
 
-  function updateMealItem(mealIdx: number, itemIdx: number, value: string) {
+  function updateMealItemField(mealIdx: number, itemIdx: number, field: 'food' | 'brand', value: string) {
     setEditedMeals((meals) => {
       const updated = [...meals]
       const items = [...updated[mealIdx].items]
-      items[itemIdx] = value
+      items[itemIdx] = { ...items[itemIdx], [field]: value }
       updated[mealIdx] = { ...updated[mealIdx], items }
       return updated
     })
@@ -279,7 +292,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   function addMealItem(mealIdx: number) {
     setEditedMeals((meals) => {
       const updated = [...meals]
-      updated[mealIdx] = { ...updated[mealIdx], items: [...updated[mealIdx].items, ''] }
+      updated[mealIdx] = { ...updated[mealIdx], items: [...updated[mealIdx].items, { food: '', brand: '' }] }
       return updated
     })
   }
@@ -293,6 +306,67 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       }
       return updated
     })
+  }
+
+  function updateMealPrep(mealIdx: number, value: string) {
+    setEditedMeals((meals) => {
+      const updated = [...meals]
+      updated[mealIdx] = { ...updated[mealIdx], prep_notes: value }
+      return updated
+    })
+  }
+
+  // Ask the AI to swap out a single meal in place. The new meal stays in
+  // editedMeals (not saved) until the coach hits Save plan, matching the
+  // behaviour of generate / revise.
+  async function regenerateMeal(mealIdx: number) {
+    setRegeneratingIdx(mealIdx)
+    setError('')
+    try {
+      const food = ob?.food_preferences
+      const health = ob?.health_screening
+      const dietaryParts: string[] = []
+      if (food?.diet_type && food.diet_type.toLowerCase() !== 'no restrictions') dietaryParts.push(food.diet_type)
+      if (food?.foods_loved) dietaryParts.push(`Foods loved: ${food.foods_loved}`)
+      if (food?.eating_pattern) dietaryParts.push(`Current eating pattern: ${food.eating_pattern}`)
+      const allergyParts: string[] = []
+      if (food?.allergies) allergyParts.push(food.allergies)
+      if (health?.conditions?.length) {
+        const flags = health.conditions.filter((c) => c && c.toLowerCase() !== 'none of the above')
+        if (flags.length) allergyParts.push(`Diagnosed: ${flags.join(', ')}`)
+      }
+      const otherMeals = editedMeals.filter((_, i) => i !== mealIdx)
+      const res = await fetch('/api/ai/regenerate-meal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client.full_name,
+          goal: client.goal || '',
+          targets: editedTargets,
+          currentMeal: editedMeals[mealIdx],
+          otherMeals,
+          foodPreferences: dietaryParts.join(' | ') || 'No specific preferences recorded',
+          allergies: allergyParts.join(' | ') || 'None reported',
+          dislikes: [food?.foods_disliked, client.food_dislikes_override].filter(Boolean).join('; ') || '',
+          cookingAbility: food?.cooking_confidence || '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Regeneration failed')
+      const normalized: Meal = {
+        ...data.meal,
+        items: normalizeMealItems(data.meal.items),
+        alternatives: (data.meal.alternatives ?? []).map((a: { label: string; items: (string | MealItem)[]; prep_notes?: string }) => ({
+          ...a,
+          items: normalizeMealItems(a.items),
+        })),
+      }
+      setEditedMeals((meals) => meals.map((m, i) => (i === mealIdx ? normalized : m)))
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to regenerate meal.')
+    } finally {
+      setRegeneratingIdx(null)
+    }
   }
 
   // Aggregate everything the AI MUST avoid + everything the client loves,
@@ -528,15 +602,25 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       {editedMeals.map((meal, mealIdx) => (
         <Card key={mealIdx}>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-3 min-w-0">
                 <span className="text-sm font-medium text-[#f0ece4]">{meal.name}</span>
                 <span className="text-xs text-[#c89a6a]">{meal.time}</span>
               </div>
               {editing && (
-                <Button size="sm" variant="ghost" onClick={() => setEditingMealIdx(editingMealIdx === mealIdx ? null : mealIdx)}>
-                  {editingMealIdx === mealIdx ? 'Done' : 'Edit'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={regeneratingIdx === mealIdx}
+                    onClick={() => regenerateMeal(mealIdx)}
+                  >
+                    Regenerate
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingMealIdx(editingMealIdx === mealIdx ? null : mealIdx)}>
+                    {editingMealIdx === mealIdx ? 'Done' : 'Edit'}
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
@@ -574,16 +658,23 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                   </div>
                 </div>
                 {meal.items.map((item, itemIdx) => (
-                  <div key={itemIdx} className="flex items-center gap-2">
+                  <div key={itemIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
                     <input
-                      className="input-underline text-sm flex-1"
-                      value={item}
-                      onChange={(e) => updateMealItem(mealIdx, itemIdx, e.target.value)}
-                      placeholder="e.g. 150g chicken breast"
+                      className="input-underline text-sm"
+                      value={item.food}
+                      onChange={(e) => updateMealItemField(mealIdx, itemIdx, 'food', e.target.value)}
+                      placeholder="e.g. 80g rolled oats"
+                    />
+                    <input
+                      className="input-underline text-sm"
+                      value={item.brand ?? ''}
+                      onChange={(e) => updateMealItemField(mealIdx, itemIdx, 'brand', e.target.value)}
+                      placeholder="Brand (optional)"
                     />
                     <button
-                      className="text-[#b8b4ac] hover:text-[#b06060] transition-colors flex-shrink-0"
+                      className="text-[#b8b4ac] hover:text-[#b06060] transition-colors flex-shrink-0 p-1"
                       onClick={() => removeMealItem(mealIdx, itemIdx)}
+                      aria-label="Remove item"
                     >
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
                         <path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" />
@@ -597,16 +688,37 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                 >
                   + Add item
                 </button>
+                <div className="mt-3">
+                  <p className="text-xs text-[#b8b4ac] mb-1">Prep notes</p>
+                  <textarea
+                    className="input-underline text-sm"
+                    rows={2}
+                    value={meal.prep_notes ?? ''}
+                    placeholder="How to prepare — 1–3 sentences. Cooking method, timings, assembly."
+                    onChange={(e) => updateMealPrep(mealIdx, e.target.value)}
+                  />
+                </div>
               </div>
             ) : (
-              <ul className="flex flex-col gap-1">
-                {meal.items.map((item, i) => (
-                  <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
-                    <span className="text-[#b8b4ac] mt-0.5">·</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <ul className="flex flex-col gap-1">
+                  {meal.items.map((item, i) => (
+                    <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
+                      <span className="text-[#b8b4ac] mt-0.5">·</span>
+                      <span className="flex-1">{item.food}</span>
+                      {item.brand && (
+                        <span className="text-xs text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-[rgba(255,255,255,0.08)]">
+                    <p className="text-xs text-[#b8b4ac] tracking-wider uppercase mb-1">Prep</p>
+                    <p className="text-sm text-[#c8c4bc] leading-relaxed italic">{meal.prep_notes}</p>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Alternative meal options — generated by the AI, editable in edit mode. */}
@@ -645,23 +757,37 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                             </button>
                           </div>
                           {alt.items.map((item, itemIdx) => (
-                            <div key={itemIdx} className="flex items-center gap-2">
+                            <div key={itemIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
                               <input
-                                className="input-underline text-xs flex-1"
-                                value={item}
-                                placeholder="e.g. 170g Sainsbury's Skyr"
+                                className="input-underline text-xs"
+                                value={item.food}
+                                placeholder="e.g. 170g Skyr"
                                 onChange={(e) => setEditedMeals((meals) => {
                                   const u = [...meals]
                                   const alts = [...(u[mealIdx].alternatives ?? [])]
                                   const items = [...alts[altIdx].items]
-                                  items[itemIdx] = e.target.value
+                                  items[itemIdx] = { ...items[itemIdx], food: e.target.value }
+                                  alts[altIdx] = { ...alts[altIdx], items }
+                                  u[mealIdx] = { ...u[mealIdx], alternatives: alts }
+                                  return u
+                                })}
+                              />
+                              <input
+                                className="input-underline text-xs"
+                                value={item.brand ?? ''}
+                                placeholder="Brand (optional)"
+                                onChange={(e) => setEditedMeals((meals) => {
+                                  const u = [...meals]
+                                  const alts = [...(u[mealIdx].alternatives ?? [])]
+                                  const items = [...alts[altIdx].items]
+                                  items[itemIdx] = { ...items[itemIdx], brand: e.target.value }
                                   alts[altIdx] = { ...alts[altIdx], items }
                                   u[mealIdx] = { ...u[mealIdx], alternatives: alts }
                                   return u
                                 })}
                               />
                               <button
-                                className="text-[#b8b4ac] hover:text-[#b06060] transition-colors"
+                                className="text-[#b8b4ac] hover:text-[#b06060] transition-colors p-1"
                                 onClick={() => setEditedMeals((meals) => {
                                   const u = [...meals]
                                   const alts = [...(u[mealIdx].alternatives ?? [])]
@@ -670,6 +796,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                                   u[mealIdx] = { ...u[mealIdx], alternatives: alts }
                                   return u
                                 })}
+                                aria-label="Remove item"
                               >
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M2 2l8 8M10 2l-8 8" strokeLinecap="round" /></svg>
                               </button>
@@ -680,13 +807,26 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                             onClick={() => setEditedMeals((meals) => {
                               const u = [...meals]
                               const alts = [...(u[mealIdx].alternatives ?? [])]
-                              alts[altIdx] = { ...alts[altIdx], items: [...alts[altIdx].items, ''] }
+                              alts[altIdx] = { ...alts[altIdx], items: [...alts[altIdx].items, { food: '', brand: '' }] }
                               u[mealIdx] = { ...u[mealIdx], alternatives: alts }
                               return u
                             })}
                           >
                             + Add item to this alternative
                           </button>
+                          <textarea
+                            className="input-underline text-xs mt-1"
+                            rows={2}
+                            value={alt.prep_notes ?? ''}
+                            placeholder="Prep notes for this alternative"
+                            onChange={(e) => setEditedMeals((meals) => {
+                              const u = [...meals]
+                              const alts = [...(u[mealIdx].alternatives ?? [])]
+                              alts[altIdx] = { ...alts[altIdx], prep_notes: e.target.value }
+                              u[mealIdx] = { ...u[mealIdx], alternatives: alts }
+                              return u
+                            })}
+                          />
                         </div>
                       ) : (
                         <>
@@ -694,10 +834,15 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                           <ul className="flex flex-col gap-0.5">
                             {alt.items.map((item, i) => (
                               <li key={i} className="text-xs text-[#b8b4ac] flex items-start gap-2">
-                                <span className="text-[#8a8680] mt-0.5">·</span>{item}
+                                <span className="text-[#8a8680] mt-0.5">·</span>
+                                <span className="flex-1">{item.food}</span>
+                                {item.brand && <span className="text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>}
                               </li>
                             ))}
                           </ul>
+                          {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
+                            <p className="text-xs text-[#8a8680] italic leading-relaxed mt-1">{alt.prep_notes}</p>
+                          )}
                         </>
                       )}
                     </div>
@@ -707,7 +852,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                       className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors"
                       onClick={() => setEditedMeals((meals) => {
                         const u = [...meals]
-                        const alts = [...(u[mealIdx].alternatives ?? []), { label: '', items: [''] }]
+                        const alts = [...(u[mealIdx].alternatives ?? []), { label: '', items: [{ food: '', brand: '' }] }]
                         u[mealIdx] = { ...u[mealIdx], alternatives: alts }
                         return u
                       })}

@@ -2,7 +2,8 @@
 import {
   Document, Page, Text, View, StyleSheet,
 } from '@react-pdf/renderer'
-import type { Client, MealPlan, TrainingPlan } from '@/types'
+import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative } from '@/types'
+import { normalizeMealItems } from '@/lib/meal'
 
 // ───────────────── FONTS ─────────────────
 // Using PDF built-in fonts (Helvetica + Times-Italic) so PDFs always generate
@@ -139,6 +140,13 @@ const s = StyleSheet.create({
   cellNote:  { fontFamily: 'Helvetica-Oblique', fontSize: 7.5, color: C.MID_GREY, lineHeight: 1.5 },
   cellMealLbl:{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: C.BLACK },
   cellMealDet:{ fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.5 },
+  // ── New meal-block styles ──
+  mealItemFood:  { fontSize: 9, color: C.OFF_BLACK, lineHeight: 1.45 },
+  mealItemBrand: { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.45, textAlign: 'right' },
+  mealPrepLabel: { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.MID_GREY, letterSpacing: 0.5, marginTop: 6, marginBottom: 2 },
+  mealPrepBody:  { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.55, marginBottom: 4 },
+  altCard:       { borderLeftWidth: 1.5, borderLeftColor: C.RULE_LIGHT, paddingLeft: 8, marginTop: 8 },
+  altLabel:      { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.BLACK, letterSpacing: 0.5, marginBottom: 4 },
   cellYogaHead:{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: C.BLACK },
   cellYogaBody:{ fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.5 },
 
@@ -275,15 +283,50 @@ function ExerciseTable({ rows }: { rows: { name: string; sr: string; note?: stri
   )
 }
 
-function MealTable({ rows }: { rows: { name: string; detail: string }[] }) {
+/**
+ * Renders one meal: ingredient list (food on the left, optional brand on the
+ * right), prep notes below, then any alternative versions in a side-cued
+ * card. Replaces the old MealTable approach that repeated the meal name in
+ * the first column for every single ingredient row.
+ */
+function MealBlock({ meal }: { meal: Meal }) {
+  const items = normalizeMealItems(meal.items)
   return (
     <View wrap={false}>
-      {rows.map((r, i) => (
-        <View key={i} style={[s.tableRow, i % 2 === 0 ? s.tableRowA : s.tableRowB, { borderTopWidth: i === 0 ? 0.3 : 0.3 }]}>
-          <Text style={[s.cellMealLbl, { flex: 28 }]}>{r.name}</Text>
-          <Text style={[s.cellMealDet, { flex: 72 }]}>{r.detail}</Text>
+      {items.map((item, i) => (
+        <View key={i} style={[s.tableRow, i % 2 === 0 ? s.tableRowA : s.tableRowB]}>
+          <Text style={[s.mealItemFood, { flex: 60 }]}>{item.food}</Text>
+          <Text style={[s.mealItemBrand, { flex: 40 }]}>{item.brand || ''}</Text>
         </View>
       ))}
+      {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
+        <View>
+          <Text style={s.mealPrepLabel}>PREP</Text>
+          <Text style={s.mealPrepBody}>{meal.prep_notes.trim()}</Text>
+        </View>
+      )}
+      {(meal.alternatives ?? []).map((alt, i) => (
+        <MealAltBlock key={i} alt={alt} />
+      ))}
+    </View>
+  )
+}
+
+function MealAltBlock({ alt }: { alt: MealAlternative }) {
+  const items = normalizeMealItems(alt.items)
+  if (!alt.label && items.length === 0) return null
+  return (
+    <View style={s.altCard} wrap={false}>
+      {alt.label && <Text style={s.altLabel}>{alt.label.toUpperCase()}</Text>}
+      {items.map((item, i) => (
+        <View key={i} style={[s.tableRow, { backgroundColor: 'transparent', paddingVertical: 4, borderTopWidth: 0 }]}>
+          <Text style={[s.mealItemFood, { flex: 60, fontSize: 8.5 }]}>{item.food}</Text>
+          <Text style={[s.mealItemBrand, { flex: 40, fontSize: 8 }]}>{item.brand || ''}</Text>
+        </View>
+      ))}
+      {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
+        <Text style={[s.mealPrepBody, { fontSize: 8, marginTop: 2 }]}>{alt.prep_notes.trim()}</Text>
+      )}
     </View>
   )
 }
@@ -398,16 +441,13 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
         ['Dark chocolate',  '2 squares\n(85%+)'],
       ]
 
-  // Meals from the saved meal plan — render whatever Jess has built
-  const breakfastRows = (mealPlan?.meals || [])
-    .filter((m) => /breakfast/i.test(m.name))
-    .flatMap((m) => m.items.map((item) => ({ name: m.name, detail: item })))
-  const lunchRows = (mealPlan?.meals || [])
-    .filter((m) => /lunch/i.test(m.name))
-    .flatMap((m) => m.items.map((item) => ({ name: m.name, detail: item })))
-  const dinnerRows = (mealPlan?.meals || [])
-    .filter((m) => /dinner|evening/i.test(m.name))
-    .flatMap((m) => m.items.map((item) => ({ name: m.name, detail: item })))
+  // Meals from the saved meal plan — group by slot and render one block per
+  // meal. The old approach flattened items into rows with the meal name in
+  // every row, which is why exported PDFs showed "Breakfast" five times.
+  const allMeals = mealPlan?.meals ?? []
+  const breakfastMeals = allMeals.filter((m) => /breakfast/i.test(m.name))
+  const lunchMeals = allMeals.filter((m) => /lunch/i.test(m.name))
+  const dinnerMeals = allMeals.filter((m) => /dinner|evening/i.test(m.name))
 
   // Days from saved training plan
   const trainingDays = (trainingPlan?.sessions || []).filter((s) => s.exercises.length > 0)
@@ -640,19 +680,19 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
                 : ' Simply follow the portions provided — the balance is taken care of for you.'}
             </Text>
 
-            {breakfastRows.length > 0 && (
+            {breakfastMeals.length > 0 && (
               <>
                 <View style={{ height: 6 }} />
                 <Text style={s.dayHead}>Breakfast</Text>
-                <MealTable rows={breakfastRows} />
+                {breakfastMeals.map((m, i) => (<MealBlock key={i} meal={m} />))}
               </>
             )}
 
-            {lunchRows.length > 0 && (
+            {lunchMeals.length > 0 && (
               <>
                 <View style={{ height: 8 }} />
                 <Text style={s.dayHead}>Lunch</Text>
-                <MealTable rows={lunchRows} />
+                {lunchMeals.map((m, i) => (<MealBlock key={i} meal={m} />))}
               </>
             )}
 
@@ -660,11 +700,11 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
             <Text style={s.dayHead}>Snacks — choose one per day</Text>
             <SnackStrip snacks={snacks} />
 
-            {dinnerRows.length > 0 && (
+            {dinnerMeals.length > 0 && (
               <>
                 <View style={{ height: 8 }} />
                 <Text style={s.dayHead}>Dinner</Text>
-                <MealTable rows={dinnerRows} />
+                {dinnerMeals.map((m, i) => (<MealBlock key={i} meal={m} />))}
               </>
             )}
 

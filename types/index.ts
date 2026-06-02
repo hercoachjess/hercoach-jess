@@ -179,13 +179,20 @@ export interface MacroTargets {
 export interface Meal {
   name: string
   time: string
-  items: string[]
+  items: MealItem[]
+  prep_notes?: string
   alternatives?: MealAlternative[]
 }
 
 export interface MealAlternative {
   label: string
-  items: string[]
+  items: MealItem[]
+  prep_notes?: string
+}
+
+export interface MealItem {
+  food: string
+  brand?: string
 }
 
 export interface TrainingPlan {
