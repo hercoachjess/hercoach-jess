@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { safeSubmit } from '@/lib/safe-submit'
 
 const TOTAL = 7
 
@@ -287,16 +288,15 @@ export default function OnboardingForm() {
     }
 
     try {
-      const res = await fetch('/api/onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload, signed_name: sigName.trim(), signed_date: sigDate.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Submission failed.')
+      const result = await safeSubmit('/api/onboarding', { payload, signed_name: sigName.trim(), signed_date: sigDate.trim() })
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       setSubmitted(true)
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e: unknown) {
+      // Should not happen — safeSubmit doesn't throw — but defend anyway.
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
       setSubmitting(false)

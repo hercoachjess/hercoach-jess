@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { safeSubmit } from '@/lib/safe-submit'
 
 const GOAL_OPTIONS = [
   'Fat Loss',
@@ -49,22 +50,20 @@ export default function EnquiryForm() {
     setError('')
     setSubmitting(true)
     try {
-      const res = await fetch('/api/enquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: firstName.trim(),
-          last_name: lastName.trim() || null,
-          email: email.trim(),
-          phone: phone.trim() || null,
-          goal: goal || null,
-          about: about.trim() || null,
-          hear_from: hearFrom || null,
-          best_contact: bestContact || null,
-        }),
+      const result = await safeSubmit('/api/enquiry', {
+        first_name: firstName.trim(),
+        last_name: lastName.trim() || null,
+        email: email.trim(),
+        phone: phone.trim() || null,
+        goal: goal || null,
+        about: about.trim() || null,
+        hear_from: hearFrom || null,
+        best_contact: bestContact || null,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Submission failed.')
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       setSubmitted(true)
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e: unknown) {
