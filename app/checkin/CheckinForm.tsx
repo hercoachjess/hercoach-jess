@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { safeSubmit } from '@/lib/safe-submit'
 
 // ───────────── MOOD / ADHERENCE ICONS ─────────────
 type IconProps = { active: boolean }
@@ -290,17 +291,15 @@ export default function CheckinForm() {
     if (armCm) bodyMeasurements.arm_cm = parseFloat(armCm)
 
     try {
-      const res = await fetch('/api/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          payload,
-          body_measurements: Object.keys(bodyMeasurements).length > 0 ? bodyMeasurements : undefined,
-          photos: photoUrls.length > 0 ? photoUrls : undefined,
-        }),
+      const result = await safeSubmit('/api/checkin', {
+        payload,
+        body_measurements: Object.keys(bodyMeasurements).length > 0 ? bodyMeasurements : undefined,
+        photos: photoUrls.length > 0 ? photoUrls : undefined,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Submission failed.')
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       setSubmitted(true)
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e: unknown) {
