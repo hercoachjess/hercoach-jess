@@ -230,8 +230,9 @@ export default function CheckinForm() {
           .from('checkin-photos')
           .upload(path, file, { contentType: file.type, upsert: false })
         if (uploadErr) { setPhotoError(uploadErr.message); continue }
-        const { data: urlData } = supabase.storage.from('checkin-photos').getPublicUrl(path)
-        uploaded.push(urlData.publicUrl)
+        // Bucket is now private — store only the path. The dashboard
+        // generates short-lived signed URLs server-side when displaying.
+        uploaded.push(path)
       }
       setPhotoUrls((prev) => [...prev, ...uploaded])
     } catch (e: unknown) {
