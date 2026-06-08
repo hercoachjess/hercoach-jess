@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ClientFile from '@/components/dashboard/ClientFile'
+import { signCheckinPhotos } from '@/lib/storage/checkin-photos'
 import type {
   Client,
   OnboardingSubmission,
@@ -69,11 +70,24 @@ export default async function ClientFilePage({ params }: Props) {
 
   if (!client) notFound()
 
+  // Resolve check-in photos to short-lived signed URLs. The bucket is
+  // private; the columns still hold either plain paths (new uploads) or
+  // legacy public URLs (older check-ins). signCheckinPhotos handles both.
+  const checkinList = (checkins ?? []) as CheckinSubmission[]
+  const checkinsWithSignedPhotos: CheckinSubmission[] = await Promise.all(
+    checkinList.map(async (c) => {
+      const refs = c.photos ?? []
+      if (refs.length === 0) return c
+      const signed = await signCheckinPhotos(refs)
+      return { ...c, photos: signed.filter((u): u is string => !!u) }
+    }),
+  )
+
   return (
     <ClientFile
       client={client as Client}
       onboarding={onboarding as OnboardingSubmission | null}
-      checkins={(checkins ?? []) as CheckinSubmission[]}
+      checkins={checkinsWithSignedPhotos}
       mealPlan={mealPlans as MealPlan | null}
       trainingPlan={trainingPlans as TrainingPlan | null}
       planHistory={(planHistory ?? []) as PlanHistory[]}
