@@ -43,6 +43,23 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   // Local editable state — normalize legacy string items into { food, brand }.
   const [editedMeals, setEditedMeals] = useState<Meal[]>(() => normalizeMeals(mealPlan?.meals))
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null)
+
+  // Per-meal AI proposals. When Jess clicks "Propose new version" the AI's
+  // suggested meal lands here (keyed by meal index) for explicit review
+  // rather than silently replacing the current meal in editedMeals. She then
+  // clicks Accept to apply it or Discard to throw it away.
+  const [mealInstructions, setMealInstructions] = useState<Record<number, string>>({})
+  const [pendingMeals, setPendingMeals] = useState<Record<number, Meal>>({})
+
+  // Whole-plan macro rescale. When Jess edits kcal / macros and clicks
+  // "Rescale meals to new macros", the AI keeps the same meals but adjusts
+  // portions. Result lands here for review before applying.
+  const [rescaleBusy, setRescaleBusy] = useState(false)
+  const [pendingRescale, setPendingRescale] = useState<{
+    meals: Meal[]
+    coach_notes: string
+    food_facts: FoodFact[]
+  } | null>(null)
   const [editedTargets, setEditedTargets] = useState(
     mealPlan?.targets ?? {
       kcal: client.primary_goal_kcal ?? 2000,
@@ -316,10 +333,12 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     })
   }
 
-  // Ask the AI to swap out a single meal in place. The new meal stays in
-  // editedMeals (not saved) until the coach hits Save plan, matching the
-  // behaviour of generate / revise.
-  async function regenerateMeal(mealIdx: number) {
+  // Ask the AI to propose a new version of a single meal. Optional
+  // free-text instructions (e.g. "swap chicken for tofu", "lower fat",
+  // "make it 5-min prep") sharpen the request. The result lands in
+  // pendingMeals[mealIdx] for review — it does NOT replace the current
+  // meal in editedMeals until Jess clicks Accept.
+  async function proposeMealChange(mealIdx: number) {
     setRegeneratingIdx(mealIdx)
     setError('')
     try {
@@ -349,6 +368,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           allergies: allergyParts.join(' | ') || 'None reported',
           dislikes: [food?.foods_disliked, client.food_dislikes_override].filter(Boolean).join('; ') || '',
           cookingAbility: food?.cooking_confidence || '',
+          instructions: mealInstructions[mealIdx]?.trim() || undefined,
         }),
       })
       const data = await res.json()
@@ -361,12 +381,101 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           items: normalizeMealItems(a.items),
         })),
       }
-      setEditedMeals((meals) => meals.map((m, i) => (i === mealIdx ? normalized : m)))
+      setPendingMeals((p) => ({ ...p, [mealIdx]: normalized }))
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to regenerate meal.')
+      setError(e instanceof Error ? e.message : 'Failed to propose new meal.')
     } finally {
       setRegeneratingIdx(null)
     }
+  }
+
+  function acceptMealProposal(mealIdx: number) {
+    const proposed = pendingMeals[mealIdx]
+    if (!proposed) return
+    setEditedMeals((meals) => meals.map((m, i) => (i === mealIdx ? proposed : m)))
+    setPendingMeals((p) => {
+      const next = { ...p }
+      delete next[mealIdx]
+      return next
+    })
+    setMealInstructions((m) => {
+      const next = { ...m }
+      delete next[mealIdx]
+      return next
+    })
+  }
+
+  function discardMealProposal(mealIdx: number) {
+    setPendingMeals((p) => {
+      const next = { ...p }
+      delete next[mealIdx]
+      return next
+    })
+  }
+
+  // Whole-plan rescale — when targets change, ask the AI to keep the
+  // same meals (same dishes, same labels, same prep) but adjust the
+  // quantities so daily totals hit the new macros. Lands in pendingRescale
+  // for review.
+  async function rescaleMealsToTargets() {
+    if (editedMeals.length === 0) {
+      setError('Generate or save a meal plan first, then macros can be rescaled.')
+      return
+    }
+    setRescaleBusy(true)
+    setError('')
+    try {
+      const food = ob?.food_preferences
+      const health = ob?.health_screening
+      const dietaryParts: string[] = []
+      if (food?.diet_type && food.diet_type.toLowerCase() !== 'no restrictions') dietaryParts.push(food.diet_type)
+      if (food?.foods_loved) dietaryParts.push(`Foods loved: ${food.foods_loved}`)
+      const allergyParts: string[] = []
+      if (food?.allergies) allergyParts.push(food.allergies)
+      if (health?.conditions?.length) {
+        const flags = health.conditions.filter((c) => c && c.toLowerCase() !== 'none of the above')
+        if (flags.length) allergyParts.push(`Diagnosed: ${flags.join(', ')}`)
+      }
+      const instructions = `MACRO RESCALE ONLY. Keep every meal exactly as it is — same dishes, same item types, same brand suggestions, same meal names, same times, same alternatives, same prep notes. The ONLY change permitted is the QUANTITIES (grams / ml) of the items so the daily totals hit the new targets: ${editedTargets.kcal} kcal, ${editedTargets.protein_g}g protein, ${editedTargets.fat_g}g fat, ${editedTargets.carbs_g}g carbs. Do NOT swap any ingredients. Do NOT change meal names or times. Do NOT change the alternatives' food choices, only their portion sizes.`
+      const res = await fetch('/api/ai/revise-meal-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client.full_name,
+          goal: client.goal || '',
+          targets: editedTargets,
+          currentMeals: editedMeals,
+          currentCoachNotes: coachNotes,
+          instructions,
+          foodPreferences: dietaryParts.join(' | ') || 'No specific preferences recorded',
+          allergies: allergyParts.join(' | ') || 'None reported',
+          dislikes: [food?.foods_disliked, client.food_dislikes_override].filter(Boolean).join('; ') || '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Rescale failed')
+      setPendingRescale({
+        meals: normalizeMeals(data.meals),
+        coach_notes: data.coach_notes || coachNotes,
+        food_facts: data.food_facts || foodFacts,
+      })
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to rescale meals.')
+    } finally {
+      setRescaleBusy(false)
+    }
+  }
+
+  function acceptRescale() {
+    if (!pendingRescale) return
+    setEditedMeals(pendingRescale.meals)
+    if (pendingRescale.coach_notes) setCoachNotes(pendingRescale.coach_notes)
+    if (pendingRescale.food_facts.length > 0) setFoodFacts(pendingRescale.food_facts)
+    setPendingRescale(null)
+  }
+
+  function discardRescale() {
+    setPendingRescale(null)
   }
 
   // Aggregate everything the AI MUST avoid + everything the client loves,
@@ -527,6 +636,54 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </p>
       )}
 
+      {/* Macro rescale — keep the same meals, adjust portions to fit new
+          macros. Result lands in pendingRescale for explicit review. Only
+          useful when there are existing meals to rescale. */}
+      {editing && editedMeals.length > 0 && (
+        <div className="border border-[rgba(255,255,255,0.14)] rounded-sm p-4 bg-[rgba(200,154,106,0.04)]">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-[#c89a6a] tracking-widest uppercase mb-1">Rescale meals to new macros</p>
+              <p className="text-xs text-[#8a8680] italic leading-relaxed">
+                Changed the calories or macros above? This keeps the same meals (same dishes, brands, prep) and asks the AI to adjust the portion sizes so daily totals hit the new targets. You review the proposal before it&apos;s applied.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" loading={rescaleBusy} onClick={rescaleMealsToTargets}>
+              {pendingRescale ? 'Re-do rescale' : 'Rescale meals'}
+            </Button>
+          </div>
+
+          {pendingRescale && (
+            <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.14)]">
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                <p className="text-xs text-[#7da87d] tracking-widest uppercase">Rescaled proposal · review</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={discardRescale}>Discard</Button>
+                  <Button size="sm" onClick={acceptRescale}>Apply to plan</Button>
+                </div>
+              </div>
+              <p className="text-xs text-[#b8b4ac] leading-relaxed mb-2">
+                {pendingRescale.meals.length} meal{pendingRescale.meals.length === 1 ? '' : 's'} re-portioned to hit {editedTargets.kcal} kcal · {editedTargets.protein_g}g P · {editedTargets.fat_g}g F · {editedTargets.carbs_g}g C.
+              </p>
+              <ul className="flex flex-col gap-1 text-xs text-[#c8c4bc]">
+                {pendingRescale.meals.map((m, i) => (
+                  <li key={i}>
+                    <span className="text-[#f0ece4]">{m.name}</span>
+                    <span className="text-[#b8b4ac] mx-1">·</span>
+                    {m.items.length} item{m.items.length === 1 ? '' : 's'} — {m.items.map((it) => it.food).join(', ').slice(0, 120)}{m.items.map((it) => it.food).join(', ').length > 120 ? '…' : ''}
+                  </li>
+                ))}
+              </ul>
+              {pendingRescale.coach_notes && pendingRescale.coach_notes !== coachNotes && (
+                <p className="text-xs text-[#8a8680] italic leading-relaxed mt-3">
+                  <span className="text-[#b8b4ac]">AI note on the rescale:</span> {pendingRescale.coach_notes}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI macro recommendation — uses the latest 2 check-ins + goal to
           suggest new targets with reasoning. Visible in edit mode only. */}
       {editing && (
@@ -608,19 +765,9 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                 <span className="text-xs text-[#c89a6a]">{meal.time}</span>
               </div>
               {editing && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    loading={regeneratingIdx === mealIdx}
-                    onClick={() => regenerateMeal(mealIdx)}
-                  >
-                    Regenerate
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingMealIdx(editingMealIdx === mealIdx ? null : mealIdx)}>
-                    {editingMealIdx === mealIdx ? 'Done' : 'Edit'}
-                  </Button>
-                </div>
+                <Button size="sm" variant="ghost" onClick={() => setEditingMealIdx(editingMealIdx === mealIdx ? null : mealIdx)}>
+                  {editingMealIdx === mealIdx ? 'Done' : 'Edit'}
+                </Button>
               )}
             </div>
           </CardHeader>
@@ -863,6 +1010,97 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                 </div>
               </div>
             ) : null}
+
+            {/* Per-meal AI proposal flow — only in edit mode. Optional
+                instructions sharpen the request. Result lands in
+                pendingMeals[mealIdx] for explicit accept/discard rather
+                than silently overwriting the current meal. */}
+            {editing && (
+              <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.10)]">
+                <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Ask AI to change this meal</p>
+                <textarea
+                  className="input-underline text-sm w-full"
+                  rows={2}
+                  value={mealInstructions[mealIdx] ?? ''}
+                  placeholder={'Optional. e.g. "swap chicken for tofu", "make it quicker to prep", "more carbs for training day"'}
+                  onChange={(e) => setMealInstructions((m) => ({ ...m, [mealIdx]: e.target.value }))}
+                />
+                <div className="flex items-center justify-between flex-wrap gap-2 mt-2">
+                  <p className="text-xs text-[#8a8680] italic leading-relaxed flex-1 min-w-0">
+                    Leave the box blank for a fresh take. The AI keeps your dislikes / allergies / macros in mind either way.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={regeneratingIdx === mealIdx}
+                    onClick={() => proposeMealChange(mealIdx)}
+                  >
+                    Propose new version
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Pending proposal preview — accept moves it into editedMeals,
+                discard throws it away. Either way the change is opt-in. */}
+            {pendingMeals[mealIdx] && (
+              <div className="mt-4 border border-[#7da87d] rounded-sm bg-[rgba(125,168,125,0.05)] p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                  <p className="text-xs text-[#7da87d] tracking-widest uppercase">AI-proposed version · review</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => discardMealProposal(mealIdx)}>
+                      Discard
+                    </Button>
+                    <Button size="sm" onClick={() => acceptMealProposal(mealIdx)}>
+                      Accept change
+                    </Button>
+                  </div>
+                </div>
+                <ul className="flex flex-col gap-1 mb-3">
+                  {pendingMeals[mealIdx].items.map((item, i) => (
+                    <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
+                      <span className="text-[#b8b4ac] mt-0.5">·</span>
+                      <span className="flex-1">{item.food}</span>
+                      {item.brand && (
+                        <span className="text-xs text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {pendingMeals[mealIdx].prep_notes && (
+                  <div className="pt-2 border-t border-[rgba(255,255,255,0.08)]">
+                    <p className="text-xs text-[#b8b4ac] tracking-wider uppercase mb-1">Prep</p>
+                    <p className="text-sm text-[#c8c4bc] leading-relaxed italic">{pendingMeals[mealIdx].prep_notes}</p>
+                  </div>
+                )}
+                {(pendingMeals[mealIdx].alternatives ?? []).length > 0 && (
+                  <details className="mt-3 pt-2 border-t border-[rgba(255,255,255,0.08)]">
+                    <summary className="text-xs text-[#b8b4ac] cursor-pointer hover:text-[#e0d8cc]">
+                      {pendingMeals[mealIdx].alternatives!.length} alternative option{pendingMeals[mealIdx].alternatives!.length === 1 ? '' : 's'}
+                    </summary>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {pendingMeals[mealIdx].alternatives!.map((alt, i) => (
+                        <div key={i} className="pl-3 border-l border-[rgba(255,255,255,0.10)]">
+                          <p className="text-xs text-[#c89a6a] tracking-wider uppercase mb-1">{alt.label}</p>
+                          <ul className="flex flex-col gap-0.5">
+                            {alt.items.map((item, j) => (
+                              <li key={j} className="text-xs text-[#b8b4ac] flex items-start gap-2">
+                                <span className="text-[#8a8680] mt-0.5">·</span>
+                                <span className="flex-1">{item.food}</span>
+                                {item.brand && <span className="text-[#8a8680] italic">{item.brand}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                          {alt.prep_notes && (
+                            <p className="text-xs text-[#8a8680] italic leading-relaxed mt-1">{alt.prep_notes}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
           </CardBody>
         </Card>
       ))}
