@@ -2,7 +2,7 @@
 import {
   Document, Page, Text, View, StyleSheet,
 } from '@react-pdf/renderer'
-import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative } from '@/types'
+import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative, OnboardingSubmission } from '@/types'
 import { normalizeMealItems } from '@/lib/meal'
 import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
 
@@ -112,6 +112,23 @@ const s = StyleSheet.create({
   linenBoxHead: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, color: C.BLACK, marginBottom: 6 },
   linenBoxItem: { fontSize: 8.5, color: C.TEXT_MID, marginBottom: 3, lineHeight: 1.55 },
 
+  // Personal welcome card (page 1)
+  welcomeCard: {
+    backgroundColor: C.LINEN,
+    borderWidth: 0.5, borderColor: C.RULE_LIGHT,
+    padding: 16, borderRadius: 2,
+    marginBottom: 10,
+  },
+  welcomeEyebrow: { fontSize: 7, color: C.MID_GREY, letterSpacing: 1.4, marginBottom: 4 },
+  welcomeGreeting: { fontFamily: 'Times-Italic', fontSize: 17, color: C.BLACK, marginBottom: 8 },
+  welcomeBody: { fontSize: 9, color: C.TEXT_DARK, lineHeight: 1.6, marginBottom: 6 },
+  welcomeBlockLabel: { fontSize: 7, color: C.MID_GREY, letterSpacing: 1, marginTop: 6, marginBottom: 3 },
+  welcomeQuote: {
+    fontFamily: 'Times-Italic', fontSize: 9.5, color: C.OFF_BLACK,
+    lineHeight: 1.55, marginBottom: 6,
+    borderLeftWidth: 1, borderLeftColor: C.MID_GREY, paddingLeft: 8,
+  },
+
   // Macro chip
   chipRow: {
     flexDirection: 'row',
@@ -146,8 +163,8 @@ const s = StyleSheet.create({
   mealItemBrand: { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.45, textAlign: 'right' },
   mealPrepLabel: { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.MID_GREY, letterSpacing: 0.5, marginTop: 6, marginBottom: 2 },
   mealPrepBody:  { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.55, marginBottom: 4 },
-  altCard:       { borderLeftWidth: 1.5, borderLeftColor: C.RULE_LIGHT, paddingLeft: 8, marginTop: 8 },
-  altLabel:      { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.BLACK, letterSpacing: 0.5, marginBottom: 4 },
+  altCard:       { borderLeftWidth: 1, borderLeftColor: C.RULE_LIGHT, paddingLeft: 8, marginTop: 6, marginLeft: 2 },
+  altLabel:      { fontFamily: 'Helvetica-Oblique', fontSize: 7.5, color: C.MID_GREY, marginBottom: 3, letterSpacing: 0.3 },
   cellYogaHead:{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: C.BLACK },
   cellYogaBody:{ fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.5 },
 
@@ -233,6 +250,86 @@ function LinenBox({ head, lines }: { head: string; lines: string[] }) {
       {lines.map((l, i) => (
         <Text key={i} style={s.linenBoxItem}>–  {l}</Text>
       ))}
+    </View>
+  )
+}
+
+/**
+ * Personalised welcome card on the first page of the plan PDF.
+ *
+ * Pulls from the latest onboarding submission so the plan opens with
+ * the client's OWN reason for being here, in their own words. Falls
+ * back gracefully when fields are thin — the warm greeting + plan
+ * summary always render.
+ */
+function WelcomeCard({
+  client,
+  onboarding,
+  trainingPlan,
+  mealPlan,
+}: {
+  client: Client
+  onboarding: OnboardingSubmission | null
+  trainingPlan: TrainingPlan | null
+  mealPlan: MealPlan | null
+}) {
+  const firstName = (client.full_name || '').split(' ')[0] || client.full_name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p: any = onboarding?.payload ?? {}
+  const why: string = (p?.goals?.why || '').trim()
+  const primaryGoal: string = (p?.goals?.primary_goal || client.goal || '').trim()
+  const timeline: string = (p?.goals?.timeline || '').trim()
+
+  // Programme bits at-a-glance
+  const summaryBits: string[] = []
+  if (mealPlan?.targets?.kcal) {
+    summaryBits.push(`${mealPlan.targets.kcal} kcal · ${mealPlan.targets.protein_g}g protein daily`)
+  } else if (client.primary_goal_kcal) {
+    summaryBits.push(`${client.primary_goal_kcal} kcal · ${client.protein_target_g ?? '—'}g protein daily`)
+  }
+  if (trainingPlan?.days_per_week) {
+    const wks = trainingPlan.programme_length_weeks && trainingPlan.programme_length_weeks > 1
+      ? `${trainingPlan.programme_length_weeks}-week programme`
+      : ''
+    summaryBits.push(`${trainingPlan.days_per_week} training days/week${wks ? ` · ${wks}` : ''}`)
+  }
+  if (timeline) summaryBits.push(`Timeline: ${timeline}`)
+
+  return (
+    <View style={s.welcomeCard} wrap={false}>
+      <Text style={s.welcomeEyebrow}>FOR {firstName.toUpperCase()}</Text>
+      <Text style={s.welcomeGreeting}>This is your plan, {firstName}.</Text>
+
+      <Text style={s.welcomeBody}>
+        Built around what you told me at onboarding{primaryGoal ? `: ${primaryGoal.toLowerCase()}` : ''}.
+        Everything in here is personalised to your food preferences, training experience,
+        and any health considerations you shared. The numbers, brands, and timings are
+        guides, not rules — message me anytime if something isn&apos;t working for you.
+      </Text>
+
+      {why && (
+        <>
+          <Text style={s.welcomeBlockLabel}>WHY THIS MATTERS TO YOU</Text>
+          <Text style={s.welcomeQuote}>&ldquo;{why}&rdquo;</Text>
+        </>
+      )}
+
+      {summaryBits.length > 0 && (
+        <>
+          <Text style={s.welcomeBlockLabel}>YOUR PROGRAMME AT A GLANCE</Text>
+          {summaryBits.map((b, i) => (
+            <Text key={i} style={[s.welcomeBody, { marginBottom: 2 }]}>· {b}</Text>
+          ))}
+        </>
+      )}
+
+      <Text style={s.welcomeBlockLabel}>HOW TO USE THIS</Text>
+      <Text style={s.welcomeBody}>
+        Read through it once start to finish so nothing&apos;s a surprise. Then pick your
+        meal options from the alternatives where you fancy, follow training as written
+        with the cues, and let me know in your weekly check-in how it&apos;s landing.
+        We adjust together.
+      </Text>
     </View>
   )
 }
@@ -325,22 +422,26 @@ function MealAltBlock({ alt, showMacros }: { alt: MealAlternative; showMacros: b
   const items = normalizeMealItems(alt.items)
   if (!alt.label && items.length === 0) return null
   const altHasMacros = items.some(itemHasMacros)
+  // Render alternatives as clearly subordinate "Or try…" swap options
+  // rather than as standalone meals. Smaller / italic / muted so the
+  // main meal stays the focal point on the page.
+  const labelText = alt.label ? `Or try — ${alt.label.toLowerCase()}` : 'Or try'
   return (
     <View style={s.altCard} wrap={false}>
-      {alt.label && <Text style={s.altLabel}>{alt.label.toUpperCase()}</Text>}
+      <Text style={s.altLabel}>{labelText}</Text>
       {showMacros && altHasMacros && (
         <Text style={[s.mealPrepBody, { fontSize: 7.5, marginBottom: 2 }]}>
           {formatMacrosShort(mealMacros({ name: '', time: '', items }))}
         </Text>
       )}
       {items.map((item, i) => (
-        <View key={i} style={[s.tableRow, { backgroundColor: 'transparent', paddingVertical: 4, borderTopWidth: 0 }]}>
-          <Text style={[s.mealItemFood, { flex: 60, fontSize: 8.5 }]}>{formatItemDisplay(item)}</Text>
-          <Text style={[s.mealItemBrand, { flex: 40, fontSize: 8 }]}>{item.brand || ''}</Text>
+        <View key={i} style={[s.tableRow, { backgroundColor: 'transparent', paddingVertical: 2, borderTopWidth: 0 }]}>
+          <Text style={[s.mealItemFood, { flex: 60, fontSize: 8 }]}>{formatItemDisplay(item)}</Text>
+          <Text style={[s.mealItemBrand, { flex: 40, fontSize: 7.5 }]}>{item.brand || ''}</Text>
         </View>
       ))}
       {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
-        <Text style={[s.mealPrepBody, { fontSize: 8, marginTop: 2 }]}>{alt.prep_notes.trim()}</Text>
+        <Text style={[s.mealPrepBody, { fontSize: 7.5, marginTop: 2 }]}>{alt.prep_notes.trim()}</Text>
       )}
     </View>
   )
@@ -417,11 +518,12 @@ interface Props {
   client: Client
   mealPlan: MealPlan | null
   trainingPlan: TrainingPlan | null
+  onboarding?: OnboardingSubmission | null
   version: string
   includeNumbers: boolean
 }
 
-export default function ClientPlanDocument({ client, mealPlan, trainingPlan, version, includeNumbers }: Props) {
+export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onboarding = null, version, includeNumbers }: Props) {
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
   // Macro chips vary by variant
@@ -479,6 +581,16 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
           <Text style={s.welcomeL}>YOUR PERSONALISED PLAN</Text>
           <Text style={s.welcomeR}>Prepared by Jess  ·  Registered Dietitian (HCPC)  ·  {today}</Text>
         </View>
+
+        {/* Personal welcome card — pulls from onboarding so the first
+            page feels like it was written for this specific person.
+            Falls back gracefully when onboarding data is thin. */}
+        <WelcomeCard
+          client={client}
+          onboarding={onboarding}
+          trainingPlan={trainingPlan}
+          mealPlan={mealPlan}
+        />
 
         {/* Client snapshot */}
         <LinenBox
