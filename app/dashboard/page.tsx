@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { resolvePaymentStatus } from '@/lib/utils'
+import { isCheckinOverdue } from '@/lib/checkin-day'
 import type { Client, CheckinSubmission, Payment, Enquiry } from '@/types'
 import AddClientButton from '@/components/dashboard/AddClientButton'
 import CopyLink from '@/components/ui/CopyLink'
@@ -69,10 +70,16 @@ export default async function DashboardPage() {
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   const checkinsToReview = checkinList.filter((c) => !c.coach_reviewed_at).length
 
-  // Missed: active clients whose latest check-in is >7 days ago (or none)
-  const missedCheckins = clientList.filter((c) => {
+  // Overdue: active clients whose configured `checkin_day` has passed
+  // (+ 1 day grace) and haven't checked in this cycle. Falls back to a
+  // generic 7-day-no-submission rule for clients whose day isn't set
+  // yet, so they don't drop off the radar entirely.
+  const overdueCheckins = clientList.filter((c) => {
     if (c.status !== 'active') return false
     const latest = latestCheckin[c.id]
+    if (c.checkin_day) {
+      return isCheckinOverdue(c.checkin_day, latest?.created_at)
+    }
     if (!latest) return true
     return new Date(latest.created_at) < oneWeekAgo
   }).length
@@ -93,7 +100,7 @@ export default async function DashboardPage() {
           { label: 'New enquiries',      value: newEnquiries,    warn: newEnquiries > 0,    accent: newEnquiries > 0 },
           { label: 'Active clients',     value: activeClients,   warn: false,               accent: false },
           { label: 'Check-ins to review',value: checkinsToReview,warn: false,               accent: false },
-          { label: 'Missed check-ins',   value: missedCheckins,  warn: missedCheckins > 0,  accent: false },
+          { label: 'Overdue check-ins',  value: overdueCheckins, warn: overdueCheckins > 0, accent: false },
           { label: 'Overdue payments',   value: overduePayments, warn: overduePayments > 0, accent: false },
         ].map(({ label, value, warn, accent }) => (
           <div
