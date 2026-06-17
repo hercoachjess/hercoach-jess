@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
 import { getCoachStyleBlock } from '@/lib/ai/coach-style'
+import { extractJson } from '@/lib/ai/extract-json'
 import type { Meal, MacroTargets, FoodFact } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -109,18 +110,26 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 4500,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
+    const stopReason = message.stop_reason
 
-    let parsed: { meals: Meal[]; food_facts?: FoodFact[]; coach_notes?: string }
-    try {
-      const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      parsed = JSON.parse(cleaned)
-    } catch {
-      return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 })
+    const parsed = extractJson<{ meals: Meal[]; food_facts?: FoodFact[]; coach_notes?: string }>(text)
+    if (!parsed || !Array.isArray(parsed.meals)) {
+      console.error(
+        '[revise-meal-plan] JSON parse failed. stop_reason=%s raw length=%d. First 400 chars:\n%s',
+        stopReason,
+        text.length,
+        text.slice(0, 400),
+      )
+      const reason =
+        stopReason === 'max_tokens'
+          ? 'The AI ran out of room before finishing the revision. Try again with a smaller change in one go.'
+          : "Couldn't read the AI response. Try again."
+      return NextResponse.json({ error: reason, stop_reason: stopReason }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -129,7 +138,10 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       coach_notes: parsed.coach_notes || '',
     })
   } catch (err) {
-    console.error('AI revise meal plan error:', err)
-    return NextResponse.json({ error: 'Failed to revise meal plan.' }, { status: 500 })
+    console.error('[revise-meal-plan] error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed to revise meal plan.' },
+      { status: 500 },
+    )
   }
 }
