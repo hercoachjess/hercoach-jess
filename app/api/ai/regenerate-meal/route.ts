@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
 import { getCoachStyleBlock } from '@/lib/ai/coach-style'
+import { extractJson } from '@/lib/ai/extract-json'
 import type { Meal, MacroTargets } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -101,26 +102,26 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1500,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
+    const stopReason = message.stop_reason
 
-    let parsed: { meal: Meal }
-    try {
-      const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      parsed = JSON.parse(cleaned)
-    } catch (err) {
-      console.error('[regenerate-meal] JSON parse failed. Raw:', text)
-      return NextResponse.json(
-        { error: 'Failed to parse AI response.', details: err instanceof Error ? err.message : String(err) },
-        { status: 500 },
+    const parsed = extractJson<{ meal: Meal }>(text)
+    if (!parsed || !parsed.meal || !Array.isArray(parsed.meal.items)) {
+      console.error(
+        '[regenerate-meal] JSON parse failed. stop_reason=%s raw length=%d. First 400 chars:\n%s',
+        stopReason,
+        text.length,
+        text.slice(0, 400),
       )
-    }
-
-    if (!parsed.meal || !Array.isArray(parsed.meal.items)) {
-      return NextResponse.json({ error: 'AI response missing a valid meal.' }, { status: 500 })
+      const reason =
+        stopReason === 'max_tokens'
+          ? 'The AI ran out of room before finishing the meal. Try again.'
+          : "Couldn't read the AI response. Try again."
+      return NextResponse.json({ error: reason, stop_reason: stopReason }, { status: 500 })
     }
 
     return NextResponse.json({ meal: parsed.meal })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
 import { getCoachStyleBlock } from '@/lib/ai/coach-style'
+import { extractJson } from '@/lib/ai/extract-json'
 import type { Meal, MacroTargets, FoodFact } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -113,18 +114,31 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
+    const stopReason = message.stop_reason
+    const usage = message.usage
 
-    let parsed: { meals: Meal[]; food_facts?: FoodFact[]; coach_notes?: string }
-    try {
-      const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      parsed = JSON.parse(cleaned)
-    } catch {
-      return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 })
+    const parsed = extractJson<{ meals: Meal[]; food_facts?: FoodFact[]; coach_notes?: string }>(text)
+    if (!parsed || !Array.isArray(parsed.meals)) {
+      console.error(
+        '[meal-plan] JSON parse failed. stop_reason=%s usage=%o raw length=%d. First 400 chars:\n%s',
+        stopReason,
+        usage,
+        text.length,
+        text.slice(0, 400),
+      )
+      const reason =
+        stopReason === 'max_tokens'
+          ? 'The AI ran out of room before finishing the plan. Try again — or simplify the request (fewer meals, fewer alternatives).'
+          : "Couldn't read the AI response. Try again — if it keeps happening let Jess know."
+      return NextResponse.json(
+        { error: reason, stop_reason: stopReason },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
@@ -133,7 +147,10 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       coach_notes: parsed.coach_notes || '',
     })
   } catch (err) {
-    console.error('AI meal plan error:', err)
-    return NextResponse.json({ error: 'Failed to generate meal plan.' }, { status: 500 })
+    console.error('[meal-plan] error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed to generate meal plan.' },
+      { status: 500 },
+    )
   }
 }
