@@ -3,7 +3,7 @@ import { createElement } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCoach } from '@/lib/supabase/require-coach'
 import ClientPlanDocument from '@/lib/pdf/ClientPlanDocument'
-import type { MealPlan, TrainingPlan, Client } from '@/types'
+import type { MealPlan, TrainingPlan, Client, OnboardingSubmission } from '@/types'
 
 type Scope = 'meal' | 'training' | 'full'
 type Mode = 'save' | 'inline'
@@ -32,11 +32,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
 
-    const { data: client } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', clientId)
-      .single()
+    const [{ data: client }, { data: onboarding }] = await Promise.all([
+      supabase.from('clients').select('*').eq('id', clientId).single(),
+      supabase
+        .from('onboarding_submissions')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found.' }, { status: 404 })
@@ -53,6 +58,7 @@ export async function POST(request: NextRequest) {
       client: client as Client,
       mealPlan: docMealPlan,
       trainingPlan: docTrainingPlan,
+      onboarding: (onboarding as OnboardingSubmission | null) ?? null,
       version,
       includeNumbers,
     })
