@@ -62,7 +62,14 @@ Rules:
 - Keep meal times consistent unless instructions say to change them
 
 ITEM STRUCTURE — CRITICAL:
-Each item is structured: { "food": "<ingredient + quantity, no brand>", "brand": "<optional shop product name>" }. The "food" field never contains a brand. Generic items omit "brand" entirely.
+Each item is a structured object with these fields:
+  - "food": ingredient NAME only, no quantity, no brand. Example: "rolled oats", "chicken breast"
+  - "quantity": numeric portion size as a number. Example: 80, 1, 250
+  - "unit": one of "g" | "ml" | "item" | "tsp" | "tbsp" | "cup" | "scoop"
+  - "brand": optional shop product name. Omit entirely for generic items.
+  - "kcal", "protein_g", "fat_g", "carbs_g": evidence-based macro estimates for THIS portion (already multiplied through). Round to 1dp.
+
+Daily totals (sum across main meals) must be within ±5% of the macro targets.
 
 PREP NOTES — REQUIRED:
 Every meal (and every alternative) must include a "prep_notes" string — 1–3 sentences describing how to prepare it. Update prep notes when the items change.
@@ -78,16 +85,16 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
     {
       "name": "Breakfast", "time": "07:30",
       "items": [
-        { "food": "80g rolled oats", "brand": "Tesco Wholegrain Porridge Oats" },
-        { "food": "250ml semi-skimmed milk" }
+        { "food": "rolled oats", "quantity": 80, "unit": "g", "brand": "Tesco Wholegrain Porridge Oats", "kcal": 304, "protein_g": 11, "fat_g": 6, "carbs_g": 49 },
+        { "food": "semi-skimmed milk", "quantity": 250, "unit": "ml", "kcal": 118, "protein_g": 8.5, "fat_g": 4, "carbs_g": 12 }
       ],
       "prep_notes": "Cook oats with the milk on the hob, simmer 5 mins, stirring.",
       "alternatives": [
         {
           "label": "Higher-protein swap",
           "items": [
-            { "food": "170g natural Skyr", "brand": "Sainsbury's Skyr" },
-            { "food": "30g granola" }
+            { "food": "natural Skyr", "quantity": 170, "unit": "g", "brand": "Sainsbury's Skyr", "kcal": 105, "protein_g": 19, "fat_g": 0.3, "carbs_g": 7 },
+            { "food": "granola", "quantity": 30, "unit": "g", "kcal": 135, "protein_g": 3, "fat_g": 5, "carbs_g": 19 }
           ],
           "prep_notes": "Spoon Skyr into a bowl, layer granola on top."
         }

@@ -28,7 +28,9 @@ export default function PlanHistoryTab({
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [changeNote, setChangeNote] = useState('')
-  const [includeNumbers, setIncludeNumbers] = useState(true)
+  // Default to OFF — client copies shouldn't show macros unless Jess
+  // explicitly toggles to "With numbers" for her own reference.
+  const [includeNumbers, setIncludeNumbers] = useState(false)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -216,10 +218,10 @@ export default function PlanHistoryTab({
                 }`}
               >
                 <p className={`text-sm font-medium mb-0.5 ${includeNumbers ? 'text-[#f0ece4]' : 'text-[#e0d8cc]'}`}>
-                  With numbers
+                  With macros (coach copy)
                 </p>
                 <p className="text-xs text-[#b8b4ac] leading-relaxed">
-                  Macro chips show kcal &amp; protein. Each meal shows ~kcal &amp; protein grams.
+                  Per-food and per-meal kcal / protein / fat / carbs visible. For your own reference.
                 </p>
               </button>
               <button
@@ -232,10 +234,10 @@ export default function PlanHistoryTab({
                 }`}
               >
                 <p className={`text-sm font-medium mb-0.5 ${!includeNumbers ? 'text-[#f0ece4]' : 'text-[#e0d8cc]'}`}>
-                  Without numbers
+                  Without macros (client copy)
                 </p>
                 <p className="text-xs text-[#b8b4ac] leading-relaxed">
-                  Chips show &ldquo;Balanced&rdquo; etc. Meals show foods &amp; grams only — no kcal/protein.
+                  Foods, quantities and brand suggestions only. No kcal or protein numbers — the version you share.
                 </p>
               </button>
             </div>

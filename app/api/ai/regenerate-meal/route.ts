@@ -70,7 +70,14 @@ Rules:
 - Produce 2 alternative versions of the new meal (same macro target ±10%, same rules) with labelled variants.
 
 ITEM STRUCTURE — CRITICAL:
-Each item is { "food": "<ingredient + quantity, NO brand here>", "brand": "<optional shop product name>" }. Generic items omit "brand" entirely.
+Each item is a structured object:
+  - "food": ingredient NAME only, no quantity, no brand
+  - "quantity": numeric portion size as a number
+  - "unit": one of "g" | "ml" | "item" | "tsp" | "tbsp" | "cup" | "scoop"
+  - "brand": optional shop product name (omit for generic items)
+  - "kcal", "protein_g", "fat_g", "carbs_g": evidence-based estimates for this portion (already multiplied through). Round to 1dp.
+
+The new meal's macros should hit roughly the same totals as the meal it replaces (so the daily totals stay within ±5% of the targets).
 
 PREP NOTES — REQUIRED:
 The new meal and each alternative need a short "prep_notes" string (1–3 sentences) describing how to prepare it.
@@ -81,13 +88,13 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
     "name": "${currentMeal.name}",
     "time": "${currentMeal.time}",
     "items": [
-      { "food": "...", "brand": "..." },
-      { "food": "..." }
+      { "food": "...", "quantity": 100, "unit": "g", "brand": "...", "kcal": 0, "protein_g": 0, "fat_g": 0, "carbs_g": 0 },
+      { "food": "...", "quantity": 1, "unit": "item", "kcal": 0, "protein_g": 0, "fat_g": 0, "carbs_g": 0 }
     ],
     "prep_notes": "...",
     "alternatives": [
-      { "label": "...", "items": [{ "food": "..." }], "prep_notes": "..." },
-      { "label": "...", "items": [{ "food": "..." }], "prep_notes": "..." }
+      { "label": "...", "items": [{ "food": "...", "quantity": 100, "unit": "g", "kcal": 0, "protein_g": 0, "fat_g": 0, "carbs_g": 0 }], "prep_notes": "..." },
+      { "label": "...", "items": [{ "food": "...", "quantity": 100, "unit": "g", "kcal": 0, "protein_g": 0, "fat_g": 0, "carbs_g": 0 }], "prep_notes": "..." }
     ]
   }
 }`
