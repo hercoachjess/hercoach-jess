@@ -6,15 +6,16 @@ import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Client, TrainingPlan, TrainingSession, WeeklyProgression, OnboardingSubmission } from '@/types'
+import type { Client, TrainingPlan, TrainingSession, WeeklyProgression, OnboardingSubmission, CheckinSubmission } from '@/types'
 
 interface Props {
   client: Client
   initialTrainingPlan: TrainingPlan | null
   onboarding: OnboardingSubmission | null
+  checkins?: CheckinSubmission[]
 }
 
-export default function TrainingPlanTab({ client, initialTrainingPlan, onboarding }: Props) {
+export default function TrainingPlanTab({ client, initialTrainingPlan, onboarding, checkins = [] }: Props) {
   const router = useRouter()
   const [trainingPlan, setTrainingPlan] = useState<TrainingPlan | null>(initialTrainingPlan)
   const [editing, setEditing] = useState(false)
@@ -36,6 +37,16 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [weeklyProgression, setWeeklyProgression] = useState<WeeklyProgression[]>(trainingPlan?.weekly_progression ?? [])
   const [coachNotes, setCoachNotes] = useState(trainingPlan?.coach_notes ?? '')
 
+  // Per-session AI propose/accept (parity with the meal-plan flow).
+  const [sessionInstructions, setSessionInstructions] = useState<Record<number, string>>({})
+  const [pendingSessions, setPendingSessions] = useState<Record<number, TrainingSession>>({})
+  const [regeneratingSessionIdx, setRegeneratingSessionIdx] = useState<number | null>(null)
+
+  // The two most recent check-ins get passed to AI calls so the
+  // programme can respond to "shoulder still sore", "energy was low",
+  // PB gains, sleep changes etc.
+  const recentCheckins = checkins.slice(0, 2)
+
   async function aiDraft() {
     setAiDrafting(true)
     setError('')
@@ -55,6 +66,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           injuries: ob?.health_screening?.injuries || '',
           exerciseDislikes: client.exercise_dislikes || '',
           trainingGoals: ob?.goals?.why || client.goal || '',
+          recentCheckins,
         }),
       })
       const data = await res.json()
@@ -96,6 +108,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           currentWeeklyProgression: weeklyProgression,
           currentCoachNotes: coachNotes,
           instructions: reviseInstructions,
+          recentCheckins,
         }),
       })
       const data = await res.json()
@@ -110,6 +123,65 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
     } finally {
       setAiRevising(false)
     }
+  }
+
+  // Ask the AI to propose a new version of a single session. Result
+  // lands in pendingSessions[idx] for explicit accept/discard — it does
+  // not overwrite the current session until Jess clicks Accept.
+  async function proposeSessionChange(sIdx: number) {
+    setRegeneratingSessionIdx(sIdx)
+    setError('')
+    try {
+      const otherSessions = editedSessions.filter((_, i) => i !== sIdx)
+      const res = await fetch('/api/ai/regenerate-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client.full_name,
+          goal: client.goal || '',
+          level,
+          intensity,
+          gymAccess: ob?.lifestyle?.training_location || 'Gym',
+          injuries: ob?.health_screening?.injuries || '',
+          exerciseDislikes: client.exercise_dislikes || '',
+          currentSession: editedSessions[sIdx],
+          otherSessions,
+          instructions: sessionInstructions[sIdx]?.trim() || undefined,
+          recentCheckins,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to propose session.')
+      setPendingSessions((p) => ({ ...p, [sIdx]: data.session }))
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to propose session.')
+    } finally {
+      setRegeneratingSessionIdx(null)
+    }
+  }
+
+  function acceptSessionProposal(sIdx: number) {
+    const proposed = pendingSessions[sIdx]
+    if (!proposed) return
+    setEditedSessions((sessions) => sessions.map((s, i) => (i === sIdx ? proposed : s)))
+    setPendingSessions((p) => {
+      const next = { ...p }
+      delete next[sIdx]
+      return next
+    })
+    setSessionInstructions((m) => {
+      const next = { ...m }
+      delete next[sIdx]
+      return next
+    })
+  }
+
+  function discardSessionProposal(sIdx: number) {
+    setPendingSessions((p) => {
+      const next = { ...p }
+      delete next[sIdx]
+      return next
+    })
   }
 
   async function exportPdf() {
@@ -560,6 +632,57 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
                     ))}
                   </tbody>
                 </table>
+              )}
+
+              {/* Per-session AI propose flow — edit mode + non-rest days only.
+                  AI's proposed session lands in pendingSessions[sIdx] for
+                  explicit accept/discard, never silently overwriting. */}
+              {editing && !isRest && (
+                <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.10)]">
+                  <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Ask AI to change this session</p>
+                  <textarea
+                    className="input-underline text-sm w-full"
+                    rows={2}
+                    value={sessionInstructions[sIdx] ?? ''}
+                    placeholder={'Optional. e.g. "swap squat for hip thrust", "make it 30 min instead of 60", "less knee load this week"'}
+                    onChange={(e) => setSessionInstructions((m) => ({ ...m, [sIdx]: e.target.value }))}
+                  />
+                  <div className="flex items-center justify-between flex-wrap gap-2 mt-2">
+                    <p className="text-xs text-[#8a8680] italic leading-relaxed flex-1 min-w-0">
+                      Leave blank for a fresh take on this day. The AI keeps injuries, dislikes and recent check-in feedback in mind either way.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      loading={regeneratingSessionIdx === sIdx}
+                      onClick={() => proposeSessionChange(sIdx)}
+                    >
+                      Propose new version
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {pendingSessions[sIdx] && (
+                <div className="mt-4 border border-[#7da87d] rounded-sm bg-[rgba(125,168,125,0.05)] p-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                    <p className="text-xs text-[#7da87d] tracking-widest uppercase">AI-proposed session · review</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => discardSessionProposal(sIdx)}>Discard</Button>
+                      <Button size="sm" onClick={() => acceptSessionProposal(sIdx)}>Accept change</Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#c89a6a] mb-2">{pendingSessions[sIdx].focus}</p>
+                  <ul className="flex flex-col gap-1">
+                    {pendingSessions[sIdx].exercises.map((ex, i) => (
+                      <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
+                        <span className="text-[#b8b4ac] mt-0.5">·</span>
+                        <span className="flex-1">{ex.name}</span>
+                        <span className="text-xs text-[#8a8680] whitespace-nowrap">{ex.sets} × {ex.reps}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </CardBody>
           </Card>

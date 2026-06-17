@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import { getInitials, getWeeksSince } from '@/lib/utils'
+import { isCheckinOverdue, overdueLabel } from '@/lib/checkin-day'
 import type { Client, CheckinSubmission } from '@/types'
 
 interface Props {
@@ -101,6 +102,12 @@ export default function ClientListSection({ clients, latestCheckin, paymentStatu
             checkin
             && new Date(checkin.created_at) > oneWeekAgo
             && !checkin.coach_reviewed_at
+          const overdue =
+            client.status === 'active' &&
+            (client.checkin_day
+              ? isCheckinOverdue(client.checkin_day, checkin?.created_at)
+              : !checkin || new Date(checkin.created_at) < oneWeekAgo)
+          const overdueText = overdue ? overdueLabel(client.checkin_day, checkin?.created_at) : null
 
           return (
             <Link
@@ -140,6 +147,11 @@ export default function ClientListSection({ clients, latestCheckin, paymentStatu
               <div className="flex items-center gap-2 flex-shrink-0">
                 {hasRecentCheckin && (
                   <Badge variant="default">New check-in</Badge>
+                )}
+                {overdue && (
+                  <span className="text-xs px-2 py-0.5 rounded-sm border border-[#c89a6a] text-[#c89a6a] whitespace-nowrap">
+                    Overdue{overdueText ? ` · ${overdueText}` : ''}
+                  </span>
                 )}
                 {pStatus && (
                   <Badge variant={pStatus}>{pStatus === 'overdue' ? 'Overdue' : pStatus === 'paid' ? 'Paid' : 'Pending'}</Badge>

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireCoach } from '@/lib/supabase/require-coach'
 import { getCoachStyleBlock } from '@/lib/ai/coach-style'
-import type { TrainingSession, WeeklyProgression } from '@/types'
+import { extractJson } from '@/lib/ai/extract-json'
+import type { TrainingSession, WeeklyProgression, CheckinSubmission } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
       injuries,
       exerciseDislikes,
       trainingGoals,
+      recentCheckins = [],
     }: {
       clientName: string
       goal: string
@@ -34,8 +36,35 @@ export async function POST(request: NextRequest) {
       injuries: string
       exerciseDislikes?: string
       trainingGoals: string
+      recentCheckins?: CheckinSubmission[]
     } = await request.json()
     const lengthWeeks = [1, 4, 8, 12].includes(programmeLengthWeeks || 1) ? (programmeLengthWeeks as number) : 1
+
+    // Pull the most actionable bits out of recent check-ins so the AI
+    // can respond to "shoulder still feels sore", "sessions felt heavy",
+    // "sleep dropped" etc rather than programming in a vacuum.
+    const checkinContext = recentCheckins.length
+      ? `\nRECENT CHECK-IN FEEDBACK (most recent first — adapt the programme to what's actually happening for this client):
+${recentCheckins
+  .slice(0, 2)
+  .map((c) => {
+    const p = c.payload ?? {}
+    const lines: string[] = []
+    lines.push(`Week ${c.week_number ?? '?'} (${c.created_at?.slice(0, 10) ?? ''})`)
+    if (p.training_sessions) lines.push(`  Sessions: ${p.training_sessions}`)
+    if (p.training_feel) lines.push(`  How training felt: ${p.training_feel}`)
+    if (p.training_intensity) lines.push(`  Intensity overall: ${p.training_intensity}`)
+    if (p.discomfort) lines.push(`  Discomfort / pain: ${p.discomfort}`)
+    if (p.prs) lines.push(`  PBs / improvements: ${p.prs}`)
+    if (p.sleep_quality) lines.push(`  Sleep: ${p.sleep_quality}`)
+    if (p.energy) lines.push(`  Energy: ${p.energy}`)
+    if (p.stress_level) lines.push(`  Stress: ${p.stress_level}`)
+    if (p.hardest_part) lines.push(`  Hardest part: ${p.hardest_part}`)
+    return lines.join('\n')
+  })
+  .join('\n\n')}
+`
+      : ''
 
     const coachStyle = await getCoachStyleBlock()
     const prompt = coachStyle + `You are Jess, an online fitness coach and HCPC-registered Registered Dietitian. Draft a ${lengthWeeks}-week training programme for client ${clientName}.
@@ -50,7 +79,7 @@ Equipment / gym access: ${gymAccess || 'Full gym'}
 Injuries / limitations: ${injuries || 'None'}
 Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
 Training goals: ${trainingGoals || goal}
-
+${checkinContext}
 DO-NOT-PROGRAMME RULE — CRITICAL:
 The "Injuries / limitations" and "Exercises the client does NOT want" lists above are absolute. NEVER include any exercise that targets a contraindicated joint, replicates a movement pattern the client dislikes, or causes the client distress. Examples:
 - If they dislike burpees → no burpees, no burpee variations, no thrusters as a substitute either
@@ -70,7 +99,7 @@ Rules:
 - Include rest days appropriately
 - Sets × reps format: e.g. "3 × 8–10"
 - Include brief notes for any technique cues or beginner modifications
-- If injuries are listed, adapt around them and add a modification note
+- If recent check-in feedback mentioned discomfort, low energy, or that sessions felt heavy, adapt the programme — drop volume / intensity slightly, add a deload, or swap loaded movements for safer variations. Briefly reference WHY in coach_notes.
 
 Respond with a JSON object ONLY, no markdown fences:
 {
@@ -91,18 +120,26 @@ Respond with a JSON object ONLY, no markdown fences:
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 3000,
+      max_tokens: 5000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
+    const stopReason = message.stop_reason
 
-    let parsed: { sessions: TrainingSession[]; weekly_progression?: WeeklyProgression[]; coach_notes?: string }
-    try {
-      const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      parsed = JSON.parse(cleaned)
-    } catch {
-      return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 })
+    const parsed = extractJson<{ sessions: TrainingSession[]; weekly_progression?: WeeklyProgression[]; coach_notes?: string }>(text)
+    if (!parsed || !Array.isArray(parsed.sessions)) {
+      console.error(
+        '[training-plan] JSON parse failed. stop_reason=%s raw length=%d. First 400 chars:\n%s',
+        stopReason,
+        text.length,
+        text.slice(0, 400),
+      )
+      const reason =
+        stopReason === 'max_tokens'
+          ? 'The AI ran out of room before finishing the programme. Try again, or generate a shorter programme (1 or 4 weeks) first.'
+          : "Couldn't read the AI response. Try again."
+      return NextResponse.json({ error: reason, stop_reason: stopReason }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -111,7 +148,10 @@ Respond with a JSON object ONLY, no markdown fences:
       coach_notes: parsed.coach_notes || '',
     })
   } catch (err) {
-    console.error('AI training plan error:', err)
-    return NextResponse.json({ error: 'Failed to generate training plan.' }, { status: 500 })
+    console.error('[training-plan] error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed to generate training plan.' },
+      { status: 500 },
+    )
   }
 }

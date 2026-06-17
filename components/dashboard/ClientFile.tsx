@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import { resolvePaymentStatus, getWeeksSince } from '@/lib/utils'
+import { isCheckinOverdue, overdueLabel } from '@/lib/checkin-day'
+import NudgeButton from './NudgeButton'
 import type {
   Client,
   OnboardingSubmission,
@@ -61,6 +63,10 @@ export default function ClientFile({
   const overduePayments = payments.some(
     (p) => resolvePaymentStatus(p.status, p.due_date) === 'overdue'
   )
+  const latestCheckinIso = checkins[0]?.created_at ?? null
+  const checkinOverdue =
+    client.status === 'active' && isCheckinOverdue(client.checkin_day, latestCheckinIso)
+  const overdueLine = checkinOverdue ? overdueLabel(client.checkin_day, latestCheckinIso) : null
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
@@ -76,15 +82,24 @@ export default function ClientFile({
       </Link>
 
       {/* Client header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
+      <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
+        <div className="min-w-0">
           <h1 className="logo-text text-4xl mb-1">{client.full_name}</h1>
           <p className="text-sm text-[#b8b4ac]">
             {client.goal || 'No goal set'}
             {weeksCoached > 0 && ` · Week ${weeksCoached}`}
+            {client.checkin_day && ` · Check-ins ${client.checkin_day}s`}
           </p>
           {client.pinned_note && (
             <p className="text-sm text-[#c89a6a] italic mt-2 leading-relaxed">📌 {client.pinned_note}</p>
+          )}
+          {checkinOverdue && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="text-xs px-2 py-0.5 rounded-sm border border-[#c89a6a] text-[#c89a6a]">
+                Check-in overdue{overdueLine ? ` · ${overdueLine}` : ''}
+              </span>
+              <NudgeButton client={client} />
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2 mt-1">
@@ -141,7 +156,7 @@ export default function ClientFile({
           <MealPlanTab client={client} initialMealPlan={mealPlan} onboarding={onboarding} />
         )}
         {activeTab === 5 && (
-          <TrainingPlanTab client={client} initialTrainingPlan={trainingPlan} onboarding={onboarding} />
+          <TrainingPlanTab client={client} initialTrainingPlan={trainingPlan} onboarding={onboarding} checkins={checkins} />
         )}
         {activeTab === 6 && (
           <PlanHistoryTab
