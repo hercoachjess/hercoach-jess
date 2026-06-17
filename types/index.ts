@@ -193,6 +193,23 @@ export interface MealAlternative {
 export interface MealItem {
   food: string
   brand?: string
+  /**
+   * Numeric quantity for this portion. Lets the dashboard auto-scale
+   * macros when Jess changes the amount. AI populates this at
+   * generation time. Optional for backwards compatibility with legacy
+   * data that doesn't have it.
+   */
+  quantity?: number
+  /**
+   * Unit the quantity is measured in. 'item' covers countable things
+   * (a banana, an egg). Scaling is linear regardless of unit.
+   */
+  unit?: 'g' | 'ml' | 'item' | 'tsp' | 'tbsp' | 'cup' | 'scoop'
+  // Estimated macros for the CURRENT portion (already multiplied through).
+  kcal?: number
+  protein_g?: number
+  fat_g?: number
+  carbs_g?: number
 }
 
 export interface TrainingPlan {

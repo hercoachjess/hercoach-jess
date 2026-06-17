@@ -56,10 +56,14 @@ Rules:
 - Aim to approximately hit the macro targets across the day
 
 ITEM STRUCTURE — CRITICAL:
-Each item must be split into TWO fields:
-  - "food": the ingredient + quantity ONLY. Example: "80g rolled oats" or "150g chicken breast, grilled". NEVER include a brand in this field.
-  - "brand": optional. The specific shop product, only when it genuinely helps. Example: "Tesco Wholegrain Porridge Oats" or "Heck Chicken Italia Sausages". Leave the field out entirely for generic items (e.g. "1 medium banana", "1 tsp olive oil") — no brand needed.
-Roughly half the items in a meal should have a brand suggestion; the other half stay generic.
+Each item must be a structured object with these fields:
+  - "food": the ingredient NAME only, no quantity, no brand. Example: "rolled oats", "chicken breast, grilled", "medium banana". NEVER include the quantity ("80g") in this field. NEVER include the brand.
+  - "quantity": the numeric portion size, as a number. Example: 80 (for 80g oats), 1 (for 1 banana), 250 (for 250ml milk).
+  - "unit": one of "g", "ml", "item", "tsp", "tbsp", "cup", "scoop". Use "item" for countable things (1 banana, 2 eggs).
+  - "brand": optional. The specific shop product, only when it genuinely helps. Example: "Tesco Wholegrain Porridge Oats" or "Heck Chicken Italia Sausages". Omit the field entirely for generic items — no brand needed. Roughly half the items in a meal should have a brand.
+  - "kcal", "protein_g", "fat_g", "carbs_g": evidence-based estimates for THIS portion (already multiplied through — not per 100g, but for the actual quantity). Use accurate values from McCance & Widdowson / USDA / BDA reference data. Round to 1 decimal place.
+
+The daily totals (sum of kcal/protein/fat/carbs across all main meals) MUST be within ±5% of the macro targets at the top.
 
 PREP NOTES — REQUIRED for every meal:
 Add "prep_notes": a single short paragraph (1–3 sentences) describing how to prepare the meal — cooking method, timings, assembly order, any flavour tips. UK English. Practical, not preachy. Example: "Cook oats with the milk on the hob, simmer 5 mins, stirring. Top with sliced banana and a drizzle of peanut butter. Stir creatine into a glass of water alongside."
@@ -76,31 +80,21 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       "name": "Breakfast",
       "time": "07:30",
       "items": [
-        { "food": "80g rolled oats", "brand": "Tesco Wholegrain Porridge Oats" },
-        { "food": "250ml semi-skimmed milk" },
-        { "food": "1 medium banana (120g)" },
-        { "food": "15g smooth peanut butter", "brand": "Meridian Natural" },
-        { "food": "5g creatine monohydrate", "brand": "MyProtein Creapure" }
+        { "food": "rolled oats", "quantity": 80, "unit": "g", "brand": "Tesco Wholegrain Porridge Oats", "kcal": 304, "protein_g": 11, "fat_g": 6, "carbs_g": 49 },
+        { "food": "semi-skimmed milk", "quantity": 250, "unit": "ml", "kcal": 118, "protein_g": 8.5, "fat_g": 4, "carbs_g": 12 },
+        { "food": "medium banana", "quantity": 1, "unit": "item", "kcal": 105, "protein_g": 1.3, "fat_g": 0.4, "carbs_g": 27 },
+        { "food": "smooth peanut butter", "quantity": 15, "unit": "g", "brand": "Meridian Natural", "kcal": 95, "protein_g": 3.5, "fat_g": 8, "carbs_g": 2 }
       ],
-      "prep_notes": "Cook oats with the milk on the hob, simmer 5 mins, stirring. Top with sliced banana and a drizzle of peanut butter. Stir creatine into a glass of water alongside.",
+      "prep_notes": "Cook oats with the milk on the hob, simmer 5 mins, stirring. Top with sliced banana and a drizzle of peanut butter.",
       "alternatives": [
         {
           "label": "Higher-protein swap",
           "items": [
-            { "food": "170g natural Skyr", "brand": "Sainsbury's Skyr" },
-            { "food": "30g granola" },
-            { "food": "1 medium banana" }
+            { "food": "natural Skyr", "quantity": 170, "unit": "g", "brand": "Sainsbury's Skyr", "kcal": 105, "protein_g": 19, "fat_g": 0.3, "carbs_g": 7 },
+            { "food": "granola", "quantity": 30, "unit": "g", "kcal": 135, "protein_g": 3, "fat_g": 5, "carbs_g": 19 },
+            { "food": "medium banana", "quantity": 1, "unit": "item", "kcal": 105, "protein_g": 1.3, "fat_g": 0.4, "carbs_g": 27 }
           ],
           "prep_notes": "Spoon Skyr into a bowl. Layer granola and sliced banana on top. Eat straight away."
-        },
-        {
-          "label": "Quick 2-minute prep",
-          "items": [
-            { "food": "1 Belvita Breakfast biscuit pack (45g)" },
-            { "food": "200ml semi-skimmed milk" },
-            { "food": "1 medium apple" }
-          ],
-          "prep_notes": "Eat straight from the packet with a glass of milk and the apple on the side."
         }
       ]
     },

@@ -8,6 +8,18 @@ import { formatDate, macrosForKcal, macroGuidance } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, MealPlan, Meal, MealItem, FoodFact, OnboardingSubmission } from '@/types'
 import { normalizeMealItems } from '@/lib/meal'
+import {
+  itemMacros,
+  itemHasMacros,
+  mealMacros,
+  planMacros,
+  scaleItemQuantity,
+  formatItemDisplay,
+  formatMacrosShort,
+  macroComparisonStatus,
+} from '@/lib/meal-macros'
+
+const UNIT_OPTIONS: MealItem['unit'][] = ['g', 'ml', 'item', 'tsp', 'tbsp', 'cup', 'scoop']
 
 function normalizeMeals(meals: Meal[] | undefined | null): Meal[] {
   return (meals ?? []).map((m) => ({
@@ -306,10 +318,39 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     })
   }
 
+  // Quantity edit — linearly scales kcal / protein / fat / carbs from
+  // the previous quantity so daily totals update live.
+  function updateMealItemQuantity(mealIdx: number, itemIdx: number, raw: string) {
+    const next = raw === '' ? NaN : Number(raw)
+    setEditedMeals((meals) => {
+      const updated = [...meals]
+      const items = [...updated[mealIdx].items]
+      const current = items[itemIdx]
+      if (Number.isFinite(next)) {
+        items[itemIdx] = scaleItemQuantity(current, next)
+      } else {
+        items[itemIdx] = { ...current, quantity: undefined }
+      }
+      updated[mealIdx] = { ...updated[mealIdx], items }
+      return updated
+    })
+  }
+
+  function updateMealItemUnit(mealIdx: number, itemIdx: number, unit: MealItem['unit']) {
+    setEditedMeals((meals) => {
+      const updated = [...meals]
+      const items = [...updated[mealIdx].items]
+      items[itemIdx] = { ...items[itemIdx], unit }
+      updated[mealIdx] = { ...updated[mealIdx], items }
+      return updated
+    })
+  }
+
   function addMealItem(mealIdx: number) {
     setEditedMeals((meals) => {
       const updated = [...meals]
-      updated[mealIdx] = { ...updated[mealIdx], items: [...updated[mealIdx].items, { food: '', brand: '' }] }
+      const blank: MealItem = { food: '', brand: '', quantity: undefined, unit: 'g' }
+      updated[mealIdx] = { ...updated[mealIdx], items: [...updated[mealIdx].items, blank] }
       return updated
     })
   }
@@ -636,6 +677,39 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </p>
       )}
 
+      {/* Daily totals — live sum of every item's macros, compared to the
+          targets above. Sage-green if within 5% of each target, amber if
+          outside. Only shows when the plan actually has macro data. */}
+      {editedMeals.length > 0 && editedMeals.some((m) => m.items.some(itemHasMacros)) && (() => {
+        const totals = planMacros(editedMeals)
+        const fields = [
+          { label: 'Calories', actual: totals.kcal, target: editedTargets.kcal, unit: 'kcal' },
+          { label: 'Protein', actual: totals.protein_g, target: editedTargets.protein_g, unit: 'g' },
+          { label: 'Fat', actual: totals.fat_g, target: editedTargets.fat_g, unit: 'g' },
+          { label: 'Carbs', actual: totals.carbs_g, target: editedTargets.carbs_g, unit: 'g' },
+        ] as const
+        return (
+          <div className="-mt-2">
+            <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">This plan&apos;s totals · live</p>
+            <div className="grid grid-cols-4 gap-3">
+              {fields.map(({ label, actual, target, unit }) => {
+                const status = macroComparisonStatus(actual, target)
+                const colour = status === 'on' ? '#7da87d' : '#c89a6a'
+                return (
+                  <div key={label} className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.14)] rounded-sm px-3 py-2">
+                    <p className="text-xs text-[#8a8680] mb-0.5">{label}</p>
+                    <p className="text-base" style={{ color: colour }}>
+                      {Math.round(actual)}<span className="text-xs text-[#8a8680] ml-1">{unit}</span>
+                    </p>
+                    <p className="text-xs text-[#8a8680]">of {target}{unit === 'g' ? 'g' : ''}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Macro rescale — keep the same meals, adjust portions to fit new
           macros. Result lands in pendingRescale for explicit review. Only
           useful when there are existing meals to rescale. */}
@@ -760,9 +834,12 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         <Card key={mealIdx}>
           <CardHeader>
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-wrap">
                 <span className="text-sm font-medium text-[#f0ece4]">{meal.name}</span>
                 <span className="text-xs text-[#c89a6a]">{meal.time}</span>
+                {meal.items.some(itemHasMacros) && (
+                  <span className="text-xs text-[#8a8680]">{formatMacrosShort(mealMacros(meal))}</span>
+                )}
               </div>
               {editing && (
                 <Button size="sm" variant="ghost" onClick={() => setEditingMealIdx(editingMealIdx === mealIdx ? null : mealIdx)}>
@@ -805,28 +882,51 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                   </div>
                 </div>
                 {meal.items.map((item, itemIdx) => (
-                  <div key={itemIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                  <div key={itemIdx} className="flex flex-col gap-1 mb-2 pb-2 border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
+                    <div className="grid grid-cols-[70px_70px_1fr_auto] gap-2 items-center">
+                      <input
+                        type="number"
+                        step="any"
+                        inputMode="decimal"
+                        className="input-underline text-sm"
+                        value={item.quantity ?? ''}
+                        onChange={(e) => updateMealItemQuantity(mealIdx, itemIdx, e.target.value)}
+                        placeholder="Qty"
+                      />
+                      <select
+                        className="input-underline text-sm bg-transparent"
+                        value={item.unit ?? 'g'}
+                        onChange={(e) => updateMealItemUnit(mealIdx, itemIdx, e.target.value as MealItem['unit'])}
+                      >
+                        {UNIT_OPTIONS.map((u) => (
+                          <option key={u} value={u} className="bg-[#0e0e0e]">{u}</option>
+                        ))}
+                      </select>
+                      <input
+                        className="input-underline text-sm"
+                        value={item.food}
+                        onChange={(e) => updateMealItemField(mealIdx, itemIdx, 'food', e.target.value)}
+                        placeholder="Food (e.g. rolled oats)"
+                      />
+                      <button
+                        className="text-[#b8b4ac] hover:text-[#b06060] transition-colors p-1"
+                        onClick={() => removeMealItem(mealIdx, itemIdx)}
+                        aria-label="Remove item"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
+                          <path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </div>
                     <input
-                      className="input-underline text-sm"
-                      value={item.food}
-                      onChange={(e) => updateMealItemField(mealIdx, itemIdx, 'food', e.target.value)}
-                      placeholder="e.g. 80g rolled oats"
-                    />
-                    <input
-                      className="input-underline text-sm"
+                      className="input-underline text-xs"
                       value={item.brand ?? ''}
                       onChange={(e) => updateMealItemField(mealIdx, itemIdx, 'brand', e.target.value)}
-                      placeholder="Brand (optional)"
+                      placeholder="Brand suggestion (optional)"
                     />
-                    <button
-                      className="text-[#b8b4ac] hover:text-[#b06060] transition-colors flex-shrink-0 p-1"
-                      onClick={() => removeMealItem(mealIdx, itemIdx)}
-                      aria-label="Remove item"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
-                        <path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" />
-                      </svg>
-                    </button>
+                    {itemHasMacros(item) && (
+                      <p className="text-xs text-[#8a8680] pl-1">{formatMacrosShort(itemMacros(item))}</p>
+                    )}
                   </div>
                 ))}
                 <button
@@ -848,13 +948,18 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
               </div>
             ) : (
               <div>
-                <ul className="flex flex-col gap-1">
+                <ul className="flex flex-col gap-2">
                   {meal.items.map((item, i) => (
-                    <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
-                      <span className="text-[#b8b4ac] mt-0.5">·</span>
-                      <span className="flex-1">{item.food}</span>
-                      {item.brand && (
-                        <span className="text-xs text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>
+                    <li key={i} className="text-sm text-[#e0d8cc]">
+                      <div className="flex items-start gap-2">
+                        <span className="text-[#b8b4ac] mt-0.5">·</span>
+                        <span className="flex-1">{formatItemDisplay(item)}</span>
+                        {item.brand && (
+                          <span className="text-xs text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>
+                        )}
+                      </div>
+                      {itemHasMacros(item) && (
+                        <p className="text-xs text-[#8a8680] ml-4">{formatMacrosShort(itemMacros(item))}</p>
                       )}
                     </li>
                   ))}
@@ -954,7 +1059,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                             onClick={() => setEditedMeals((meals) => {
                               const u = [...meals]
                               const alts = [...(u[mealIdx].alternatives ?? [])]
-                              alts[altIdx] = { ...alts[altIdx], items: [...alts[altIdx].items, { food: '', brand: '' }] }
+                              alts[altIdx] = { ...alts[altIdx], items: [...alts[altIdx].items, { food: '', brand: '', quantity: undefined, unit: 'g' }] }
                               u[mealIdx] = { ...u[mealIdx], alternatives: alts }
                               return u
                             })}
@@ -977,12 +1082,17 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                         </div>
                       ) : (
                         <>
-                          <p className="text-xs text-[#c89a6a] tracking-wider uppercase mb-1">{alt.label}</p>
+                          <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
+                            <p className="text-xs text-[#c89a6a] tracking-wider uppercase">{alt.label}</p>
+                            {alt.items.some(itemHasMacros) && (
+                              <span className="text-xs text-[#8a8680]">{formatMacrosShort(mealMacros({ ...alt, name: '', time: '' }))}</span>
+                            )}
+                          </div>
                           <ul className="flex flex-col gap-0.5">
                             {alt.items.map((item, i) => (
                               <li key={i} className="text-xs text-[#b8b4ac] flex items-start gap-2">
                                 <span className="text-[#8a8680] mt-0.5">·</span>
-                                <span className="flex-1">{item.food}</span>
+                                <span className="flex-1">{formatItemDisplay(item)}</span>
                                 {item.brand && <span className="text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>}
                               </li>
                             ))}
@@ -999,7 +1109,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                       className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors"
                       onClick={() => setEditedMeals((meals) => {
                         const u = [...meals]
-                        const alts = [...(u[mealIdx].alternatives ?? []), { label: '', items: [{ food: '', brand: '' }] }]
+                        const alts = [...(u[mealIdx].alternatives ?? []), { label: '', items: [{ food: '', brand: '', quantity: undefined, unit: 'g' as MealItem['unit'] }] }]
                         u[mealIdx] = { ...u[mealIdx], alternatives: alts }
                         return u
                       })}
@@ -1056,17 +1166,25 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                     </Button>
                   </div>
                 </div>
-                <ul className="flex flex-col gap-1 mb-3">
+                <ul className="flex flex-col gap-2 mb-3">
                   {pendingMeals[mealIdx].items.map((item, i) => (
-                    <li key={i} className="text-sm text-[#e0d8cc] flex items-start gap-2">
-                      <span className="text-[#b8b4ac] mt-0.5">·</span>
-                      <span className="flex-1">{item.food}</span>
-                      {item.brand && (
-                        <span className="text-xs text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>
+                    <li key={i} className="text-sm text-[#e0d8cc]">
+                      <div className="flex items-start gap-2">
+                        <span className="text-[#b8b4ac] mt-0.5">·</span>
+                        <span className="flex-1">{formatItemDisplay(item)}</span>
+                        {item.brand && (
+                          <span className="text-xs text-[#8a8680] italic text-right whitespace-nowrap">{item.brand}</span>
+                        )}
+                      </div>
+                      {itemHasMacros(item) && (
+                        <p className="text-xs text-[#8a8680] ml-4">{formatMacrosShort(itemMacros(item))}</p>
                       )}
                     </li>
                   ))}
                 </ul>
+                {pendingMeals[mealIdx].items.some(itemHasMacros) && (
+                  <p className="text-xs text-[#7da87d] mb-3">Total: {formatMacrosShort(mealMacros(pendingMeals[mealIdx]))}</p>
+                )}
                 {pendingMeals[mealIdx].prep_notes && (
                   <div className="pt-2 border-t border-[rgba(255,255,255,0.08)]">
                     <p className="text-xs text-[#b8b4ac] tracking-wider uppercase mb-1">Prep</p>
@@ -1086,7 +1204,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                             {alt.items.map((item, j) => (
                               <li key={j} className="text-xs text-[#b8b4ac] flex items-start gap-2">
                                 <span className="text-[#8a8680] mt-0.5">·</span>
-                                <span className="flex-1">{item.food}</span>
+                                <span className="flex-1">{formatItemDisplay(item)}</span>
                                 {item.brand && <span className="text-[#8a8680] italic">{item.brand}</span>}
                               </li>
                             ))}

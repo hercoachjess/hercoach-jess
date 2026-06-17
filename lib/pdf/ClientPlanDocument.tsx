@@ -4,6 +4,7 @@ import {
 } from '@react-pdf/renderer'
 import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative } from '@/types'
 import { normalizeMealItems } from '@/lib/meal'
+import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
 
 // ───────────────── FONTS ─────────────────
 // Using PDF built-in fonts (Helvetica + Times-Italic) so PDFs always generate
@@ -289,14 +290,22 @@ function ExerciseTable({ rows }: { rows: { name: string; sr: string; note?: stri
  * card. Replaces the old MealTable approach that repeated the meal name in
  * the first column for every single ingredient row.
  */
-function MealBlock({ meal }: { meal: Meal }) {
+function MealBlock({ meal, showMacros }: { meal: Meal; showMacros: boolean }) {
   const items = normalizeMealItems(meal.items)
+  const mealHasMacros = items.some(itemHasMacros)
   return (
     <View wrap={false}>
+      {showMacros && mealHasMacros && (
+        <Text style={[s.mealPrepLabel, { marginTop: 2, marginBottom: 4, color: '#666' }]}>
+          {formatMacrosShort(mealMacros({ ...meal, items }))}
+        </Text>
+      )}
       {items.map((item, i) => (
         <View key={i} style={[s.tableRow, i % 2 === 0 ? s.tableRowA : s.tableRowB]}>
-          <Text style={[s.mealItemFood, { flex: 60 }]}>{item.food}</Text>
-          <Text style={[s.mealItemBrand, { flex: 40 }]}>{item.brand || ''}</Text>
+          <Text style={[s.mealItemFood, { flex: 60 }]}>{formatItemDisplay(item)}</Text>
+          <Text style={[s.mealItemBrand, { flex: 40 }]}>
+            {showMacros && itemHasMacros(item) ? formatMacrosShort(itemMacros(item)) : (item.brand || '')}
+          </Text>
         </View>
       ))}
       {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
@@ -306,21 +315,27 @@ function MealBlock({ meal }: { meal: Meal }) {
         </View>
       )}
       {(meal.alternatives ?? []).map((alt, i) => (
-        <MealAltBlock key={i} alt={alt} />
+        <MealAltBlock key={i} alt={alt} showMacros={showMacros} />
       ))}
     </View>
   )
 }
 
-function MealAltBlock({ alt }: { alt: MealAlternative }) {
+function MealAltBlock({ alt, showMacros }: { alt: MealAlternative; showMacros: boolean }) {
   const items = normalizeMealItems(alt.items)
   if (!alt.label && items.length === 0) return null
+  const altHasMacros = items.some(itemHasMacros)
   return (
     <View style={s.altCard} wrap={false}>
       {alt.label && <Text style={s.altLabel}>{alt.label.toUpperCase()}</Text>}
+      {showMacros && altHasMacros && (
+        <Text style={[s.mealPrepBody, { fontSize: 7.5, marginBottom: 2 }]}>
+          {formatMacrosShort(mealMacros({ name: '', time: '', items }))}
+        </Text>
+      )}
       {items.map((item, i) => (
         <View key={i} style={[s.tableRow, { backgroundColor: 'transparent', paddingVertical: 4, borderTopWidth: 0 }]}>
-          <Text style={[s.mealItemFood, { flex: 60, fontSize: 8.5 }]}>{item.food}</Text>
+          <Text style={[s.mealItemFood, { flex: 60, fontSize: 8.5 }]}>{formatItemDisplay(item)}</Text>
           <Text style={[s.mealItemBrand, { flex: 40, fontSize: 8 }]}>{item.brand || ''}</Text>
         </View>
       ))}
@@ -684,7 +699,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
               <>
                 <View style={{ height: 6 }} />
                 <Text style={s.dayHead}>Breakfast</Text>
-                {breakfastMeals.map((m, i) => (<MealBlock key={i} meal={m} />))}
+                {breakfastMeals.map((m, i) => (<MealBlock key={i} meal={m} showMacros={includeNumbers} />))}
               </>
             )}
 
@@ -692,7 +707,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
               <>
                 <View style={{ height: 8 }} />
                 <Text style={s.dayHead}>Lunch</Text>
-                {lunchMeals.map((m, i) => (<MealBlock key={i} meal={m} />))}
+                {lunchMeals.map((m, i) => (<MealBlock key={i} meal={m} showMacros={includeNumbers} />))}
               </>
             )}
 
@@ -704,7 +719,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, ver
               <>
                 <View style={{ height: 8 }} />
                 <Text style={s.dayHead}>Dinner</Text>
-                {dinnerMeals.map((m, i) => (<MealBlock key={i} meal={m} />))}
+                {dinnerMeals.map((m, i) => (<MealBlock key={i} meal={m} showMacros={includeNumbers} />))}
               </>
             )}
 
