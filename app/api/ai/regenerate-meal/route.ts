@@ -53,24 +53,24 @@ Allergies / contraindications: ${allergies || 'None reported'}
 Foods disliked: ${dislikes || 'None'}
 Cooking ability: ${cookingAbility || 'Average'}
 
-THE MEAL TO REPLACE (slot to keep — same name, same time):
+THE MEAL TO REPLACE (slot to keep, same name, same time):
 ${JSON.stringify(currentMeal, null, 2)}
 
-THE OTHER MEALS ON THE PLAN (do NOT repeat these — pick a different angle, different proteins, different style):
+THE OTHER MEALS ON THE PLAN (do NOT repeat these, pick a different angle, different proteins, different style):
 ${JSON.stringify(otherMeals, null, 2)}
 
 ${instructions?.trim() ? `COACH INSTRUCTIONS FOR THIS REGENERATION:\n${instructions.trim()}\n` : ''}
-DO-NOT-USE RULE — CRITICAL:
+DO-NOT-USE RULE, CRITICAL:
 The Allergies and Foods disliked lists are absolute. The new meal AND its alternatives must contain ZERO of those ingredients, including hidden forms (anchovies in pasta sauces if fish disliked; milk in pesto if dairy-free; etc.). Treat breaking this as if it would harm the client.
 
 Rules:
-- Keep the same meal slot — same "name" and "time" as the meal being replaced.
+- Keep the same meal slot, same "name" and "time" as the meal being replaced.
 - Hit roughly the same macro share as the meal being replaced (the existing daily targets still apply).
-- Use UK supermarket foods. Suggest specific brands where helpful (Tesco / Sainsbury's / Aldi / M&S etc.) — but only roughly half the items need a brand; keep generic items generic.
+- Use UK supermarket foods. Suggest specific brands where helpful (Tesco / Sainsbury's / Aldi / M&S etc.), but only roughly half the items need a brand; keep generic items generic.
 - All quantities in grams or ml.
 - Produce 2 alternative versions of the new meal (same macro target ±10%, same rules) with labelled variants.
 
-ITEM STRUCTURE — CRITICAL:
+ITEM STRUCTURE, CRITICAL:
 Each item is a structured object:
   - "food": ingredient NAME only, no quantity, no brand
   - "quantity": numeric portion size as a number
@@ -80,7 +80,7 @@ Each item is a structured object:
 
 The new meal's macros should hit roughly the same totals as the meal it replaces (so the daily totals stay within ±5% of the targets).
 
-PREP NOTES — REQUIRED:
+PREP NOTES, REQUIRED:
 The new meal and each alternative need a short "prep_notes" string (1–3 sentences) describing how to prepare it.
 
 Respond with a JSON object ONLY, no markdown fences, in this exact structure:

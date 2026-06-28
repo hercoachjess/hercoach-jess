@@ -6,6 +6,8 @@ import Badge from '@/components/ui/Badge'
 import { resolvePaymentStatus, getWeeksSince } from '@/lib/utils'
 import { isCheckinOverdue, overdueLabel } from '@/lib/checkin-day'
 import NudgeButton from './NudgeButton'
+import QuickNoteButton from './QuickNoteButton'
+import ClientBriefingButton from './ClientBriefingButton'
 import type {
   Client,
   OnboardingSubmission,
@@ -14,6 +16,7 @@ import type {
   TrainingPlan,
   PlanHistory,
   Payment,
+  ClientNote,
 } from '@/types'
 
 import OverviewTab from './tabs/OverviewTab'
@@ -46,6 +49,7 @@ interface Props {
   trainingPlan: TrainingPlan | null
   planHistory: PlanHistory[]
   payments: Payment[]
+  notes?: ClientNote[]
 }
 
 export default function ClientFile({
@@ -56,6 +60,7 @@ export default function ClientFile({
   trainingPlan,
   planHistory,
   payments,
+  notes = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState(0)
 
@@ -102,7 +107,8 @@ export default function ClientFile({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <ClientBriefingButton clientId={client.id} />
           <Badge variant={client.status as 'active' | 'paused' | 'archived'} dot>
             {client.status}
           </Badge>
@@ -174,6 +180,8 @@ export default function ClientFile({
           <OnboardingFileTab onboarding={onboarding} client={client} />
         )}
       </div>
+
+      <QuickNoteButton clientId={client.id} initialNotes={notes} />
     </div>
   )
 }

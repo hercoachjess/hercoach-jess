@@ -22,7 +22,7 @@ interface ModalProps {
  *     measuring layout height
  *   - we sync max-height to window.visualViewport.height so the panel
  *     shrinks to fit ABOVE the on-screen keyboard rather than disappearing
- *     under it — works on iOS 13+ (broader than the 100dvh approach)
+ *     under it, works on iOS 13+ (broader than the 100dvh approach)
  *   - the body is the only overflow-y region, with momentum scroll and
  *     overscroll-contain to stop iOS rubber-band leaking to the page
  *   - footer sits inside the flex column with safe-area-inset padding so
@@ -32,7 +32,7 @@ interface ModalProps {
 export default function Modal({ open, onClose, title, children, footer, size = 'lg' }: ModalProps) {
   // Maximum panel height in pixels. We seed with the layout viewport so we
   // never produce 0 (which would hide everything) and then sync to the
-  // visual viewport — which shrinks when the keyboard appears.
+  // visual viewport, which shrinks when the keyboard appears.
   const [maxPanelHeight, setMaxPanelHeight] = useState<number | null>(null)
 
   useEffect(() => {
@@ -86,12 +86,12 @@ export default function Modal({ open, onClose, title, children, footer, size = '
           maxHeight: maxPanelHeight ? `${maxPanelHeight}px` : '100dvh',
         }}
       >
-        {/* Mobile-only drag handle — visual cue that this is a sheet */}
+        {/* Mobile-only drag handle, visual cue that this is a sheet */}
         <div className="sm:hidden pt-2 pb-1 flex-shrink-0">
           <div className="mx-auto w-10 h-1 rounded-full bg-[rgba(255,255,255,0.18)]" />
         </div>
 
-        {/* Header — fixed at top of panel */}
+        {/* Header, fixed at top of panel */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-3 sm:py-4 border-b border-[rgba(255,255,255,0.24)] flex-shrink-0">
           <h3 className="text-base font-medium text-[#f0ece4]">{title}</h3>
           <button
@@ -105,7 +105,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
           </button>
         </div>
 
-        {/* Body — the only scrollable region */}
+        {/* Body, the only scrollable region */}
         <div
           className="px-5 sm:px-6 py-5 overflow-y-auto flex-1 min-h-0"
           style={{
@@ -116,7 +116,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
           {children}
         </div>
 
-        {/* Footer — always reachable above keyboard + home indicator */}
+        {/* Footer, always reachable above keyboard + home indicator */}
         {footer && (
           <div
             className="px-5 sm:px-6 py-3 sm:py-4 border-t border-[rgba(255,255,255,0.24)] flex gap-3 justify-end flex-shrink-0 bg-[#0e0e0e]"

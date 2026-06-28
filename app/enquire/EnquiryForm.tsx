@@ -81,7 +81,7 @@ export default function EnquiryForm() {
             <span className="font-serif italic text-[60px] font-light block mb-6 opacity-30" style={{ color: '#4A4038' }}>✦</span>
 
             <h2 className="font-serif text-[34px] font-light mb-4 leading-[1.2]" style={{ color: '#4A4038' }}>
-              Thank you — Jess will be<br />in touch soon.
+              Thank you, Jess will be<br />in touch soon.
             </h2>
 
             <p className="text-sm leading-[1.8] font-light max-w-[420px] mx-auto mb-2.5" style={{ color: '#6a5e54' }}>
@@ -116,7 +116,7 @@ export default function EnquiryForm() {
               </a>
 
               <p className="text-[11px] mt-4 italic font-serif" style={{ color: '#8a7c70' }}>
-                Opens in a new tab — save it for whenever you need it.
+                Opens in a new tab, save it for whenever you need it.
               </p>
             </div>
 
@@ -145,7 +145,7 @@ export default function EnquiryForm() {
             Thinking about<br /><em className="italic">working together?</em>
           </h1>
           <p className="text-[13px] text-[#a8a49c] leading-[1.9] font-light max-w-[440px] mx-auto">
-            Tell me a little about you and where you&apos;d like to get to. No obligation, no scripts — I read every enquiry personally and reply as soon as I can.
+            Tell me a little about you and where you&apos;d like to get to. No obligation, no scripts, I read every enquiry personally and reply as soon as I can.
           </p>
 
           <div className="grid grid-cols-3 gap-px border border-[rgba(255,255,255,0.24)] rounded mt-7 overflow-hidden bg-[rgba(255,255,255,0.24)]">
@@ -181,7 +181,7 @@ export default function EnquiryForm() {
             </Pills>
           </Field>
           <Field label="Where are you now & where would you love to be?">
-            <Textarea value={about} onChange={setAbout} placeholder="A few sentences — health, training, food, lifestyle. The more honest, the better the fit." />
+            <Textarea value={about} onChange={setAbout} placeholder="A few sentences, health, training, food, lifestyle. The more honest, the better the fit." />
           </Field>
           <Field label="How did you find me?">
             <Pills>
@@ -208,7 +208,7 @@ export default function EnquiryForm() {
             {submitting ? 'Sending…' : 'Send enquiry'}
           </button>
           <span className="block text-[12px] text-[#7a7670] mt-3.5 italic font-serif">
-            Read and replied to personally — as soon as I can.
+            Read and replied to personally, as soon as I can.
           </span>
         </div>
 

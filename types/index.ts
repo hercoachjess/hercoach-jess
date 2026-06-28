@@ -304,3 +304,10 @@ export interface ClientListRow extends Client {
   week_number?: number
   payment_status?: 'paid' | 'pending' | 'overdue' | null
 }
+
+export interface ClientNote {
+  id: string
+  client_id: string
+  body: string
+  created_at: string
+}

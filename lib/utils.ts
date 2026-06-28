@@ -15,7 +15,7 @@ export function calculateBMR(
   sex: string | null
 ): number | null {
   if (!weightKg || !heightCm || !age || !sex) return null
-  // Mifflin–St Jeor equation (Mifflin et al, 1990) — the modern, more accurate
+  // Mifflin–St Jeor equation (Mifflin et al, 1990), the modern, more accurate
   // refinement of the original Harris–Benedict and the formula used in current
   // BDA / Academy of Nutrition and Dietetics practice.
   if (sex.toLowerCase() === 'female' || sex.toLowerCase() === 'f') {
@@ -39,10 +39,10 @@ export function goalAdjustment(goal: string | undefined | null): { factor: numbe
   const k = (goal ?? '').trim().toLowerCase()
   if (k.includes('fat loss'))     return { factor: 0.80, label: '−20% deficit', rationale: 'Sustainable fat loss ≈ 0.5 kg/week (BDA weight-management guidance, NICE CG189)' }
   if (k.includes('build muscle')) return { factor: 1.10, label: '+10% surplus', rationale: 'Lean muscle gain with minimal fat accrual (Aragon & Schoenfeld, 2013)' }
-  if (k.includes('recomp'))       return { factor: 1.00, label: 'Maintenance', rationale: 'Body recomposition — eat at maintenance, prioritise protein & resistance training (Barakat et al, 2020)' }
+  if (k.includes('recomp'))       return { factor: 1.00, label: 'Maintenance', rationale: 'Body recomposition, eat at maintenance, prioritise protein & resistance training (Barakat et al, 2020)' }
   if (k.includes('maintain'))     return { factor: 1.00, label: 'Maintenance', rationale: 'Hold current weight while improving body composition' }
   if (k.includes('health'))       return { factor: 1.00, label: 'Maintenance', rationale: 'General health & wellbeing' }
-  return { factor: 1.0, label: 'Maintenance', rationale: 'No primary goal recorded — defaulting to maintenance' }
+  return { factor: 1.0, label: 'Maintenance', rationale: 'No primary goal recorded, defaulting to maintenance' }
 }
 
 // Protein requirement per kg bodyweight, goal-adjusted.
@@ -51,13 +51,13 @@ export function proteinPerKg(goal: string | undefined | null): { value: number; 
   if (k.includes('fat loss'))     return { value: 2.2, basis: 'Higher protein in a deficit to preserve lean mass (Helms et al, 2014; ISSN position stand 2017)' }
   if (k.includes('build muscle')) return { value: 2.0, basis: 'Maximises muscle protein synthesis in a surplus (ISSN position stand, 2017)' }
   if (k.includes('recomp'))       return { value: 2.2, basis: 'Body recomposition protocols require higher protein (Barakat et al, 2020)' }
-  if (k.includes('maintain'))     return { value: 1.8, basis: 'Active adult maintenance (BDA Food Fact Sheet — Protein)' }
-  if (k.includes('health'))       return { value: 1.6, basis: 'General active adult (BDA Food Fact Sheet — Protein)' }
+  if (k.includes('maintain'))     return { value: 1.8, basis: 'Active adult maintenance (BDA Food Fact Sheet, Protein)' }
+  if (k.includes('health'))       return { value: 1.6, basis: 'General active adult (BDA Food Fact Sheet, Protein)' }
   return { value: 1.8, basis: 'Active adult default' }
 }
 
 // Recompute macro split from a given calorie target, weight, and goal.
-// Used when the coach overrides kcal manually — the macros snap to the
+// Used when the coach overrides kcal manually, the macros snap to the
 // research-based split for that goal rather than staying out of date.
 export function macrosForKcal(
   kcal: number,
@@ -75,7 +75,7 @@ export function macrosForKcal(
   return { protein_g: proteinG, fat_g: fatG, carbs_g: carbsG }
 }
 
-// Guidance ranges for each macro (±15% for protein/fat — narrower than kcal
+// Guidance ranges for each macro (±15% for protein/fat, narrower than kcal
 // since hitting protein/fat targets matters more clinically; carbs is a wider
 // remainder so ±20%).
 export function macroGuidance(
@@ -167,7 +167,7 @@ export function estimateTargets(
   const fatG = Math.round(Math.max(fatFromKcal, fatFromKg) / 5) * 5
   const fatBasis =
     fatFromKcal >= fatFromKg
-      ? '25% of total kcal (Institute of Medicine AMDR — satiety & hormonal health)'
+      ? '25% of total kcal (Institute of Medicine AMDR, satiety & hormonal health)'
       : '0.8 g/kg bodyweight floor (minimum for hormonal & cellular health)'
 
   const remainingKcal = kcal - proteinG * 4 - fatG * 9
@@ -194,7 +194,7 @@ export function estimateTargets(
     fat_g: fatG,
     fat_basis: fatBasis,
     carbs_g: carbsG,
-    carbs_basis: 'Remaining kcal after protein & fat — primary fuel for training intensity & recovery',
+    carbs_basis: 'Remaining kcal after protein & fat, primary fuel for training intensity & recovery',
   }
 }
 
@@ -283,16 +283,16 @@ export function scoreFromLabel(value: string | undefined | null): number | null 
     // hunger (manageable = best, extremes = worse)
     'never hungry': 4, 'slightly hungry': 7, 'manageable': 9, 'very hungry': 4, 'starving': 1,
     // training sessions
-    'none — missed all': 0, '1 session': 1, '2 sessions': 2, '3 sessions': 3, '4 sessions': 4, 'did extra': 5,
+    'none, missed all': 0, '1 session': 1, '2 sessions': 2, '3 sessions': 3, '4 sessions': 4, 'did extra': 5,
     // training feel
-    'felt strong — smashed it': 10, 'good — solid sessions': 8, 'average — went through it': 6,
-    'tough — really struggled': 3, 'exhausted': 1,
+    'felt strong, smashed it': 10, 'good, solid sessions': 8, 'average, went through it': 6,
+    'tough, really struggled': 3, 'exhausted': 1,
     // sleep
-    'excellent — 7–9hrs': 10, 'good — mostly solid': 8, 'average — broken': 5, 'poor — under 6hrs': 3, 'terrible': 1,
+    'excellent, 7–9hrs': 10, 'good, mostly solid': 8, 'average, broken': 5, 'poor, under 6hrs': 3, 'terrible': 1,
     // stress (low = best)
-    'low — calm': 2, 'moderate': 5, 'high': 8, 'very high': 10,
+    'low, calm': 2, 'moderate': 5, 'high': 8, 'very high': 10,
     // energy (note: 'good' shares value with body-feel 'good'; 'low' shares with mood 'low')
-    'high — feeling great': 10, 'moderate — up and down': 5, 'very low — exhausted': 1,
+    'high, feeling great': 10, 'moderate, up and down': 5, 'very low, exhausted': 1,
     // water
     '2l+ consistently': 10, 'about 1.5–2l': 8, 'about 1–1.5l': 5, 'under 1l': 2,
     // mood

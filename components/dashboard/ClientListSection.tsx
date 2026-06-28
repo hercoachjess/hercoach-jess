@@ -19,7 +19,7 @@ type StatusFilter = typeof STATUS_FILTERS[number]
 
 export default function ClientListSection({ clients, latestCheckin, paymentStatus, oneWeekAgoIso }: Props) {
   const [query, setQuery] = useState('')
-  // Hide archived by default — coach can toggle them in via the filter chips.
+  // Hide archived by default, coach can toggle them in via the filter chips.
   const [activeFilters, setActiveFilters] = useState<Set<StatusFilter>>(new Set(['active', 'paused']))
   const oneWeekAgo = new Date(oneWeekAgoIso)
 
@@ -95,7 +95,7 @@ export default function ClientListSection({ clients, latestCheckin, paymentStatu
           const checkin = latestCheckin[client.id]
           const pStatus = paymentStatus[client.id]
           const weeksCoached = getWeeksSince(client.created_at)
-          // "New check-in" badge — show only if it landed recently AND coach
+          // "New check-in" badge, show only if it landed recently AND coach
           // hasn't marked it reviewed yet. Reviewing on the check-in card
           // clears the badge automatically.
           const hasRecentCheckin =

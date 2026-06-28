@@ -33,21 +33,21 @@ export async function getCoachSettings(): Promise<CoachSettings> {
 
 /**
  * Build the "COACH STYLE" prompt block that gets prepended to every AI
- * call. Returns an empty string if all three settings are empty — so
+ * call. Returns an empty string if all three settings are empty, so
  * legacy behaviour is preserved until the coach configures her preferences.
  */
 export function buildCoachStyleBlock(s: CoachSettings): string {
   const sections: string[] = []
   if (s.voice_notes.trim()) {
-    sections.push(`COACH VOICE — use this as the voice anchor for any text you write back. Mirror these patterns exactly:
+    sections.push(`COACH VOICE, use this as the voice anchor for any text you write back. Mirror these patterns exactly:
 ${s.voice_notes.trim()}`)
   }
   if (s.always_do_rules.trim()) {
-    sections.push(`ALWAYS DO — apply these to every output without exception:
+    sections.push(`ALWAYS DO, apply these to every output without exception:
 ${s.always_do_rules.trim()}`)
   }
   if (s.never_do_rules.trim()) {
-    sections.push(`NEVER DO — banned, no exceptions. If you would have included any of these, choose a different angle instead:
+    sections.push(`NEVER DO, banned, no exceptions. If you would have included any of these, choose a different angle instead:
 ${s.never_do_rules.trim()}`)
   }
   if (sections.length === 0) return ''

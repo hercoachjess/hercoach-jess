@@ -17,7 +17,7 @@ const PLACEHOLDERS = {
 - I never start a reply with "I want to acknowledge"
 - I say "love this" rather than "amazing"
 - I write in short paragraphs, no headings or numbered lists
-- I never sign off "Jess x" — I leave it unsigned
+- I never sign off "Jess x", I leave it unsigned
 - I use dry humour, sentence fragments are fine`,
   always: `Examples:
 - Recommend Tesco / Aldi brands first when suggesting products
@@ -73,7 +73,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
     <div className="flex flex-col gap-5">
       <Box
         title="Your voice"
-        eyebrow="Voice anchor — mirrors your patterns"
+        eyebrow="Voice anchor, mirrors your patterns"
         hint="Phrases you use, things you don't say, opener styles, signoffs. The AI will mimic these in every reply, plan note, and revision."
         value={voice}
         placeholder={PLACEHOLDERS.voice}
@@ -82,7 +82,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
 
       <Box
         title="Always do"
-        eyebrow="Universal rules — applied to every output"
+        eyebrow="Universal rules, applied to every output"
         hint="Things you want done in every AI output without you having to ask. Brand preferences, evidence sources, default language."
         value={always}
         placeholder={PLACEHOLDERS.always}
@@ -91,7 +91,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
 
       <Box
         title="Never do"
-        eyebrow="Banned ground — no exceptions"
+        eyebrow="Banned ground, no exceptions"
         hint="Phrases, recommendations, protocols you never want the AI to produce. Anything that sounds AI, anything off-brand, anything clinically out of scope."
         value={never}
         placeholder={PLACEHOLDERS.never}

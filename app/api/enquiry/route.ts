@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[enquiry] unhandled error:', msg)
     return NextResponse.json(
-      { error: "Something went wrong on our side. Please don't resubmit — message Jess directly." },
+      { error: "Something went wrong on our side. Please don't resubmit, message Jess directly." },
       { status: 500 },
     )
   }

@@ -28,7 +28,7 @@ export default function PlanHistoryTab({
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [changeNote, setChangeNote] = useState('')
-  // Default to OFF — client copies shouldn't show macros unless Jess
+  // Default to OFF, client copies shouldn't show macros unless Jess
   // explicitly toggles to "With numbers" for her own reference.
   const [includeNumbers, setIncludeNumbers] = useState(false)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
@@ -116,7 +116,7 @@ export default function PlanHistoryTab({
       {/* Explainer */}
       <div className="px-5 py-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.24)] rounded-sm">
         <p className="text-sm text-[#b8b4ac] leading-relaxed">
-          When you save a plan, both the meal plan and training plan are combined into a branded PDF saved here with a new version number. The previous plan automatically becomes &lsquo;previous&rsquo; — nothing is lost.
+          When you save a plan, both the meal plan and training plan are combined into a branded PDF saved here with a new version number. The previous plan automatically becomes &lsquo;previous&rsquo;, nothing is lost.
         </p>
       </div>
 
@@ -237,7 +237,7 @@ export default function PlanHistoryTab({
                   Without macros (client copy)
                 </p>
                 <p className="text-xs text-[#b8b4ac] leading-relaxed">
-                  Foods, quantities and brand suggestions only. No kcal or protein numbers — the version you share.
+                  Foods, quantities and brand suggestions only. No kcal or protein numbers, the version you share.
                 </p>
               </button>
             </div>
@@ -279,7 +279,7 @@ export default function PlanHistoryTab({
   )
 }
 
-// Inline copy-PDF-link button — used in the plan history list
+// Inline copy-PDF-link button, used in the plan history list
 function CopyPdfLinkButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false)
   async function handleCopy() {
@@ -301,13 +301,13 @@ function CopyPdfLinkButton({ url }: { url: string }) {
   )
 }
 
-// Share menu — uses native Web Share when available (mobile), otherwise
+// Share menu, uses native Web Share when available (mobile), otherwise
 // shows a dropdown of WhatsApp / email / SMS / copy-message-text fallbacks
 // pre-populated with a templated coach-to-client message.
 function SendToClientButton({ url, client, version }: { url: string; client?: Client; version: string }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const firstName = client?.full_name?.split(' ')[0] || 'there'
-  const message = `Hi ${firstName} — your ${version} plan is ready. Have a read through and let me know what you think. Any questions just shout. — Jess
+  const message = `Hi ${firstName}, your ${version} plan is ready. Have a read through and let me know what you think. Any questions just shout., Jess
 
 ${url}`
 

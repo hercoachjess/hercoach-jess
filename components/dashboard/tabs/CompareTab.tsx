@@ -140,7 +140,7 @@ export default function CompareTab({ checkins, client }: Props) {
               <label className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-1.5 block">From</label>
               <select className="input-underline text-sm" value={fromId} onChange={(e) => setFromId(e.target.value)}>
                 {checkins.map((c) => (
-                  <option key={c.id} value={c.id}>Week {c.week_number} — {formatDate(c.created_at)}</option>
+                  <option key={c.id} value={c.id}>Week {c.week_number}, {formatDate(c.created_at)}</option>
                 ))}
               </select>
             </div>
@@ -148,7 +148,7 @@ export default function CompareTab({ checkins, client }: Props) {
               <label className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-1.5 block">To</label>
               <select className="input-underline text-sm" value={toId} onChange={(e) => setToId(e.target.value)}>
                 {checkins.map((c) => (
-                  <option key={c.id} value={c.id}>Week {c.week_number} — {formatDate(c.created_at)}</option>
+                  <option key={c.id} value={c.id}>Week {c.week_number}, {formatDate(c.created_at)}</option>
                 ))}
               </select>
             </div>
@@ -186,7 +186,7 @@ export default function CompareTab({ checkins, client }: Props) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">AI draft — review and edit before sending</span>
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">AI draft, review and edit before sending</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={generate} loading={generating}>Regenerate</Button>
                 <Button size="sm" onClick={copyToClipboard}>{copied ? 'Copied' : 'Approve & copy'}</Button>
@@ -197,7 +197,7 @@ export default function CompareTab({ checkins, client }: Props) {
             <textarea className="input-underline text-sm leading-relaxed w-full" rows={12}
               value={draft} onChange={(e) => setDraft(e.target.value)} />
             <p className="text-xs text-[#8a8680] mt-3 leading-relaxed">
-              AI draft based on evidence-based guidelines. Always review and edit before sending — your clinical judgement applies.
+              AI draft based on evidence-based guidelines. Always review and edit before sending, your clinical judgement applies.
             </p>
           </CardBody>
         </Card>
@@ -209,7 +209,7 @@ export default function CompareTab({ checkins, client }: Props) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">
-                Full side-by-side — every field, both check-ins
+                Full side-by-side, every field, both check-ins
               </span>
               <span className="text-xs text-[#a8a49c]">Useful for recording feedback videos</span>
             </div>
@@ -258,7 +258,7 @@ export default function CompareTab({ checkins, client }: Props) {
       <Modal
         open={!!expanded}
         onClose={() => setExpanded(null)}
-        title={expanded ? `Week ${expanded.week_number} — ${formatDate(expanded.created_at)}` : ''}
+        title={expanded ? `Week ${expanded.week_number}, ${formatDate(expanded.created_at)}` : ''}
       >
         {expanded && (
           <div className="flex flex-col gap-5">

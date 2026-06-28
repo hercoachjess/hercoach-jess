@@ -192,24 +192,24 @@ export default function OnboardingForm() {
   const [warn, setWarn] = useState(false)
   const [error, setError] = useState('')
 
-  // Step 0 — basics
+  // Step 0, basics
   const [basics, setBasics] = useState({
     first_name: '', age: '', current_weight_kg: '', height_cm: '',
     goal_weight_kg: '', city: '', email: '', phone: '', gp_surgery: '',
   })
-  // Step 1 — goals
+  // Step 1, goals
   const [goal, setGoal] = useState('')
   const [timeline, setTimeline] = useState('')
   const [why, setWhy] = useState('')
   const [previous, setPrevious] = useState('')
-  // Step 2 — lifestyle
+  // Step 2, lifestyle
   const [activity, setActivity] = useState('')
   const [experience, setExperience] = useState('')
   const [trainDays, setTrainDays] = useState('')
   const [sessionLen, setSessionLen] = useState('')
   const [trainLoc, setTrainLoc] = useState('')
   const [job, setJob] = useState('')
-  // Step 3 — food
+  // Step 3, food
   const [diet, setDiet] = useState('')
   const [mealsPerDay, setMealsPerDay] = useState('')
   const [cooking, setCooking] = useState('')
@@ -219,7 +219,7 @@ export default function OnboardingForm() {
   const [allergies, setAllergies] = useState('')
   const [supplements, setSupplements] = useState('')
   const [eatingPattern, setEatingPattern] = useState('')
-  // Step 4 — health
+  // Step 4, health
   const [injuries, setInjuries] = useState('')
   const [conditions, setConditions] = useState<string[]>([])
   const [medications, setMedications] = useState('')
@@ -233,10 +233,10 @@ export default function OnboardingForm() {
   const [water, setWater] = useState('')
   const [alcohol, setAlcohol] = useState('')
   const [otherHealth, setOtherHealth] = useState('')
-  // Step 5 — scope
+  // Step 5, scope
   const [ackScope, setAckScope] = useState(false)
   const [ackReferral, setAckReferral] = useState(false)
-  // Step 6 — declaration
+  // Step 6, declaration
   const [ackHealth, setAckHealth] = useState(false)
   const [ackLiability, setAckLiability] = useState(false)
   const [ackPayment, setAckPayment] = useState(false)
@@ -296,7 +296,7 @@ export default function OnboardingForm() {
       setSubmitted(true)
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e: unknown) {
-      // Should not happen — safeSubmit doesn't throw — but defend anyway.
+      // Should not happen, safeSubmit doesn't throw, but defend anyway.
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
       setSubmitting(false)
@@ -315,7 +315,7 @@ export default function OnboardingForm() {
               Your form and signed declaration have been received. Jess will review your health screening carefully and be in touch as soon as she can with your payment details and next steps.
             </p>
             <p className="text-xs text-[#7a7670] mt-2 italic font-serif">
-              You&apos;ve taken the first step — that matters.
+              You&apos;ve taken the first step, that matters.
             </p>
             <span className="font-serif italic text-[17px] text-[#7a7670] block mt-7">Less restriction. More you.</span>
           </div>
@@ -341,7 +341,7 @@ export default function OnboardingForm() {
 
           <div className="inline-flex flex-col items-center gap-1.5 border border-[rgba(255,255,255,0.24)] rounded px-6 py-3.5 mb-9">
             <span className="text-[10px] tracking-[3px] uppercase text-[#7a7670]">Your Coach</span>
-            <span className="font-serif italic text-[18px] text-[#f0ece4] font-light">Jess — Registered Dietitian</span>
+            <span className="font-serif italic text-[18px] text-[#f0ece4] font-light">Jess, Registered Dietitian</span>
             <span className="text-[9px] tracking-[2px] uppercase text-[#7a7670] font-light">
               HCPC Registered &nbsp;·&nbsp; BSc Dietetics &nbsp;·&nbsp; England &amp; Wales
             </span>
@@ -375,7 +375,7 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 0: BASICS ─── */}
         {step === 0 && (
-          <StepWrap eyebrow="01 — About you" title="The basics" sub="No judgement. Ever.">
+          <StepWrap eyebrow="01, About you" title="The basics" sub="No judgement. Ever.">
             <Card>
               <G2>
                 <Field label="First Name"><Input value={basics.first_name} onChange={(v) => setBasics({ ...basics, first_name: v })} placeholder="e.g. Sarah" /></Field>
@@ -395,7 +395,7 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 1: GOALS ─── */}
         {step === 1 && (
-          <StepWrap eyebrow="02 — Goals" title="What are we working towards?" sub="Be as specific as you can — this shapes your entire plan.">
+          <StepWrap eyebrow="02, Goals" title="What are we working towards?" sub="Be as specific as you can, this shapes your entire plan.">
             <Card>
               <Field label="Primary Goal">
                 <IconRow cols={3}>
@@ -412,7 +412,7 @@ export default function OnboardingForm() {
                 </Pills>
               </Field>
               <Field label="Why does this goal matter to you?">
-                <Textarea value={why} onChange={setWhy} placeholder="What's the real reason? A feeling, an event, something personal — tell me everything." />
+                <Textarea value={why} onChange={setWhy} placeholder="What's the real reason? A feeling, an event, something personal, tell me everything." />
               </Field>
               <Field label="Have you tried coaching or dieting before?">
                 <Textarea value={previous} onChange={setPrevious} placeholder="What worked? What didn't? What made you stop? No shame here at all." />
@@ -424,7 +424,7 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 2: LIFESTYLE ─── */}
         {step === 2 && (
-          <StepWrap eyebrow="03 — Lifestyle" title="Your life, your schedule" sub="The plan fits around you — not the other way round.">
+          <StepWrap eyebrow="03, Lifestyle" title="Your life, your schedule" sub="The plan fits around you, not the other way round.">
             <Card>
               <Field label="Current Activity Level">
                 <IconRow cols={4}>
@@ -465,7 +465,7 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 3: FOOD ─── */}
         {step === 3 && (
-          <StepWrap eyebrow="04 — Food & Nutrition" title="Let's talk about food" sub="The more honest you are here, the better your plan. No food is banned forever.">
+          <StepWrap eyebrow="04, Food & Nutrition" title="Let's talk about food" sub="The more honest you are here, the better your plan. No food is banned forever.">
             <Card>
               <Field label="Diet Type">
                 <Pills>{['No restrictions','Vegetarian','Vegan','Pescatarian','Gluten-Free','Dairy-Free'].map(v => <Pill key={v} active={diet === v} onClick={() => setDiet(v)}>{v}</Pill>)}</Pills>
@@ -477,10 +477,10 @@ export default function OnboardingForm() {
                 <Pills>{['Microwave only','Basic','Intermediate','Love cooking'].map(v => <Pill key={v} active={cooking === v} onClick={() => setCooking(v)}>{v}</Pill>)}</Pills>
               </Field>
               <Field label="Meal prep preference">
-                <Pills>{['Yes — love it','Some things','Not really'].map(v => <Pill key={v} active={prep === v} onClick={() => setPrep(v)}>{v}</Pill>)}</Pills>
+                <Pills>{['Yes, love it','Some things','Not really'].map(v => <Pill key={v} active={prep === v} onClick={() => setPrep(v)}>{v}</Pill>)}</Pills>
               </Field>
-              <Field label="Foods you love"><Textarea value={foodsLoved} onChange={setFoodsLoved} placeholder="Be as specific as possible — e.g. pasta, Greek yoghurt, stir fry, chocolate, rice dishes..." /></Field>
-              <Field label="Foods you dislike or won't eat"><Textarea value={foodsDisliked} onChange={setFoodsDisliked} placeholder="e.g. mushrooms, fish, cottage cheese, anything with a strong smell — the more detail the better." /></Field>
+              <Field label="Foods you love"><Textarea value={foodsLoved} onChange={setFoodsLoved} placeholder="Be as specific as possible, e.g. pasta, Greek yoghurt, stir fry, chocolate, rice dishes..." /></Field>
+              <Field label="Foods you dislike or won't eat"><Textarea value={foodsDisliked} onChange={setFoodsDisliked} placeholder="e.g. mushrooms, fish, cottage cheese, anything with a strong smell, the more detail the better." /></Field>
               <Field label="Allergies or intolerances"><Input value={allergies} onChange={setAllergies} placeholder="e.g. nut allergy, lactose intolerant, celiac disease..." /></Field>
               <Field label="Do you take any supplements currently?"><Input value={supplements} onChange={setSupplements} placeholder="e.g. vitamin D, protein powder, iron tablets, creatine..." /></Field>
               <Field label="How would you describe your current eating pattern?">
@@ -493,7 +493,7 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 4: HEALTH ─── */}
         {step === 4 && (
-          <StepWrap eyebrow="05 — Health Screening" title="Your health history" sub="As a Registered Dietitian, Jess takes this section seriously. Please answer as fully and honestly as you can. Everything is completely confidential and protected.">
+          <StepWrap eyebrow="05, Health Screening" title="Your health history" sub="As a Registered Dietitian, Jess takes this section seriously. Please answer as fully and honestly as you can. Everything is completely confidential and protected.">
             <Card>
               <CardSection>Physical Health</CardSection>
               <Field label="Do you have any current or recent injuries or physical limitations?">
@@ -505,7 +505,7 @@ export default function OnboardingForm() {
                     <Pill key={v} active={conditions.includes(v)} onClick={() => toggleArr(conditions, v, setConditions)}>{v}</Pill>
                   ))}
                 </Pills>
-                <FlagNote>If you have selected any condition above, Jess will review your screening carefully and may be in touch to discuss whether this programme is appropriate for you, or whether a referral to specialist dietetic support is more suitable. This is not a barrier to working together — it is simply good professional practice.</FlagNote>
+                <FlagNote>If you have selected any condition above, Jess will review your screening carefully and may be in touch to discuss whether this programme is appropriate for you, or whether a referral to specialist dietetic support is more suitable. This is not a barrier to working together, it is simply good professional practice.</FlagNote>
               </Field>
               <Field label="Are you currently taking any prescribed medications?">
                 <Textarea value={medications} onChange={setMedications} placeholder="e.g. metformin, levothyroxine, antidepressants, blood pressure medication, contraceptive pill... Please list any that may interact with nutrition or exercise." />
@@ -519,7 +519,7 @@ export default function OnboardingForm() {
             <Card>
               <CardSection>Mental Health &amp; Relationship with Food</CardSection>
               <Field label="How would you describe your current mental health?">
-                <Pills>{['Good — generally well','Up and down','Managing anxiety / depression','Prefer not to say'].map(v => <Pill key={v} active={mentalHealth === v} onClick={() => setMentalHealth(v)}>{v}</Pill>)}</Pills>
+                <Pills>{['Good, generally well','Up and down','Managing anxiety / depression','Prefer not to say'].map(v => <Pill key={v} active={mentalHealth === v} onClick={() => setMentalHealth(v)}>{v}</Pill>)}</Pills>
               </Field>
               <Field label="How would you describe your relationship with food?">
                 <Pills>{['Really positive','Mostly fine','Up and down','Complicated','Difficult'].map(v => <Pill key={v} active={foodRel === v} onClick={() => setFoodRel(v)}>{v}</Pill>)}</Pills>
@@ -530,7 +530,7 @@ export default function OnboardingForm() {
                     <Pill key={v} active={edHistory.includes(v)} onClick={() => toggleArr(edHistory, v, setEdHistory)}>{v}</Pill>
                   ))}
                 </Pills>
-                <FlagNote>As a Registered Dietitian, Jess takes eating behaviours seriously and will approach this sensitively. If any of the above apply, this is not a barrier to working together — but your programme will be carefully considered to ensure it supports your wellbeing rather than creating pressure. In some cases, Jess may recommend that specialist eating disorder support runs alongside this programme.</FlagNote>
+                <FlagNote>As a Registered Dietitian, Jess takes eating behaviours seriously and will approach this sensitively. If any of the above apply, this is not a barrier to working together, but your programme will be carefully considered to ensure it supports your wellbeing rather than creating pressure. In some cases, Jess may recommend that specialist eating disorder support runs alongside this programme.</FlagNote>
               </Field>
               <Field label="Is there anything else about your mental health or relationship with food that you would like Jess to be aware of?">
                 <Textarea value={mhNotes} onChange={setMhNotes} placeholder="Completely optional. Share as much or as little as you feel comfortable with." />
@@ -541,10 +541,10 @@ export default function OnboardingForm() {
               <CardSection>General Wellbeing</CardSection>
               <G2>
                 <Field label="Sleep quality (generally)">
-                  <Select value={sleep} onChange={setSleep} options={['Great — 7–9hrs solid','Good — mostly fine','Average — broken','Poor — under 6hrs regularly','Very poor']} />
+                  <Select value={sleep} onChange={setSleep} options={['Great, 7–9hrs solid','Good, mostly fine','Average, broken','Poor, under 6hrs regularly','Very poor']} />
                 </Field>
                 <Field label="Stress levels day-to-day">
-                  <Select value={stressLevel} onChange={setStressLevel} options={['Low — fairly calm','Moderate — manageable','High — quite stressed','Very high — struggling']} />
+                  <Select value={stressLevel} onChange={setStressLevel} options={['Low, fairly calm','Moderate, manageable','High, quite stressed','Very high, struggling']} />
                 </Field>
               </G2>
               <Field label="Daily water intake">
@@ -563,28 +563,28 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 5: SCOPE ─── */}
         {step === 5 && (
-          <StepWrap eyebrow="06 — Scope of Practice" title="What this programme covers" sub="Please read this carefully before signing. It outlines exactly what Jess offers, what falls outside this programme, and how you will be supported if your needs change.">
-            <LegalBlock title="What HerCoach Jess provides" jurisdiction="Professional Scope of Practice — Registered Dietitian (HCPC)">
-              <p>Jess is a Registered Dietitian (RD) registered with the Health and Care Professions Council (HCPC). As such, she is a legally protected, Allied Health Professional qualified to provide <strong>personalised, evidence-based nutrition advice</strong> — including medical nutrition therapy, macronutrient prescription, and dietary assessment.</p>
+          <StepWrap eyebrow="06, Scope of Practice" title="What this programme covers" sub="Please read this carefully before signing. It outlines exactly what Jess offers, what falls outside this programme, and how you will be supported if your needs change.">
+            <LegalBlock title="What HerCoach Jess provides" jurisdiction="Professional Scope of Practice, Registered Dietitian (HCPC)">
+              <p>Jess is a Registered Dietitian (RD) registered with the Health and Care Professions Council (HCPC). As such, she is a legally protected, Allied Health Professional qualified to provide <strong>personalised, evidence-based nutrition advice</strong>, including medical nutrition therapy, macronutrient prescription, and dietary assessment.</p>
               <p>This programme includes:</p>
               <ul>
                 <li>Personalised nutrition plans with specific gram-based targets, tailored to your goals, health status, and food preferences</li>
                 <li>Weekly nutrition check-ins, plan updates, and professional feedback</li>
-                <li>General wellness exercise guidance — structured fitness programmes designed to support your health and physique goals</li>
+                <li>General wellness exercise guidance, structured fitness programmes designed to support your health and physique goals</li>
                 <li>Ongoing coaching support, accountability, and education around sustainable nutrition habits</li>
               </ul>
-              <p><strong>Important — fitness plans:</strong> The exercise programmes provided within this coaching service are general wellness and fitness guidance. They are not clinical exercise prescriptions, physiotherapy, or specialist rehabilitation programmes. They are designed for generally healthy adults seeking to improve their fitness and body composition.</p>
+              <p><strong>Important, fitness plans:</strong> The exercise programmes provided within this coaching service are general wellness and fitness guidance. They are not clinical exercise prescriptions, physiotherapy, or specialist rehabilitation programmes. They are designed for generally healthy adults seeking to improve their fitness and body composition.</p>
             </LegalBlock>
             <CheckRow ticked={ackScope} onToggle={() => setAckScope(!ackScope)}>
               I understand what this programme includes and that the fitness guidance provided is <strong>general wellness guidance</strong>, not clinical exercise prescription.
             </CheckRow>
 
-            <LegalBlock title="Referral & Right to Decline or Redirect" jurisdiction="Professional Duty of Care — HCPC Standards of Conduct">
+            <LegalBlock title="Referral & Right to Decline or Redirect" jurisdiction="Professional Duty of Care, HCPC Standards of Conduct">
               <p>As a Registered Dietitian bound by the HCPC Standards of Conduct, Performance and Ethics, Jess has a professional duty to act in your best interest at all times. This means:</p>
               <ul>
                 <li><strong>Right to refer:</strong> Jess reserves the right to refer you to your GP, a specialist dietitian, a physiotherapist, or another qualified health professional at any point during your programme if she believes your needs fall outside the scope of this coaching service.</li>
                 <li><strong>Right to decline:</strong> Jess reserves the right to decline to commence, or to pause, a coaching programme if she reasonably believes that doing so would not be in your best interest, or if the health information provided indicates that a more specialist level of support is required first.</li>
-                <li><strong>Parallel support:</strong> In some cases — particularly where eating behaviours, mental health, or complex medical conditions are indicated — Jess may recommend that specialist support runs alongside this programme. This is not a rejection; it is professional best practice.</li>
+                <li><strong>Parallel support:</strong> In some cases, particularly where eating behaviours, mental health, or complex medical conditions are indicated, Jess may recommend that specialist support runs alongside this programme. This is not a rejection; it is professional best practice.</li>
                 <li><strong>Complex clinical cases:</strong> Where a client presents with complex clinical needs, Jess will provide general nutrition and wellness support within safe parameters and will signpost to appropriate clinical services. She will not provide specialist clinical dietetic intervention (e.g. refeeding, enteral nutrition, complex renal or oncology dietetics) within this coaching model.</li>
               </ul>
               <p>If a referral or programme pause is recommended, Jess will discuss this with you directly and sensitively. Your wellbeing always comes first.</p>
@@ -599,10 +599,10 @@ export default function OnboardingForm() {
 
         {/* ─── STEP 6: DECLARATION ─── */}
         {step === 6 && (
-          <StepWrap eyebrow="07 — Declaration & Agreement" title="Before we begin" sub="Please read and confirm each section. This is a legally binding agreement under the laws of England and Wales.">
+          <StepWrap eyebrow="07, Declaration & Agreement" title="Before we begin" sub="Please read and confirm each section. This is a legally binding agreement under the laws of England and Wales.">
             <LegalBlock title="Health Declaration" jurisdiction="England & Wales">
               <p>I confirm that the health information I have provided in this form is accurate and complete to the best of my knowledge. I understand that the nutrition and wellness guidance provided by HerCoach Jess is based entirely on the information I have disclosed, and that any omission or inaccuracy may affect the safety and suitability of my programme.</p>
-              <p>I agree to inform Jess immediately if my health status changes — including new diagnoses, new medications, injury, pregnancy, or any significant change in mental health — so that my programme can be reviewed and adjusted accordingly.</p>
+              <p>I agree to inform Jess immediately if my health status changes, including new diagnoses, new medications, injury, pregnancy, or any significant change in mental health, so that my programme can be reviewed and adjusted accordingly.</p>
               <p>I confirm I have been advised to consult my GP before commencing this programme if I have any concerns about my physical or mental health.</p>
             </LegalBlock>
             <CheckRow ticked={ackHealth} onToggle={() => setAckHealth(!ackHealth)}>
@@ -620,14 +620,14 @@ export default function OnboardingForm() {
             <LegalBlock title="Payment Terms" jurisdiction="England & Wales">
               <p><strong>Full payment upfront:</strong> The agreed programme fee must be paid in full before any plan, coaching material, or consultation is delivered. No plan will be sent until cleared payment has been received.</p>
               <p><strong>Non-payment:</strong> If payment is not received within 48 hours of the agreed start date, HerCoach Jess reserves the right to release your coaching slot without notice.</p>
-              <p><strong>Ongoing coaching:</strong> Where a rolling coaching arrangement is agreed, payment is due in advance on the agreed date. Coaching services — including check-in responses, plan updates, and communication — will be paused if payment is not received on time, and will resume upon receipt of cleared payment.</p>
+              <p><strong>Ongoing coaching:</strong> Where a rolling coaching arrangement is agreed, payment is due in advance on the agreed date. Coaching services, including check-in responses, plan updates, and communication, will be paused if payment is not received on time, and will resume upon receipt of cleared payment.</p>
             </LegalBlock>
             <CheckRow ticked={ackPayment} onToggle={() => setAckPayment(!ackPayment)}>
               I understand that <strong>full payment is required before my plan is delivered</strong> and agree to the payment terms above.
             </CheckRow>
 
-            <LegalBlock title="Cancellation & Refund Policy" jurisdiction="Consumer Contracts Regulations 2013 — England & Wales">
-              <p><strong>No refunds once delivered:</strong> Due to the bespoke, personalised nature of this service — including individually tailored nutrition plans, fitness programmes, and coaching materials — <strong>no refund will be issued once your plan has been delivered</strong>.</p>
+            <LegalBlock title="Cancellation & Refund Policy" jurisdiction="Consumer Contracts Regulations 2013, England & Wales">
+              <p><strong>No refunds once delivered:</strong> Due to the bespoke, personalised nature of this service, including individually tailored nutrition plans, fitness programmes, and coaching materials, <strong>no refund will be issued once your plan has been delivered</strong>.</p>
               <p><strong>Waiver of cancellation right:</strong> By submitting this form and making payment, you expressly consent to the immediate performance of this digital service upon delivery. Your 14-day cancellation right under Regulation 37 of the Consumer Contracts Regulations 2013 is thereby waived at the point your plan is sent.</p>
               <p><strong>Before delivery:</strong> Cancellations requested before your plan has been delivered are entitled to a full refund. Please contact Jess directly as soon as possible.</p>
               <p><strong>Exceptional circumstances:</strong> HerCoach Jess reserves the right to consider refund requests in exceptional circumstances at her sole discretion. Your statutory rights are not affected.</p>
@@ -636,7 +636,7 @@ export default function OnboardingForm() {
               I understand that <strong>no refund will be issued once my plan is delivered</strong>, and I waive my 14-day cancellation right upon delivery of my personalised digital plan.
             </CheckRow>
 
-            <LegalBlock title="Data & Privacy" jurisdiction="UK GDPR & Data Protection Act 2018 — England & Wales">
+            <LegalBlock title="Data & Privacy" jurisdiction="UK GDPR & Data Protection Act 2018, England & Wales">
               <p>The personal and health information provided in this form will be held securely by HerCoach Jess and used solely for the delivery of your coaching programme. Your data will never be shared with third parties without your explicit consent.</p>
               <p>As health data is classified as special category data under UK GDPR, it is processed on the lawful basis of explicit consent (Article 9(2)(a)) and is subject to the highest standard of care. Your records will be retained for a minimum of <strong>7 years</strong> following the end of your programme, in line with health record retention standards applicable in England and Wales, after which they will be securely deleted.</p>
               <p>You have the right to access, amend, or request deletion of your data at any time by contacting Jess directly.</p>
@@ -647,7 +647,7 @@ export default function OnboardingForm() {
 
             <LegalBlock title="Age, Accuracy & Coaching Agreement" jurisdiction="England & Wales">
               <p>I confirm that I am 18 years of age or older. I confirm that all information provided in this form is truthful and accurate. I understand that HerCoach Jess has based her professional assessment and programme design entirely on what I have disclosed.</p>
-              <p>I agree to engage with this programme in good faith — submitting weekly check-ins, following the plan to the best of my ability, and communicating openly with my coach. I understand that results depend on my own consistent effort, and that no specific outcome can be guaranteed.</p>
+              <p>I agree to engage with this programme in good faith, submitting weekly check-ins, following the plan to the best of my ability, and communicating openly with my coach. I understand that results depend on my own consistent effort, and that no specific outcome can be guaranteed.</p>
               <p>This declaration, together with the verbal or written agreement of programme fee, constitutes the full agreement between myself and HerCoach Jess and is governed by the laws of England and Wales.</p>
             </LegalBlock>
             <CheckRow ticked={ackAge} onToggle={() => setAckAge(!ackAge)}>
@@ -656,7 +656,7 @@ export default function OnboardingForm() {
 
             <Card>
               <div className="mt-4">
-                <label className="block text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-2">Full Name — typed signature</label>
+                <label className="block text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-2">Full Name, typed signature</label>
                 <input
                   type="text" value={sigName} onChange={(e) => setSigName(e.target.value)}
                   placeholder="Type your full name to sign"

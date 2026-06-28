@@ -17,7 +17,7 @@ interface Props {
   onboarding?: OnboardingSubmission | null
 }
 
-// Editable check-in fields with display labels — drives the Edit modal UI.
+// Editable check-in fields with display labels, drives the Edit modal UI.
 // Free-text fields render as textareas, the others as text inputs.
 const CHECKIN_FIELDS: { key: keyof CheckinPayload; label: string; long?: boolean }[] = [
   { key: 'weight_kg',           label: 'Weight (kg)' },
@@ -63,7 +63,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
   const [editError, setEditError] = useState('')
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  // Mark a check-in as reviewed — clears the notification + (if not yet cached)
+  // Mark a check-in as reviewed, clears the notification + (if not yet cached)
   // generates the AI summary in the background so it's ready for next week.
   async function markReviewed(checkin: CheckinSubmission) {
     const supabase = createClient()
@@ -72,7 +72,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
       .update({ coach_reviewed_at: new Date().toISOString() })
       .eq('id', checkin.id)
     if (!checkin.ai_summary || checkin.ai_summary.length === 0) {
-      // Fire-and-refresh — don't block the click on summary generation.
+      // Fire-and-refresh, don't block the click on summary generation.
       generateSummary(checkin)
     } else {
       router.refresh()
@@ -156,7 +156,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
   async function draftAiReply(checkin: CheckinSubmission) {
     if (!client) return
     setAiReplyState((s) => ({ ...s, [checkin.id]: { loading: true, reply: s[checkin.id]?.reply || '', concerns: [], copied: false } }))
-    // Previous check-in for comparison context (next in the sorted list — checkins is desc by created_at).
+    // Previous check-in for comparison context (next in the sorted list, checkins is desc by created_at).
     const idx = checkins.findIndex((c) => c.id === checkin.id)
     const previousCheckin = idx >= 0 && idx + 1 < checkins.length ? checkins[idx + 1] : null
     // Pull the last 4 actual replies Jess sent so the AI knows what NOT to
@@ -185,6 +185,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client: {
+            id: client.id,
             full_name: client.full_name,
             goal: client.goal,
             primary_goal_kcal: client.primary_goal_kcal,
@@ -252,7 +253,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
 
             {isOpen && (
               <div className="px-5 pb-5 flex flex-col gap-5 border-t border-[rgba(255,255,255,0.24)]">
-                {/* Previous week's summary — top of card for quick context.
+                {/* Previous week's summary, top of card for quick context.
                     Only shown when a cached summary exists from last time. */}
                 {previousSummary && previousCheckin && (
                   <div className="pt-4 px-3 py-2 border-l-2 border-[#7da87d] bg-[rgba(125,168,125,0.05)]">
@@ -274,7 +275,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   {p.body_feel && <Row label="Body feel" value={p.body_feel} />}
                 </Section>
 
-                {/* Body measurements — optional, only show if any were provided */}
+                {/* Body measurements, optional, only show if any were provided */}
                 {Object.keys(measurements).length > 0 && (
                   <Section title="Tape measurements (cm)">
                     {measurements.waist_cm != null && <Row label="Waist" value={`${measurements.waist_cm} cm`} />}
@@ -285,7 +286,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   </Section>
                 )}
 
-                {/* Photos — private, click to view large */}
+                {/* Photos, private, click to view large */}
                 {photos.length > 0 && (
                   <div className="pt-4">
                     <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Progress photos</p>
@@ -359,14 +360,14 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   </div>
                 )}
 
-                {/* Edit check-in — for coach fixes when client tells her they made a typo */}
+                {/* Edit check-in, for coach fixes when client tells her they made a typo */}
                 <div className="pt-3">
                   <Button size="sm" variant="ghost" onClick={() => openEdit(checkin)}>
                     Edit this check-in
                   </Button>
                 </div>
 
-                {/* AI-drafted reply — edit before sending */}
+                {/* AI-drafted reply, edit before sending */}
                 {client && (
                   <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
                     <div className="flex items-center justify-between mb-3">
@@ -402,13 +403,13 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                       />
                     ) : (
                       <p className="text-xs text-[#8a8680] italic leading-relaxed">
-                        Click &ldquo;Draft reply&rdquo; — uses this check-in, the previous one for comparison, and the client&apos;s onboarding context. You can edit before copying.
+                        Click &ldquo;Draft reply&rdquo;, uses this check-in, the previous one for comparison, and the client&apos;s onboarding context. You can edit before copying.
                       </p>
                     )}
                   </div>
                 )}
 
-                {/* What you actually sent — captured separately so it appears on the record */}
+                {/* What you actually sent, captured separately so it appears on the record */}
                 <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs text-[#b8b4ac] tracking-widest uppercase">Your reply, as sent</p>
@@ -429,7 +430,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                   />
                 </div>
 
-                {/* AI summary of this check-in — a few bullets for fast scan next week */}
+                {/* AI summary of this check-in, a few bullets for fast scan next week */}
                 <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs text-[#b8b4ac] tracking-widest uppercase">Quick summary</p>
@@ -453,17 +454,17 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                     </ul>
                   ) : (
                     <p className="text-xs text-[#8a8680] italic leading-relaxed">
-                      Short bullet summary the AI cooks up from this check-in — shown at the top of next week&apos;s for context. Auto-generates when you mark this reviewed; or hit Generate.
+                      Short bullet summary the AI cooks up from this check-in, shown at the top of next week&apos;s for context. Auto-generates when you mark this reviewed; or hit Generate.
                     </p>
                   )}
                 </div>
 
-                {/* Mark-reviewed — clears the notification from your dashboard */}
+                {/* Mark-reviewed, clears the notification from your dashboard */}
                 <div className="pt-4 border-t border-[rgba(255,255,255,0.14)] flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
                     {reviewed ? (
                       <p className="text-xs text-[#7da87d] leading-relaxed">
-                        ✓ Reviewed on {formatDate(checkin.coach_reviewed_at!)} — cleared from your dashboard count.
+                        ✓ Reviewed on {formatDate(checkin.coach_reviewed_at!)}, cleared from your dashboard count.
                       </p>
                     ) : (
                       <p className="text-xs text-[#8a8680] italic leading-relaxed">
@@ -487,7 +488,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
         )
       })}
 
-      {/* Edit check-in modal — coach fixes typos / client mistakes */}
+      {/* Edit check-in modal, coach fixes typos / client mistakes */}
       <Modal
         open={!!editing && !!editPayload}
         onClose={() => { setEditing(null); setEditPayload(null); setEditMeasurements({}); setEditError('') }}
@@ -502,7 +503,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
         {editPayload && (
           <div className="flex flex-col gap-5">
             <p className="text-xs text-[#8a8680] italic leading-relaxed">
-              Use this when the client tells you something was a typo or mis-clicked. Saves overwrite the original submission — the date stays the same.
+              Use this when the client tells you something was a typo or mis-clicked. Saves overwrite the original submission, the date stays the same.
             </p>
             <div>
               <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Name (as submitted)</label>
@@ -551,7 +552,7 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
             })}
 
             <div className="pt-2 border-t border-[rgba(255,255,255,0.14)]">
-              <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Body measurements (cm) — optional</p>
+              <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Body measurements (cm), optional</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 {MEASUREMENT_FIELDS.map((f) => (
                   <div key={f.key}>

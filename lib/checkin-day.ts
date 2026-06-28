@@ -48,7 +48,7 @@ export function isCheckinOverdue(
   const lastExpected = mostRecentWeekday(idx, now)
   const cutoff = new Date(lastExpected)
   cutoff.setDate(lastExpected.getDate() + graceDays)
-  // Still inside the grace window — not overdue yet.
+  // Still inside the grace window, not overdue yet.
   if (now < cutoff) return false
 
   if (!latestCheckinIso) return true
@@ -56,7 +56,7 @@ export function isCheckinOverdue(
   return latest < lastExpected
 }
 
-/** Human-readable "Tuesday — 3 days late" style string for UI. */
+/** Human-readable "Tuesday, 3 days late" style string for UI. */
 export function overdueLabel(
   checkinDay: string | null | undefined,
   latestCheckinIso: string | null | undefined,

@@ -52,7 +52,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
   const ob = onboarding?.payload
 
-  // Local editable state — normalize legacy string items into { food, brand }.
+  // Local editable state, normalize legacy string items into { food, brand }.
   const [editedMeals, setEditedMeals] = useState<Meal[]>(() => normalizeMeals(mealPlan?.meals))
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null)
 
@@ -151,7 +151,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         if (flags.length) allergyParts.push(`Diagnosed: ${flags.join(', ')}`)
       }
       if (health?.pregnancy && health.pregnancy.toLowerCase() !== 'no') {
-        allergyParts.push(`Pregnancy status: ${health.pregnancy} (apply NICE guidance — avoid contraindicated foods, adjust energy)`)
+        allergyParts.push(`Pregnancy status: ${health.pregnancy} (apply NICE guidance, avoid contraindicated foods, adjust energy)`)
       }
       if (health?.medications) allergyParts.push(`Medications: ${health.medications}`)
 
@@ -318,7 +318,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     })
   }
 
-  // Quantity edit — linearly scales kcal / protein / fat / carbs from
+  // Quantity edit, linearly scales kcal / protein / fat / carbs from
   // the previous quantity so daily totals update live.
   function updateMealItemQuantity(mealIdx: number, itemIdx: number, raw: string) {
     const next = raw === '' ? NaN : Number(raw)
@@ -377,7 +377,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   // Ask the AI to propose a new version of a single meal. Optional
   // free-text instructions (e.g. "swap chicken for tofu", "lower fat",
   // "make it 5-min prep") sharpen the request. The result lands in
-  // pendingMeals[mealIdx] for review — it does NOT replace the current
+  // pendingMeals[mealIdx] for review, it does NOT replace the current
   // meal in editedMeals until Jess clicks Accept.
   async function proposeMealChange(mealIdx: number) {
     setRegeneratingIdx(mealIdx)
@@ -454,7 +454,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     })
   }
 
-  // Whole-plan rescale — when targets change, ask the AI to keep the
+  // Whole-plan rescale, when targets change, ask the AI to keep the
   // same meals (same dishes, same labels, same prep) but adjust the
   // quantities so daily totals hit the new macros. Lands in pendingRescale
   // for review.
@@ -477,7 +477,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         const flags = health.conditions.filter((c) => c && c.toLowerCase() !== 'none of the above')
         if (flags.length) allergyParts.push(`Diagnosed: ${flags.join(', ')}`)
       }
-      const instructions = `MACRO RESCALE ONLY. Keep every meal exactly as it is — same dishes, same item types, same brand suggestions, same meal names, same times, same alternatives, same prep notes. The ONLY change permitted is the QUANTITIES (grams / ml) of the items so the daily totals hit the new targets: ${editedTargets.kcal} kcal, ${editedTargets.protein_g}g protein, ${editedTargets.fat_g}g fat, ${editedTargets.carbs_g}g carbs. Do NOT swap any ingredients. Do NOT change meal names or times. Do NOT change the alternatives' food choices, only their portion sizes.`
+      const instructions = `MACRO RESCALE ONLY. Keep every meal exactly as it is, same dishes, same item types, same brand suggestions, same meal names, same times, same alternatives, same prep notes. The ONLY change permitted is the QUANTITIES (grams / ml) of the items so the daily totals hit the new targets: ${editedTargets.kcal} kcal, ${editedTargets.protein_g}g protein, ${editedTargets.fat_g}g fat, ${editedTargets.carbs_g}g carbs. Do NOT swap any ingredients. Do NOT change meal names or times. Do NOT change the alternatives' food choices, only their portion sizes.`
       const res = await fetch('/api/ai/revise-meal-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -532,7 +532,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Client food preferences — visible at the top so the coach always sees
+      {/* Client food preferences, visible at the top so the coach always sees
           what the client loves / hates / can't eat before generating or editing. */}
       {hasPreferences && (
         <Card>
@@ -618,7 +618,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-[#8a8680] leading-relaxed flex-1">
-                The AI rewrites only what you ask — everything else stays as it is. You always review and approve before saving.
+                The AI rewrites only what you ask, everything else stays as it is. You always review and approve before saving.
               </p>
               <Button size="sm" loading={aiRevising} disabled={!reviseInstructions.trim()} onClick={aiRevise}>
                 Update plan
@@ -628,7 +628,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </Card>
       )}
 
-      {/* Targets row — editing kcal auto-snaps protein/fat/carbs to the goal-tiered split */}
+      {/* Targets row, editing kcal auto-snaps protein/fat/carbs to the goal-tiered split */}
       <div className="grid grid-cols-4 gap-3">
         {([
           { key: 'kcal',      label: 'Calories', unit: 'kcal', range: undefined as [number, number] | undefined },
@@ -673,11 +673,11 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
       {editing && (
         <p className="text-xs text-[#8a8680] italic leading-relaxed -mt-2">
-          Changing calories snaps protein / fat / carbs to the research-based split for the client&apos;s goal — override any field by hand if needed. To change the client&apos;s overall macro defaults, edit Coach Targets on Overview.
+          Changing calories snaps protein / fat / carbs to the research-based split for the client&apos;s goal, override any field by hand if needed. To change the client&apos;s overall macro defaults, edit Coach Targets on Overview.
         </p>
       )}
 
-      {/* Daily totals — live sum of every item's macros, compared to the
+      {/* Daily totals, live sum of every item's macros, compared to the
           targets above. Sage-green if within 5% of each target, amber if
           outside. Only shows when the plan actually has macro data. */}
       {editedMeals.length > 0 && editedMeals.some((m) => m.items.some(itemHasMacros)) && (() => {
@@ -710,7 +710,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         )
       })()}
 
-      {/* Macro rescale — keep the same meals, adjust portions to fit new
+      {/* Macro rescale, keep the same meals, adjust portions to fit new
           macros. Result lands in pendingRescale for explicit review. Only
           useful when there are existing meals to rescale. */}
       {editing && editedMeals.length > 0 && (
@@ -744,7 +744,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                   <li key={i}>
                     <span className="text-[#f0ece4]">{m.name}</span>
                     <span className="text-[#b8b4ac] mx-1">·</span>
-                    {m.items.length} item{m.items.length === 1 ? '' : 's'} — {m.items.map((it) => it.food).join(', ').slice(0, 120)}{m.items.map((it) => it.food).join(', ').length > 120 ? '…' : ''}
+                    {m.items.length} item{m.items.length === 1 ? '' : 's'}, {m.items.map((it) => it.food).join(', ').slice(0, 120)}{m.items.map((it) => it.food).join(', ').length > 120 ? '…' : ''}
                   </li>
                 ))}
               </ul>
@@ -758,7 +758,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </div>
       )}
 
-      {/* AI macro recommendation — uses the latest 2 check-ins + goal to
+      {/* AI macro recommendation, uses the latest 2 check-ins + goal to
           suggest new targets with reasoning. Visible in edit mode only. */}
       {editing && (
         <div className="border border-[rgba(255,255,255,0.14)] rounded-sm p-4 bg-[rgba(125,168,125,0.04)]">
@@ -766,7 +766,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
             <div>
               <p className="text-xs text-[#7da87d] tracking-widest uppercase mb-1">AI macro recommendation</p>
               <p className="text-xs text-[#8a8680] italic leading-relaxed">
-                Asks the AI to read the latest check-in (and the one before for direction of travel) and suggest new targets — with reasoning grounded in the data so you can decide if it&apos;s the right call.
+                Asks the AI to read the latest check-in (and the one before for direction of travel) and suggest new targets, with reasoning grounded in the data so you can decide if it&apos;s the right call.
               </p>
             </div>
             <Button size="sm" variant="outline" loading={macroRecBusy} onClick={getMacroRecommendation}>
@@ -809,7 +809,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
               <div className="border-l-2 border-[#7da87d] pl-3 py-1">
                 <p className="text-xs text-[#7da87d] tracking-wider uppercase mb-1">
-                  Why this — confidence {macroRec.confidence}
+                  Why this, confidence {macroRec.confidence}
                 </p>
                 <p className="text-sm text-[#e0d8cc] leading-relaxed">{macroRec.reasoning}</p>
               </div>
@@ -941,7 +941,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                     className="input-underline text-sm"
                     rows={2}
                     value={meal.prep_notes ?? ''}
-                    placeholder="How to prepare — 1–3 sentences. Cooking method, timings, assembly."
+                    placeholder="How to prepare, 1–3 sentences. Cooking method, timings, assembly."
                     onChange={(e) => updateMealPrep(mealIdx, e.target.value)}
                   />
                 </div>
@@ -973,7 +973,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
               </div>
             )}
 
-            {/* Alternative meal options — generated by the AI, editable in edit mode. */}
+            {/* Alternative meal options, generated by the AI, editable in edit mode. */}
             {(meal.alternatives && meal.alternatives.length > 0) || editing ? (
               <div className="mt-4 pt-3 border-t border-[rgba(255,255,255,0.10)]">
                 <p className="text-xs text-[#b8b4ac] tracking-wider uppercase mb-2">Alternative options · same macros</p>
@@ -1121,7 +1121,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
               </div>
             ) : null}
 
-            {/* Per-meal AI proposal flow — only in edit mode. Optional
+            {/* Per-meal AI proposal flow, only in edit mode. Optional
                 instructions sharpen the request. Result lands in
                 pendingMeals[mealIdx] for explicit accept/discard rather
                 than silently overwriting the current meal. */}
@@ -1151,7 +1151,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
               </div>
             )}
 
-            {/* Pending proposal preview — accept moves it into editedMeals,
+            {/* Pending proposal preview, accept moves it into editedMeals,
                 discard throws it away. Either way the change is opt-in. */}
             {pendingMeals[mealIdx] && (
               <div className="mt-4 border border-[#7da87d] rounded-sm bg-[rgba(125,168,125,0.05)] p-4">
@@ -1223,7 +1223,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </Card>
       ))}
 
-      {/* Food facts — short, sourced one-liners from the AI dietitian */}
+      {/* Food facts, short, sourced one-liners from the AI dietitian */}
       {foodFacts.length > 0 && (
         <Card>
           <CardHeader>
@@ -1260,7 +1260,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                     <input
                       className="input-underline text-xs"
                       value={f.source}
-                      placeholder="Source (e.g. BDA Food Fact Sheet — Calcium)"
+                      placeholder="Source (e.g. BDA Food Fact Sheet, Calcium)"
                       onChange={(e) => setFoodFacts((arr) => arr.map((x, j) => j === i ? { ...x, source: e.target.value } : x))}
                     />
                     <button
@@ -1272,7 +1272,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-[#f0ece4] mb-0.5"><span className="text-[#c89a6a]">{f.food}</span> — {f.fact}</p>
+                    <p className="text-sm text-[#f0ece4] mb-0.5"><span className="text-[#c89a6a]">{f.food}</span>, {f.fact}</p>
                     <p className="text-xs text-[#8a8680] italic">{f.source}</p>
                   </>
                 )}
@@ -1314,7 +1314,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
       {/* AI disclaimer */}
       <p className="text-xs text-[#8a8680] leading-relaxed">
-        AI suggests meals using clinically approved nutritional research — you always edit and approve before saving.
+        AI suggests meals using clinically approved nutritional research, you always edit and approve before saving.
       </p>
 
       {/* Action row */}

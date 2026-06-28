@@ -10,14 +10,14 @@ import type { Client } from '@/types'
  * iPhone PWA), falls back to a WhatsApp / Email / SMS / Copy dropdown
  * on desktop.
  *
- * The message is templated and warm — never naggy. She can edit before
+ * The message is templated and warm, never naggy. She can edit before
  * sending in her preferred channel.
  */
 export default function NudgeButton({ client }: { client: Client }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const firstName = client.full_name.split(' ')[0] || 'there'
   const dayPhrase = client.checkin_day ? `${client.checkin_day}s` : 'this week'
-  const message = `Hi ${firstName} — just a soft nudge on your weekly check-in. No pressure, but I noticed it's not landed yet (you usually do ${dayPhrase}). Even a quick one helps me support you well. — Jess`
+  const message = `Hi ${firstName}, just a soft nudge on your weekly check-in. No pressure, but I noticed it's not landed yet (you usually do ${dayPhrase}). Even a quick one helps me support you well., Jess`
 
   async function tryNativeShare(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false

@@ -60,7 +60,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
 
   const nextDue = upcoming[0]
 
-  // Most recent paid payment — used to suggest defaults when the coach
+  // Most recent paid payment, used to suggest defaults when the coach
   // schedules the next one (amount + due date = paid_date + 1 month).
   const mostRecentPaid = resolved
     .filter((p) => p.status === 'paid' && p.paid_date)
@@ -118,7 +118,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
       status: 'paid',
       paid_date: today,
     }).eq('id', payment.id)
-    // Offer to schedule the next one — prefilled to same amount, due 1 month after this due_date.
+    // Offer to schedule the next one, prefilled to same amount, due 1 month after this due_date.
     setNextPaymentModal({
       amount: String(payment.amount_gbp),
       due_date: addMonths(payment.due_date, 1),
@@ -181,7 +181,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
         ))}
       </div>
 
-      {/* Upcoming payments — at-a-glance timeline of the next three pending/overdue */}
+      {/* Upcoming payments, at-a-glance timeline of the next three pending/overdue */}
       {upcoming.length > 0 && (
         <Card>
           <CardHeader>
@@ -306,7 +306,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
         </div>
       </Modal>
 
-      {/* Schedule-next-payment modal — opens after Mark paid or after saving a paid payment */}
+      {/* Schedule-next-payment modal, opens after Mark paid or after saving a paid payment */}
       <Modal
         open={!!nextPaymentModal}
         onClose={skipNextPayment}
