@@ -64,7 +64,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   const latestCheckin = checkins[0]
   const estimate = estimateTargets(client, onboarding?.payload)
 
-  // Weight chart data — last 8 weeks
+  // Weight chart data, last 8 weeks
   const chartData = checkins
     .filter((c) => c.payload.weight_kg != null)
     .slice(0, 8)
@@ -219,12 +219,12 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                   <input
                     className="input-underline text-sm"
                     value={contact.pinned_note}
-                    placeholder="e.g. Period week 23 May — expect water retention"
+                    placeholder="e.g. Period week 23 May, expect water retention"
                     onChange={(e) => setContact((c) => ({ ...c, pinned_note: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <p className="text-xs text-[#b8b4ac] mb-1">Extra food dislikes <span className="text-[#8a8680] italic">(in addition to onboarding — AI will never include)</span></p>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Extra food dislikes <span className="text-[#8a8680] italic">(in addition to onboarding, AI will never include)</span></p>
                   <textarea
                     className="input-underline text-sm"
                     rows={2}
@@ -338,7 +338,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
             {editingTargets ? (
               <>
                 {(() => {
-                  // Guidance ranges shown beside each input field — recompute on every render
+                  // Guidance ranges shown beside each input field, recompute on every render
                   // from current goal + weight so they shift when you change the kcal target.
                   const live = macrosForKcal(
                     Number(targets.primary_goal_kcal) || estimate?.kcal || 2000,
@@ -373,7 +373,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                         onChange={(e) => {
                           const v = e.target.value
                           if (key === 'primary_goal_kcal') {
-                            // Coach has changed kcal — snap protein/fat/carbs to the research-based split
+                            // Coach has changed kcal, snap protein/fat/carbs to the research-based split
                             // for the new calorie target (same goal-tiered formulas as the estimate).
                             const kcalNum = Number(v)
                             const recomputed = macrosForKcal(kcalNum, client.current_weight_kg, client.goal)
@@ -448,20 +448,20 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                   <CalcLine k="Primary goal" v={estimate.inputs.goal} />
                 </CalcSection>
 
-                <CalcSection title="① BMR — Mifflin–St Jeor (1990)">
+                <CalcSection title="① BMR, Mifflin–St Jeor (1990)">
                   <p className="text-xs text-[#e0d8cc] font-mono leading-relaxed">{estimate.bmr_formula}</p>
                   <p className="text-xs text-[#8a8680] mt-1 italic">
                     The modern, more accurate refinement of the original Harris–Benedict equation, used in current BDA practice.
                   </p>
                 </CalcSection>
 
-                <CalcSection title="② TDEE — Total Daily Energy Expenditure">
+                <CalcSection title="② TDEE, Total Daily Energy Expenditure">
                   <p className="text-xs text-[#e0d8cc] font-mono">
                     {estimate.bmr} × {estimate.inputs.activity_factor} (activity factor) = {estimate.tdee} kcal/day
                   </p>
                 </CalcSection>
 
-                <CalcSection title={`③ Goal-adjusted calories — ${estimate.goal_label}`}>
+                <CalcSection title={`③ Goal-adjusted calories, ${estimate.goal_label}`}>
                   <p className="text-xs text-[#e0d8cc] font-mono">
                     {estimate.tdee} × {estimate.goal_factor} = <span className="text-[#f0ece4]">{estimate.kcal} kcal/day</span>
                   </p>
@@ -490,7 +490,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                 </CalcSection>
 
                 <p className="text-xs text-[#8a8680] leading-relaxed italic pt-2 border-t border-[rgba(255,255,255,0.08)]">
-                  Estimates are a clinically-grounded starting point. Adjust based on client response, training load, recovery and individual context — your dietetic judgement always overrides the formula.
+                  Estimates are a clinically-grounded starting point. Adjust based on client response, training load, recovery and individual context, your dietetic judgement always overrides the formula.
                 </p>
               </div>
             )}
@@ -503,7 +503,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
         <Card>
           <CardHeader>
             <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">
-              Latest check-in — Week {latestCheckin.week_number} · {formatDate(latestCheckin.created_at)}
+              Latest check-in, Week {latestCheckin.week_number} · {formatDate(latestCheckin.created_at)}
             </span>
           </CardHeader>
           <CardBody className="grid grid-cols-2 gap-4">
@@ -527,7 +527,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
       {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Weight trend — last 8 check-ins</span>
+            <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Weight trend, last 8 check-ins</span>
           </CardHeader>
           <CardBody className="pt-2">
             <WeightChart data={chartData} />

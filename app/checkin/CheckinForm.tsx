@@ -194,7 +194,7 @@ export default function CheckinForm() {
   const [water, setWater] = useState('')
   const [dailySteps, setDailySteps] = useState('')
 
-  // Feel — separate from yes/no logistics
+  // Feel, separate from yes/no logistics
   const [mealsFeel, setMealsFeel] = useState('')
   const [trainingIntensity, setTrainingIntensity] = useState('')
 
@@ -230,7 +230,7 @@ export default function CheckinForm() {
           .from('checkin-photos')
           .upload(path, file, { contentType: file.type, upsert: false })
         if (uploadErr) { setPhotoError(uploadErr.message); continue }
-        // Bucket is now private — store only the path. The dashboard
+        // Bucket is now private, store only the path. The dashboard
         // generates short-lived signed URLs server-side when displaying.
         uploaded.push(path)
       }
@@ -283,7 +283,7 @@ export default function CheckinForm() {
       extra_notes: extraNotes,
     }
 
-    // Optional body measurements — only send fields that were filled in
+    // Optional body measurements, only send fields that were filled in
     const bodyMeasurements: Record<string, number> = {}
     if (waistCm) bodyMeasurements.waist_cm = parseFloat(waistCm)
     if (hipsCm) bodyMeasurements.hips_cm = parseFloat(hipsCm)
@@ -329,7 +329,7 @@ export default function CheckinForm() {
                 How&apos;s your week been,<br /><em className="italic">lovely?</em>
               </h1>
               <p className="text-[13px] text-[#a8a49c] leading-[1.85] font-light max-w-[380px] mx-auto">
-                Honest answers only. Jess reads every single word. No judgement — just progress.
+                Honest answers only. Jess reads every single word. No judgement, just progress.
               </p>
             </div>
 
@@ -371,7 +371,7 @@ export default function CheckinForm() {
                 </IconRow>
               </Field>
               <Field label="What threw you off (if anything)?">
-                <Textarea value={threwOff} onChange={setThrewOff} placeholder="Work stress? Social events? Just didn't fancy the meals? All fine — tell me." />
+                <Textarea value={threwOff} onChange={setThrewOff} placeholder="Work stress? Social events? Just didn't fancy the meals? All fine, tell me." />
               </Field>
               <Field label="Hunger levels">
                 <Pills>{['Never hungry','Slightly hungry','Manageable','Very hungry','Starving'].map(v => <Pill key={v} active={hunger === v} onClick={() => setHunger(v)}>{v}</Pill>)}</Pills>
@@ -386,10 +386,10 @@ export default function CheckinForm() {
               <CardLabel>Training</CardLabel>
               <G2>
                 <Field label="Sessions completed">
-                  <Select value={sessions} onChange={setSessions} options={['None — missed all','1 session','2 sessions','3 sessions','4 sessions','Did extra']} />
+                  <Select value={sessions} onChange={setSessions} options={['None, missed all','1 session','2 sessions','3 sessions','4 sessions','Did extra']} />
                 </Field>
                 <Field label="How did training feel?">
-                  <Select value={trainingFeel} onChange={setTrainingFeel} options={['Felt strong — smashed it','Good — solid sessions','Average — went through it','Tough — really struggled','Exhausted']} />
+                  <Select value={trainingFeel} onChange={setTrainingFeel} options={['Felt strong, smashed it','Good, solid sessions','Average, went through it','Tough, really struggled','Exhausted']} />
                 </Field>
               </G2>
               <Field label="New personal bests or improvements?">
@@ -399,7 +399,7 @@ export default function CheckinForm() {
                 <Input value={discomfort} onChange={setDiscomfort} placeholder="e.g. knee aching on squats, shoulder felt tight..." />
               </Field>
               <Field label="How intense did training feel overall?">
-                <Select value={trainingIntensity} onChange={setTrainingIntensity} options={['Light — easy & comfortable','Moderate — a good push','Hard — felt the work','Very hard — finishing on fumes','Crushing — hardest yet']} />
+                <Select value={trainingIntensity} onChange={setTrainingIntensity} options={['Light, easy & comfortable','Moderate, a good push','Hard, felt the work','Very hard, finishing on fumes','Crushing, hardest yet']} />
               </Field>
             </Card>
 
@@ -408,13 +408,13 @@ export default function CheckinForm() {
               <CardLabel>Recovery &amp; Wellbeing</CardLabel>
               <G2>
                 <Field label="Sleep quality">
-                  <Select value={sleep} onChange={setSleep} options={['Excellent — 7–9hrs','Good — mostly solid','Average — broken','Poor — under 6hrs','Terrible']} />
+                  <Select value={sleep} onChange={setSleep} options={['Excellent, 7–9hrs','Good, mostly solid','Average, broken','Poor, under 6hrs','Terrible']} />
                 </Field>
                 <Field label="Stress levels">
-                  <Select value={stressLvl} onChange={setStressLvl} options={['Low — calm','Moderate','High','Very high']} />
+                  <Select value={stressLvl} onChange={setStressLvl} options={['Low, calm','Moderate','High','Very high']} />
                 </Field>
                 <Field label="Energy day-to-day">
-                  <Select value={energy} onChange={setEnergy} options={['High — feeling great','Good','Moderate — up and down','Low','Very low — exhausted']} />
+                  <Select value={energy} onChange={setEnergy} options={['High, feeling great','Good','Moderate, up and down','Low','Very low, exhausted']} />
                 </Field>
                 <Field label="Water intake">
                   <Select value={water} onChange={setWater} options={['2L+ consistently','About 1.5–2L','About 1–1.5L','Under 1L']} />
@@ -423,7 +423,7 @@ export default function CheckinForm() {
                   <Select value={dailySteps} onChange={setDailySteps} options={['Under 5,000','5,000–7,000','7,000–10,000','10,000–12,000','12,000+']} />
                 </Field>
                 <Field label="How did meals feel this week?">
-                  <Select value={mealsFeel} onChange={setMealsFeel} options={['Loved them — enjoying food','They worked — fine but ordinary','Got bored — same food too often','Cravings hit hard','Felt restrictive / not enough']} />
+                  <Select value={mealsFeel} onChange={setMealsFeel} options={['Loved them, enjoying food','They worked, fine but ordinary','Got bored, same food too often','Cravings hit hard','Felt restrictive / not enough']} />
                 </Field>
               </G2>
             </Card>
@@ -433,7 +433,7 @@ export default function CheckinForm() {
               <CardLabel>Wins &amp; Struggles</CardLabel>
               <div className="bg-[#141414] rounded-md px-4 py-3.5 mb-5">
                 <p className="text-xs text-[#7a7670] leading-[1.7] font-light italic font-serif">
-                  A win is anything — choosing water over Coke, getting all your steps in, not finishing the biscuits at work. Big or small, it all counts.
+                  A win is anything, choosing water over Coke, getting all your steps in, not finishing the biscuits at work. Big or small, it all counts.
                 </p>
               </div>
               <Field label="Your biggest win this week">
@@ -450,18 +450,18 @@ export default function CheckinForm() {
                 </IconRow>
               </Field>
               <Field label="Questions or notes for Jess?">
-                <Textarea value={questions} onChange={setQuestions} placeholder="Anything at all — this is your space." />
+                <Textarea value={questions} onChange={setQuestions} placeholder="Anything at all, this is your space." />
               </Field>
               <Field label="Anything else? (optional)">
                 <Textarea value={extraNotes} onChange={setExtraNotes} placeholder="Other things on your mind, life stuff, anything Jess should know for context..." />
               </Field>
             </Card>
 
-            {/* OPTIONAL — Body measurements + progress photos. Completely skippable. */}
+            {/* OPTIONAL, Body measurements + progress photos. Completely skippable. */}
             <Card>
-              <CardLabel>Optional — measurements &amp; photos</CardLabel>
+              <CardLabel>Optional, measurements &amp; photos</CardLabel>
               <p className="text-[12px] text-[#7a7670] italic font-serif mb-5 leading-relaxed">
-                These are completely optional and you can skip them. Many clients find measurements and photos useful — they catch shape change the scale can&apos;t see.
+                These are completely optional and you can skip them. Many clients find measurements and photos useful, they catch shape change the scale can&apos;t see.
               </p>
 
               <div className="mb-7">
@@ -481,7 +481,7 @@ export default function CheckinForm() {
               <div>
                 <p className="text-[10px] tracking-[2px] uppercase text-[#7a7670] mb-3">Progress photos</p>
                 <p className="text-[11px] text-[#7a7670] leading-[1.6] mb-3 italic font-serif">
-                  Front + side, same lighting and time of day. Completely private — only Jess will see them.
+                  Front + side, same lighting and time of day. Completely private, only Jess will see them.
                 </p>
                 <input
                   type="file"
@@ -540,7 +540,7 @@ export default function CheckinForm() {
             <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
             <h2 className="font-serif text-[32px] font-light text-[#f0ece4] mb-3.5">Check-in received.</h2>
             <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[340px] mx-auto mb-2.5">
-              Jess will review this carefully and send your feedback and any plan updates as soon as she can. Keep showing up — it&apos;s working.
+              Jess will review this carefully and send your feedback and any plan updates as soon as she can. Keep showing up, it&apos;s working.
             </p>
             <span className="font-serif italic text-base text-[#7a7670] block mt-7">Less restriction. More you.</span>
           </div>

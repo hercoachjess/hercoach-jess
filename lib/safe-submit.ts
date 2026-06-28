@@ -30,14 +30,14 @@ export interface SubmitResult<T> {
   /**
    * True when the request reached the server but the response was not
    * usable (5xx without JSON, body parse failed, or network error after
-   * the request was sent). The user's data MAY have been saved — they
+   * the request was sent). The user's data MAY have been saved, they
    * should not retry without checking.
    */
   uncertain: boolean
 }
 
 const UNCERTAIN_MESSAGE =
-  "Your submission may have gone through — please don't try again. Send Jess a quick message and she'll confirm it landed."
+  "Your submission may have gone through, please don't try again. Send Jess a quick message and she'll confirm it landed."
 
 export async function safeSubmit<T = unknown>(
   url: string,
@@ -51,13 +51,13 @@ export async function safeSubmit<T = unknown>(
       body: JSON.stringify(body),
     })
   } catch (err) {
-    // Network failure — we don't know if the request reached the server.
+    // Network failure, we don't know if the request reached the server.
     // Treat as uncertain so the user doesn't double-submit.
     console.error('[safeSubmit] network error:', err)
     return { ok: false, error: UNCERTAIN_MESSAGE, uncertain: true }
   }
 
-  // Try to parse as JSON. Don't blow up if it isn't valid JSON — that's
+  // Try to parse as JSON. Don't blow up if it isn't valid JSON, that's
   // exactly the case (Vercel plain-text "Internal server error") that
   // bit us before.
   let parsed: T | undefined
@@ -70,7 +70,7 @@ export async function safeSubmit<T = unknown>(
         parsed = obj
         parsedError = (obj as { error?: string })?.error
       } catch {
-        // Non-JSON body — likely a Vercel-edge generic 5xx. Leave parsed undefined.
+        // Non-JSON body, likely a Vercel-edge generic 5xx. Leave parsed undefined.
         console.error('[safeSubmit] non-JSON response from', url, '— body:', text.slice(0, 400))
       }
     }

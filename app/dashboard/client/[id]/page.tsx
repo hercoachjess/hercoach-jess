@@ -10,6 +10,7 @@ import type {
   TrainingPlan,
   PlanHistory,
   Payment,
+  ClientNote,
 } from '@/types'
 
 interface Props {
@@ -28,6 +29,7 @@ export default async function ClientFilePage({ params }: Props) {
     { data: trainingPlans },
     { data: planHistory },
     { data: payments },
+    { data: notes },
   ] = await Promise.all([
     supabase.from('clients').select('*').eq('id', id).single(),
     supabase
@@ -66,6 +68,11 @@ export default async function ClientFilePage({ params }: Props) {
       .select('*')
       .eq('client_id', id)
       .order('due_date', { ascending: false }),
+    supabase
+      .from('client_notes')
+      .select('*')
+      .eq('client_id', id)
+      .order('created_at', { ascending: false }),
   ])
 
   if (!client) notFound()
@@ -92,6 +99,7 @@ export default async function ClientFilePage({ params }: Props) {
       trainingPlan={trainingPlans as TrainingPlan | null}
       planHistory={(planHistory ?? []) as PlanHistory[]}
       payments={(payments ?? []) as Payment[]}
+      notes={(notes ?? []) as ClientNote[]}
     />
   )
 }

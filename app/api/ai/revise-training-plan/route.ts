@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const coachStyle = await getCoachStyleBlock()
-    const prompt = coachStyle + `You are Jess, an HCPC-registered Registered Dietitian and coach. You are revising an existing training programme for ${clientName} based on the coach's instructions. Apply ONLY the changes requested — keep everything else the same, including session structure, exercise selection and progressive overload logic — unless the instructions specifically ask otherwise.
+    const prompt = coachStyle + `You are Jess, an HCPC-registered Registered Dietitian and coach. You are revising an existing training programme for ${clientName} based on the coach's instructions. Apply ONLY the changes requested, keep everything else the same, including session structure, exercise selection and progressive overload logic, unless the instructions specifically ask otherwise.
 
 Client goal: ${goal}
 Experience level: ${level}
@@ -62,8 +62,8 @@ Equipment / location: ${gymAccess || 'Gym'}
 Injuries / limitations to respect: ${injuries || 'None reported'}
 Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
 
-DO-NOT-PROGRAMME RULE — CRITICAL:
-The "Injuries / limitations" and "Exercises the client does NOT want" lists are absolute. NEVER include any exercise that hits a contraindicated joint, replicates a disliked movement pattern, or otherwise causes the client distress — even if the coach instructions don't explicitly forbid it. If the current programme already includes one, this is your chance to swap it for an equivalent that respects the limitation.
+DO-NOT-PROGRAMME RULE, CRITICAL:
+The "Injuries / limitations" and "Exercises the client does NOT want" lists are absolute. NEVER include any exercise that hits a contraindicated joint, replicates a disliked movement pattern, or otherwise causes the client distress, even if the coach instructions don't explicitly forbid it. If the current programme already includes one, this is your chance to swap it for an equivalent that respects the limitation.
 
 Programme length: ${lengthWeeks} week${lengthWeeks > 1 ? 's' : ''}
 
@@ -71,7 +71,7 @@ CURRENT TRAINING PROGRAMME (JSON):
 ${JSON.stringify({ sessions: currentSessions, weekly_progression: currentWeeklyProgression ?? [], coach_notes: currentCoachNotes }, null, 2)}
 ${
   recentCheckins.length
-    ? `\nRECENT CHECK-IN FEEDBACK (most recent first — adapt the revision to what's actually happening for this client):
+    ? `\nRECENT CHECK-IN FEEDBACK (most recent first, adapt the revision to what's actually happening for this client):
 ${recentCheckins
   .slice(0, 2)
   .map((c) => {
@@ -95,10 +95,10 @@ COACH INSTRUCTIONS:
 ${instructions.trim()}
 
 Rules:
-- Apply only the changes requested — preserve everything else
+- Apply only the changes requested, preserve everything else
 - The "sessions" array is Week 1's detailed plan; "weekly_progression" describes weeks 2–${lengthWeeks} (focus + modifications + intensity_target). If the instructions target a specific later week ("make week 5 lighter") modify only that entry in weekly_progression.
 - Maintain balanced volume across muscle groups unless explicitly changing it
-- Respect injuries / limitations at all times — never programme contraindicated movements
+- Respect injuries / limitations at all times, never programme contraindicated movements
 - Keep day labels (Mon/Tue/etc) and overall week structure unless asked to change them
 - Sets, reps and notes should remain coaching-appropriate (progressive overload, RIR/RPE-aware)
 

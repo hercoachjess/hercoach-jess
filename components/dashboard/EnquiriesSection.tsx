@@ -173,7 +173,7 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
                       </div>
                     )}
 
-                    {/* Quick contact links — mobile-first */}
+                    {/* Quick contact links, mobile-first */}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {enq.phone && (
                         <a
@@ -213,7 +213,7 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
 
                     {enq.client_id && (
                       <p className="text-xs text-[#7da87d] italic">
-                        ✓ Linked to a client record — they&apos;ve filled the onboarding form.
+                        ✓ Linked to a client record, they&apos;ve filled the onboarding form.
                       </p>
                     )}
                   </div>
@@ -224,7 +224,7 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
         </div>
       )}
 
-      {/* Mark contacted modal — captures notes from the conversation */}
+      {/* Mark contacted modal, captures notes from the conversation */}
       <Modal
         open={!!contactModal}
         onClose={() => { setContactModal(null); setContactNotes('') }}
@@ -240,7 +240,7 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
       >
         <div className="flex flex-col gap-4">
           <p className="text-sm text-[#e0d8cc] leading-relaxed">
-            Captures the date you reached out and a short note on what you discussed — visible on the enquiry record.
+            Captures the date you reached out and a short note on what you discussed, visible on the enquiry record.
           </p>
           <div>
             <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Notes (optional)</label>
@@ -269,12 +269,12 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function templatedMessage(enq: Enquiry, onboardingUrl: string): string {
-  return `Hi ${enq.first_name} — thanks for reaching out. I've read what you sent and I'd love to chat properly about whether we'd be a good fit.
+  return `Hi ${enq.first_name}, thanks for reaching out. I've read what you sent and I'd love to chat properly about whether we'd be a good fit.
 
-When you're ready, my onboarding form is here — it's about 5–8 minutes and gives me everything I need to design a plan around you:
+When you're ready, my onboarding form is here, it's about 5–8 minutes and gives me everything I need to design a plan around you:
 ${onboardingUrl}
 
-Any questions before you fill it in, just shout. — Jess`
+Any questions before you fill it in, just shout., Jess`
 }
 
 function whatsAppHref(enq: Enquiry, onboardingUrl: string): string {

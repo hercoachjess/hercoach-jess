@@ -54,7 +54,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
     setSaving(true); setEditError('')
     const supabase = createClient()
     // Update the onboarding submission payload. The signed_name + signed_date
-    // are deliberately untouched — they are the client's electronic signature
+    // are deliberately untouched, they are the client's electronic signature
     // and the legal record.
     const { error: e } = await supabase
       .from('onboarding_submissions')
@@ -131,14 +131,14 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
       }
 
       const firstName = client?.full_name?.split(' ')[0] || 'there'
-      const message = `Hi ${firstName} — here's a copy of the onboarding file you submitted, including the declaration you signed. Keep this for your records. — Jess\n\n${url}`
+      const message = `Hi ${firstName}, here's a copy of the onboarding file you submitted, including the declaration you signed. Keep this for your records., Jess\n\n${url}`
 
       if (typeof navigator !== 'undefined' && 'share' in navigator) {
         try {
           await navigator.share({ title: 'Your onboarding file', text: message, url })
           return
         } catch {
-          // user cancelled or share unavailable — fall through to dropdown
+          // user cancelled or share unavailable, fall through to dropdown
         }
       }
       setShareMenuOpen(true)
@@ -151,7 +151,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
 
   const firstName = client?.full_name?.split(' ')[0] || 'there'
   const shareMessage = shareUrl
-    ? `Hi ${firstName} — here's a copy of the onboarding file you submitted, including the declaration you signed. Keep this for your records. — Jess\n\n${shareUrl}`
+    ? `Hi ${firstName}, here's a copy of the onboarding file you submitted, including the declaration you signed. Keep this for your records., Jess\n\n${shareUrl}`
     : ''
   const enc = encodeURIComponent
   const phoneRaw = (client?.phone || '').replace(/[^0-9+]/g, '')
@@ -244,7 +244,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Health — physical</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Health, physical</span></CardHeader>
         <CardBody className="flex flex-col gap-3">
           <Row label="Injuries / limitations" value={h.injuries || '—'} multiline />
           <Row label="Diagnosed conditions" value={list(h.conditions)} />
@@ -254,7 +254,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
       </Card>
 
       <Card>
-        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Health — mental & food relationship</span></CardHeader>
+        <CardHeader><span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Health, mental & food relationship</span></CardHeader>
         <CardBody className="flex flex-col gap-3">
           <Row label="Mental health" value={h.mental_health || '—'} />
           <Row label="Food relationship" value={h.food_relationship || '—'} />
@@ -291,7 +291,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
         </CardBody>
       </Card>
 
-      {/* Edit onboarding modal — preserves the signed declaration */}
+      {/* Edit onboarding modal, preserves the signed declaration */}
       <Modal
         open={editing && !!editPayload}
         onClose={() => { setEditing(false); setEditPayload(null); setEditError('') }}
@@ -356,7 +356,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
               <EditField label="Current eating pattern" value={editPayload.food_preferences.eating_pattern} onChange={(v) => setEditPayload({ ...editPayload, food_preferences: { ...editPayload.food_preferences, eating_pattern: v } })} long />
             </EditSection>
 
-            <EditSection title="Health screening — physical">
+            <EditSection title="Health screening, physical">
               <EditField label="Injuries / limitations" value={editPayload.health_screening.injuries} onChange={(v) => setEditPayload({ ...editPayload, health_screening: { ...editPayload.health_screening, injuries: v } })} long />
               <EditField label="Medications" value={editPayload.health_screening.medications} onChange={(v) => setEditPayload({ ...editPayload, health_screening: { ...editPayload.health_screening, medications: v } })} long />
               <EditField label="Pregnancy / TTC" value={editPayload.health_screening.pregnancy} onChange={(v) => setEditPayload({ ...editPayload, health_screening: { ...editPayload.health_screening, pregnancy: v } })} />
@@ -367,7 +367,7 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
               />
             </EditSection>
 
-            <EditSection title="Health screening — mental & relationship with food">
+            <EditSection title="Health screening, mental & relationship with food">
               <Grid2>
                 <EditField label="Mental health" value={editPayload.health_screening.mental_health} onChange={(v) => setEditPayload({ ...editPayload, health_screening: { ...editPayload.health_screening, mental_health: v } })} />
                 <EditField label="Food relationship" value={editPayload.health_screening.food_relationship} onChange={(v) => setEditPayload({ ...editPayload, health_screening: { ...editPayload.health_screening, food_relationship: v } })} />

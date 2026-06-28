@@ -6,6 +6,7 @@ import AddClientButton from '@/components/dashboard/AddClientButton'
 import CopyLink from '@/components/ui/CopyLink'
 import ClientListSection from '@/components/dashboard/ClientListSection'
 import EnquiriesSection from '@/components/dashboard/EnquiriesSection'
+import TodayActions from '@/components/dashboard/TodayActions'
 
 function getHour() {
   return new Date().getHours()
@@ -94,43 +95,47 @@ export default async function DashboardPage() {
         <p className="text-sm text-[#b8b4ac]">Here&apos;s your client overview.</p>
       </div>
 
-      {/* Stats strip — responsive 2 cols on mobile, 5 on desktop now we've added enquiries */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-10">
-        {[
-          { label: 'New enquiries',      value: newEnquiries,    warn: newEnquiries > 0,    accent: newEnquiries > 0 },
-          { label: 'Active clients',     value: activeClients,   warn: false,               accent: false },
-          { label: 'Check-ins to review',value: checkinsToReview,warn: false,               accent: false },
-          { label: 'Overdue check-ins',  value: overdueCheckins, warn: overdueCheckins > 0, accent: false },
-          { label: 'Overdue payments',   value: overduePayments, warn: overduePayments > 0, accent: false },
-        ].map(({ label, value, warn, accent }) => (
-          <div
-            key={label}
-            className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-sm px-5 py-4"
-          >
-            <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">{label}</p>
-            <p
-              className="text-3xl font-light"
-              style={{ color: accent ? '#7da87d' : warn ? '#c89a6a' : '#f0ece4' }}
-            >
-              {value}
-            </p>
-          </div>
-        ))}
+      {/* Today's actions: prioritised list of concrete things to do
+          right now (check-ins to reply to, overdue clients, new
+          enquiries, payments to chase). Replaces the old wall of
+          count tiles, which was passive. */}
+      <TodayActions
+        clients={clientList}
+        latestCheckin={latestCheckin}
+        checkins={checkinList}
+        payments={paymentList}
+        enquiries={enquiryList}
+      />
+
+      {/* Slim summary line, just the at-a-glance counts that aren't
+          actionable in themselves. */}
+      <div className="mb-10 flex items-center gap-x-6 gap-y-2 flex-wrap text-xs text-[#b8b4ac] tracking-widest uppercase">
+        <span><span className="text-[#f0ece4] text-sm normal-case tracking-normal mr-2">{activeClients}</span>active clients</span>
+        <span><span className="text-[#f0ece4] text-sm normal-case tracking-normal mr-2">{checkinsToReview}</span>check-ins to review</span>
+        <span style={{ color: overdueCheckins > 0 ? '#c89a6a' : undefined }}>
+          <span className="text-sm normal-case tracking-normal mr-2" style={{ color: overdueCheckins > 0 ? '#c89a6a' : '#f0ece4' }}>{overdueCheckins}</span>overdue check-ins
+        </span>
+        <span style={{ color: overduePayments > 0 ? '#c89a6a' : undefined }}>
+          <span className="text-sm normal-case tracking-normal mr-2" style={{ color: overduePayments > 0 ? '#c89a6a' : '#f0ece4' }}>{overduePayments}</span>overdue payments
+        </span>
+        <span style={{ color: newEnquiries > 0 ? '#7da87d' : undefined }}>
+          <span className="text-sm normal-case tracking-normal mr-2" style={{ color: newEnquiries > 0 ? '#7da87d' : '#f0ece4' }}>{newEnquiries}</span>new enquiries
+        </span>
       </div>
 
-      {/* Share links — public form URLs */}
+      {/* Share links, public form URLs */}
       <div className="mb-10">
         <h2 className="text-sm text-[#e0d8cc] tracking-widest uppercase mb-3">Share with clients</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <CopyLink
             label="Coaching enquiry link"
             url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/enquire`}
-            hint="Put this on your Instagram bio / website. Prospective clients fill a short form — they land in Enquiries below for you to follow up."
+            hint="Put this on your Instagram bio / website. Prospective clients fill a short form, they land in Enquiries below for you to follow up."
           />
           <CopyLink
             label="Onboarding link"
             url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/onboarding`}
-            hint="Send to new clients once you've agreed to work together. They complete the 7-step form — a client file appears automatically."
+            hint="Send to new clients once you've agreed to work together. They complete the 7-step form, a client file appears automatically."
           />
           <CopyLink
             label="Generic check-in link"
@@ -140,13 +145,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Enquiries — sits above clients so new leads are the first thing you see */}
+      {/* Enquiries, sits above clients so new leads are the first thing you see */}
       <EnquiriesSection
         enquiries={enquiryList}
         onboardingUrl={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/onboarding`}
       />
 
-      {/* Client list — interactive search + status filters live in the client component */}
+      {/* Client list, interactive search + status filters live in the client component */}
       <ClientListSection
         clients={clientList}
         latestCheckin={latestCheckin}

@@ -42,37 +42,37 @@ Allergies / intolerances: ${allergies || 'None'}
 Foods they dislike: ${dislikes || 'None'}
 Cooking ability: ${cookingAbility || 'Average'}
 
-DO-NOT-USE RULE — CRITICAL:
+DO-NOT-USE RULE, CRITICAL:
 The "Foods they dislike" and "Allergies" lists above are absolute. Every meal AND every alternative you generate must contain ZERO disliked or allergen ingredients. This includes:
 - direct mentions ("mushrooms" → no portobello, chestnut, button, etc.)
 - hidden forms (if they dislike fish, also avoid anchovies in pasta sauces, fish sauce, Worcestershire sauce, Caesar dressing)
-- whole ingredient families (if "dairy-free" or "lactose intolerant", no milk/cheese/butter/yoghurt/cream — including hidden forms in pesto, baked goods, ready meals)
+- whole ingredient families (if "dairy-free" or "lactose intolerant", no milk/cheese/butter/yoghurt/cream, including hidden forms in pesto, baked goods, ready meals)
 Treat this list as if breaking it would harm the client. If a typical recipe relies on a disliked ingredient, swap it for something equivalent.
 
 Rules:
-- Use UK supermarket foods. Where helpful, suggest a specific brand or product the client can put in their basket — Tesco / Sainsbury's / Aldi / Lidl / M&S / Waitrose / Asda / Morrisons. Mix branded suggestions with generic items so the plan stays affordable.
-- All quantities in grams or ml — no cups, no tablespoons for main items
-- Keep it realistic and practical — no obscure ingredients
+- Use UK supermarket foods. Where helpful, suggest a specific brand or product the client can put in their basket, Tesco / Sainsbury's / Aldi / Lidl / M&S / Waitrose / Asda / Morrisons. Mix branded suggestions with generic items so the plan stays affordable.
+- All quantities in grams or ml, no cups, no tablespoons for main items
+- Keep it realistic and practical, no obscure ingredients
 - Meals should be time-labelled (e.g. 07:30, 12:30, 15:30, 18:30)
 - Aim to approximately hit the macro targets across the day
 
-ITEM STRUCTURE — CRITICAL:
+ITEM STRUCTURE, CRITICAL:
 Each item must be a structured object with these fields:
   - "food": the ingredient NAME only, no quantity, no brand. Example: "rolled oats", "chicken breast, grilled", "medium banana". NEVER include the quantity ("80g") in this field. NEVER include the brand.
   - "quantity": the numeric portion size, as a number. Example: 80 (for 80g oats), 1 (for 1 banana), 250 (for 250ml milk).
   - "unit": one of "g", "ml", "item", "tsp", "tbsp", "cup", "scoop". Use "item" for countable things (1 banana, 2 eggs).
-  - "brand": optional. The specific shop product, only when it genuinely helps. Example: "Tesco Wholegrain Porridge Oats" or "Heck Chicken Italia Sausages". Omit the field entirely for generic items — no brand needed. Roughly half the items in a meal should have a brand.
-  - "kcal", "protein_g", "fat_g", "carbs_g": evidence-based estimates for THIS portion (already multiplied through — not per 100g, but for the actual quantity). Use accurate values from McCance & Widdowson / USDA / BDA reference data. Round to 1 decimal place.
+  - "brand": optional. The specific shop product, only when it genuinely helps. Example: "Tesco Wholegrain Porridge Oats" or "Heck Chicken Italia Sausages". Omit the field entirely for generic items, no brand needed. Roughly half the items in a meal should have a brand.
+  - "kcal", "protein_g", "fat_g", "carbs_g": evidence-based estimates for THIS portion (already multiplied through, not per 100g, but for the actual quantity). Use accurate values from McCance & Widdowson / USDA / BDA reference data. Round to 1 decimal place.
 
 The daily totals (sum of kcal/protein/fat/carbs across all main meals) MUST be within ±5% of the macro targets at the top.
 
-PREP NOTES — REQUIRED for every meal:
-Add "prep_notes": a single short paragraph (1–3 sentences) describing how to prepare the meal — cooking method, timings, assembly order, any flavour tips. UK English. Practical, not preachy. Example: "Cook oats with the milk on the hob, simmer 5 mins, stirring. Top with sliced banana and a drizzle of peanut butter. Stir creatine into a glass of water alongside."
+PREP NOTES, REQUIRED for every meal:
+Add "prep_notes": a single short paragraph (1–3 sentences) describing how to prepare the meal, cooking method, timings, assembly order, any flavour tips. UK English. Practical, not preachy. Example: "Cook oats with the milk on the hob, simmer 5 mins, stirring. Top with sliced banana and a drizzle of peanut butter. Stir creatine into a glass of water alongside."
 
-ALTERNATIVES — REQUIRED for every meal:
-For each meal, also generate 2 alternative versions ("alternatives" array) the client can swap to. Each alternative must hit the SAME macro target (±10%), respect the same dislikes/allergies, and offer genuine variety in flavour, prep style or shopping list. Same item structure ({food, brand?}) and a prep_notes string. Label each alternative briefly — e.g. "Higher-carb training-day version", "Quicker 5-minute prep", "Veg-forward option", "Eat-out friendly".
+ALTERNATIVES, REQUIRED for every meal:
+For each meal, also generate 2 alternative versions ("alternatives" array) the client can swap to. Each alternative must hit the SAME macro target (±10%), respect the same dislikes/allergies, and offer genuine variety in flavour, prep style or shopping list. Same item structure ({food, brand?}) and a prep_notes string. Label each alternative briefly, e.g. "Higher-carb training-day version", "Quicker 5-minute prep", "Veg-forward option", "Eat-out friendly".
 
-Also include 4–6 evidence-based "food facts" about the most clinically interesting ingredients in this plan — short, factual statements that ${clientName} would find genuinely useful to know (not marketing fluff). Each fact must cite a credible source: BDA Food Fact Sheet, British Nutrition Foundation, NHS Eatwell Guide, NICE guidance, EFSA, peer-reviewed nutrition journals, or HCPC dietetic practice standards.
+Also include 4–6 evidence-based "food facts" about the most clinically interesting ingredients in this plan, short, factual statements that ${clientName} would find genuinely useful to know (not marketing fluff). Each fact must cite a credible source: BDA Food Fact Sheet, British Nutrition Foundation, NHS Eatwell Guide, NICE guidance, EFSA, peer-reviewed nutrition journals, or HCPC dietetic practice standards.
 
 Respond with a JSON object ONLY, no markdown fences, in this exact structure:
 {
@@ -105,7 +105,7 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
     {
       "food": "Greek yoghurt",
       "fact": "Provides ~17g of high-quality protein per 150g, plus calcium contributing to the daily 700mg RNI for adults.",
-      "source": "BDA Food Fact Sheet — Calcium"
+      "source": "BDA Food Fact Sheet, Calcium"
     },
     ...4–6 facts total...
   ],
@@ -133,8 +133,8 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
       )
       const reason =
         stopReason === 'max_tokens'
-          ? 'The AI ran out of room before finishing the plan. Try again — or simplify the request (fewer meals, fewer alternatives).'
-          : "Couldn't read the AI response. Try again — if it keeps happening let Jess know."
+          ? 'The AI ran out of room before finishing the plan. Try again, or simplify the request (fewer meals, fewer alternatives).'
+          : "Couldn't read the AI response. Try again, if it keeps happening let Jess know."
       return NextResponse.json(
         { error: reason, stop_reason: stopReason },
         { status: 500 },

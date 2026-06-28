@@ -57,7 +57,7 @@ export function planMacros(meals: Meal[]): MacroTotals {
 /**
  * Linearly scale an item's macros to a new quantity. The food name,
  * brand, and unit stay the same. If the item has no quantity recorded
- * (legacy data) we leave macros unchanged — there's nothing to scale.
+ * (legacy data) we leave macros unchanged, there's nothing to scale.
  */
 export function scaleItemQuantity(item: MealItem, newQuantity: number): MealItem {
   if (!Number.isFinite(newQuantity) || newQuantity < 0) return item
@@ -89,7 +89,7 @@ export function formatItemDisplay(item: MealItem): string {
   return `${prefix}${item.food}`.trim()
 }
 
-/** Display helper: "280 kcal · P10 F5 C45" — short form for inline display. */
+/** Display helper: "280 kcal · P10 F5 C45", short form for inline display. */
 export function formatMacrosShort(m: MacroTotals): string {
   return `${Math.round(m.kcal)} kcal · P${Math.round(m.protein_g)} F${Math.round(m.fat_g)} C${Math.round(m.carbs_g)}`
 }

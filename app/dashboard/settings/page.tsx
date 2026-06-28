@@ -15,7 +15,7 @@ export default async function SettingsPage() {
         <p className="text-xs text-[#b8b4ac] tracking-widest uppercase mb-2">Coach controls</p>
         <h1 className="logo-text text-4xl mb-2">AI style</h1>
         <p className="text-sm text-[#b8b4ac] leading-relaxed max-w-xl">
-          Anything you write here gets added to every AI prompt — check-in
+          Anything you write here gets added to every AI prompt, check-in
           replies, meal plans, training plans, macro recommendations,
           everything. Iterate on your voice without code changes.
         </p>

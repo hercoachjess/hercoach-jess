@@ -79,11 +79,11 @@ ${checkinContext}
 THE SESSION TO REPLACE (keep the same day slot):
 ${JSON.stringify(currentSession, null, 2)}
 
-THE OTHER SESSIONS ON THE PROGRAMME (do NOT duplicate their focus — bring genuine variety):
+THE OTHER SESSIONS ON THE PROGRAMME (do NOT duplicate their focus, bring genuine variety):
 ${JSON.stringify(otherSessions, null, 2)}
 
 ${instructions?.trim() ? `COACH INSTRUCTIONS FOR THIS REGENERATION:\n${instructions.trim()}\n` : ''}
-DO-NOT-PROGRAMME RULE — CRITICAL:
+DO-NOT-PROGRAMME RULE, CRITICAL:
 Injuries / dislikes are absolute. The new session must contain ZERO movements that touch a contraindicated joint or replicate a disliked pattern.
 
 Rules:

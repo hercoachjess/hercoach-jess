@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
  *    duplicate clients. We look up the existing client by email and
  *    reuse it.
  *  - A recent onboarding submission (< 5 mins) for the same client
- *    returns success without writing again — protects against the same
+ *    returns success without writing again, protects against the same
  *    full submission being POSTed twice.
  *  - The downstream "link enquiry" step doesn't block or fail the
  *    response. Its result is ignored entirely.
@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
 
     if (lookupError) {
       console.error('[onboarding] existing-client lookup error:', lookupError)
-      // Non-fatal — fall through and try the insert. Worst case is the
+      // Non-fatal, fall through and try the insert. Worst case is the
       // insert errors and we report it.
     }
 
     if (existingClient?.id) {
       clientId = existingClient.id
     } else {
-      // Approximate DOB from age — Jan 1 of (this year - age)
+      // Approximate DOB from age, Jan 1 of (this year - age)
       let dob: string | null = null
       const ageNum = parseInt(String(b.age), 10)
       if (!isNaN(ageNum) && ageNum > 0) {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         console.error('[onboarding] clients insert error:', clientError)
         return NextResponse.json(
           {
-            error: "We couldn't save your details just then. Please try again in a moment — or message Jess and she'll sort it.",
+            error: "We couldn't save your details just then. Please try again in a moment, or message Jess and she'll sort it.",
             code: clientError?.code ?? null,
             hint: clientError?.hint ?? null,
             details: clientError?.details ?? null,
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       console.error('[onboarding] onboarding_submissions insert error:', submissionError)
       return NextResponse.json(
         {
-          error: "We saved your details but couldn't save the full questionnaire. Please don't resubmit — message Jess and she'll sort it.",
+          error: "We saved your details but couldn't save the full questionnaire. Please don't resubmit, message Jess and she'll sort it.",
           code: submissionError.code ?? null,
           hint: submissionError.hint ?? null,
           details: submissionError.details ?? null,
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Step 4: Link any open enquiry to the new client ───────────────
-    // Fire-and-forget — its outcome is irrelevant to the user's success.
+    // Fire-and-forget, its outcome is irrelevant to the user's success.
     // Errors logged for Jess to see, but the user gets success either way.
     supabase
       .from('enquiries')
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     const stack = err instanceof Error ? err.stack : undefined
     console.error('[onboarding] unhandled error:', msg, stack)
     return NextResponse.json(
-      { error: "Something went wrong on our side. Please don't resubmit — message Jess and she'll check it landed." },
+      { error: "Something went wrong on our side. Please don't resubmit, message Jess and she'll check it landed." },
       { status: 500 },
     )
   }

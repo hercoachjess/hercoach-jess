@@ -19,7 +19,7 @@ const jost = Jost({
 
 export const metadata: Metadata = {
   title: 'HerCoach Jess',
-  description: 'Private coaching platform — nutrition & fitness by Jess, RD',
+  description: 'Private coaching platform, nutrition & fitness by Jess, RD',
 }
 
 // iOS / Android polish: lock the viewport without preventing user zoom, paint

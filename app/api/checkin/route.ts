@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       console.error('[checkin] checkin_submissions insert error:', checkinError)
       return NextResponse.json(
         {
-          error: "We couldn't save your check-in just then. Please don't resubmit — message Jess and she'll sort it.",
+          error: "We couldn't save your check-in just then. Please don't resubmit, message Jess and she'll sort it.",
           code: checkinError.code ?? null,
           hint: checkinError.hint ?? null,
           details: checkinError.details ?? null,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update current weight if provided — fire and forget so it can't
+    // Update current weight if provided, fire and forget so it can't
     // block or fail the response.
     if (payload.weight_kg != null) {
       supabase
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     const stack = err instanceof Error ? err.stack : undefined
     console.error('[checkin] unhandled error:', msg, stack)
     return NextResponse.json(
-      { error: "Something went wrong on our side. Please don't resubmit — message Jess and she'll check it landed." },
+      { error: "Something went wrong on our side. Please don't resubmit, message Jess and she'll check it landed." },
       { status: 500 },
     )
   }

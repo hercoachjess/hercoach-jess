@@ -147,7 +147,7 @@ const s = StyleSheet.create({
   twoCol: { flexDirection: 'row', gap: 6 },
   colHalf: { flex: 1, backgroundColor: C.LINEN, padding: 12, borderWidth: 0.5, borderColor: C.RULE_LIGHT, borderRadius: 2 },
 
-  // Table — exercise / meal / yoga / HR
+  // Table, exercise / meal / yoga / HR
   tableHeader: { flexDirection: 'row', backgroundColor: C.BLACK, paddingVertical: 6, paddingHorizontal: 6 },
   tableHeaderCell: { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.WARM_WHITE, letterSpacing: 0.5 },
   tableRow: { flexDirection: 'row', paddingVertical: 7, paddingHorizontal: 6, borderTopWidth: 0.3, borderTopColor: C.RULE_LIGHT },
@@ -215,7 +215,7 @@ function FooterBar() {
   return (
     <View fixed style={s.footerBar}>
       <Text style={s.footerL}>
-        hercoach Jess  ·  Registered Dietitian  ·  HCPC Registered  ·  England &amp; Wales  ·  Personalised &amp; confidential — not for redistribution
+        hercoach Jess  ·  Registered Dietitian  ·  HCPC Registered  ·  England &amp; Wales  ·  Personalised &amp; confidential, not for redistribution
       </Text>
       <Text style={s.footerR} render={({ pageNumber }) => `Page ${pageNumber}`} />
     </View>
@@ -259,7 +259,7 @@ function LinenBox({ head, lines }: { head: string; lines: string[] }) {
  *
  * Pulls from the latest onboarding submission so the plan opens with
  * the client's OWN reason for being here, in their own words. Falls
- * back gracefully when fields are thin — the warm greeting + plan
+ * back gracefully when fields are thin, the warm greeting + plan
  * summary always render.
  */
 function WelcomeCard({
@@ -304,7 +304,7 @@ function WelcomeCard({
         Built around what you told me at onboarding{primaryGoal ? `: ${primaryGoal.toLowerCase()}` : ''}.
         Everything in here is personalised to your food preferences, training experience,
         and any health considerations you shared. The numbers, brands, and timings are
-        guides, not rules — message me anytime if something isn&apos;t working for you.
+        guides, not rules, message me anytime if something isn&apos;t working for you.
       </Text>
 
       {why && (
@@ -425,7 +425,7 @@ function MealAltBlock({ alt, showMacros }: { alt: MealAlternative; showMacros: b
   // Render alternatives as clearly subordinate "Or try…" swap options
   // rather than as standalone meals. Smaller / italic / muted so the
   // main meal stays the focal point on the page.
-  const labelText = alt.label ? `Or try — ${alt.label.toLowerCase()}` : 'Or try'
+  const labelText = alt.label ? `Or try, ${alt.label.toLowerCase()}` : 'Or try'
   return (
     <View style={s.altCard} wrap={false}>
       <Text style={s.altLabel}>{labelText}</Text>
@@ -481,10 +481,10 @@ function SnackStrip({ snacks }: { snacks: [string, string][] }) {
 
 function HRTable() {
   const zones = [
-    { z: '1', intensity: 'Very light',  hr: '94–113 bpm',  feel: 'Easy — full conversation',          use: 'Warm-up, cool-down, recovery walks' },
-    { z: '2', intensity: 'Light',       hr: '113–132 bpm', feel: 'Comfortable — slightly breathless', use: 'Incline walk cardio — YOUR TARGET' },
-    { z: '3', intensity: 'Moderate',    hr: '132–151 bpm', feel: 'Breathing harder, still talking',   use: 'Cross trainer — steady state' },
-    { z: '4', intensity: 'Hard',        hr: '151–170 bpm', feel: 'Short sentences only',              use: 'Optional — not needed at this stage' },
+    { z: '1', intensity: 'Very light',  hr: '94–113 bpm',  feel: 'Easy, full conversation',          use: 'Warm-up, cool-down, recovery walks' },
+    { z: '2', intensity: 'Light',       hr: '113–132 bpm', feel: 'Comfortable, slightly breathless', use: 'Incline walk cardio, YOUR TARGET' },
+    { z: '3', intensity: 'Moderate',    hr: '132–151 bpm', feel: 'Breathing harder, still talking',   use: 'Cross trainer, steady state' },
+    { z: '4', intensity: 'Hard',        hr: '151–170 bpm', feel: 'Short sentences only',              use: 'Optional, not needed at this stage' },
     { z: '5', intensity: 'Max effort',  hr: '170+ bpm',    feel: 'Cannot speak',                      use: 'Not recommended currently' },
   ]
   return (
@@ -541,7 +541,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
         ['Zone 2', 'Cardio Target'],
       ]
 
-  // Snack strip — variant aware
+  // Snack strip, variant aware
   const snacks: [string, string][] = includeNumbers
     ? [
         ['Fruit',           '1 piece\n~70 kcal'],
@@ -558,7 +558,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
         ['Dark chocolate',  '2 squares\n(85%+)'],
       ]
 
-  // Meals from the saved meal plan — group by slot and render one block per
+  // Meals from the saved meal plan, group by slot and render one block per
   // meal. The old approach flattened items into rows with the meal name in
   // every row, which is why exported PDFs showed "Breakfast" five times.
   const allMeals = mealPlan?.meals ?? []
@@ -571,7 +571,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
   const restDays = (trainingPlan?.sessions || []).filter((s) => s.exercises.length === 0)
 
   return (
-    <Document title={`${client.full_name} — Plan ${version}`} author="hercoach Jess — Registered Dietitian (HCPC)">
+    <Document title={`${client.full_name}, Plan ${version}`} author="hercoach Jess, Registered Dietitian (HCPC)">
       <Page size="A4" style={s.page}>
         <HeaderBar />
         <FooterBar />
@@ -582,7 +582,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           <Text style={s.welcomeR}>Prepared by Jess  ·  Registered Dietitian (HCPC)  ·  {today}</Text>
         </View>
 
-        {/* Personal welcome card — pulls from onboarding so the first
+        {/* Personal welcome card, pulls from onboarding so the first
             page feels like it was written for this specific person.
             Falls back gracefully when onboarding data is thin. */}
         <WelcomeCard
@@ -602,7 +602,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
               client.current_weight_kg ? `Current weight: ${client.current_weight_kg} kg` : null,
             ].filter(Boolean).join('  ·  '),
             `Goal: ${client.goal || 'Personalised wellness & training programme'}`,
-            `Programme: ${trainingPlan?.days_per_week ?? 5} active days — resistance training + recovery`,
+            `Programme: ${trainingPlan?.days_per_week ?? 5} active days, resistance training + recovery`,
             `Version: ${version}`,
           ]}
         />
@@ -610,47 +610,47 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
         <View style={{ height: 8 }} />
         <MacroChips chips={chips} />
 
-        {/* ──── SECTION 1 — TRAINING ──── */}
+        {/* ──── SECTION 1, TRAINING ──── */}
         {trainingPlan && (
           <>
             <SectionHeader eyebrow="Section 01" title="Training Plan" />
 
             <DarkBox
-              head="WARM-UP — complete before every resistance session"
+              head="WARM-UP, complete before every resistance session"
               lines={[
-                '5 minutes incline treadmill walk — gradient 6–8, easy comfortable pace (Zone 1)',
-                'Dynamic leg swings — 10 forward/back + 10 side to side each leg',
-                'Hip circles — 10 each direction, hands on hips',
-                'Resistance band glute activation — clamshells x15 each side',
-                'Resistance band shoulder pull-aparts — x15, controlled',
-                'Arm circles and shoulder rolls — 30 seconds each',
-                'Bodyweight squats — 10 slow reps to open hips and prepare knees',
+                '5 minutes incline treadmill walk, gradient 6–8, easy comfortable pace (Zone 1)',
+                'Dynamic leg swings, 10 forward/back + 10 side to side each leg',
+                'Hip circles, 10 each direction, hands on hips',
+                'Resistance band glute activation, clamshells x15 each side',
+                'Resistance band shoulder pull-aparts, x15, controlled',
+                'Arm circles and shoulder rolls, 30 seconds each',
+                'Bodyweight squats, 10 slow reps to open hips and prepare knees',
               ]}
             />
             <View style={{ height: 4 }} />
             <Text style={s.noteText}>
               Heart rate during warm-up should sit at 94–113 bpm (Zone 1). You should feel warm,
-              mobile, and ready — not breathless. Never skip the warm-up; it protects your joints
+              mobile, and ready, not breathless. Never skip the warm-up; it protects your joints
               and improves performance.
             </Text>
 
             <View style={{ height: 8 }} />
             <LinenBox
-              head={`Suggested Weekly Structure — ${trainingPlan.days_per_week} active days`}
+              head={`Suggested Weekly Structure, ${trainingPlan.days_per_week} active days`}
               lines={[
-                ...trainingDays.map((d, i) => `Day ${i + 1} — ${d.day}: ${d.focus}`),
+                ...trainingDays.map((d, i) => `Day ${i + 1}, ${d.day}: ${d.focus}`),
                 ...restDays.map((d) => `${d.day}: ${d.focus || 'Rest or 20 min Zone 2 walk'}`),
-                'Rest days are active — aim for your 10,000 step target through normal daily movement.',
+                'Rest days are active, aim for your 10,000 step target through normal daily movement.',
               ]}
             />
 
             <View style={{ height: 8 }} />
             <DarkBox
-              head="Progressive Overload — the engine behind your results"
+              head="Progressive Overload, the engine behind your results"
               lines={[
-                'When you complete ALL reps across ALL sets with good form — increase weight by 1–2.5 kg the following week.',
+                'When you complete ALL reps across ALL sets with good form, increase weight by 1–2.5 kg the following week.',
                 'Write down your weights every session. Without tracking, progression is guesswork.',
-                "If you can't complete the minimum reps — reduce weight slightly and build back up.",
+                "If you can't complete the minimum reps, reduce weight slightly and build back up.",
                 'Form always comes first. Controlled and slow beats heavy and sloppy.',
               ]}
             />
@@ -658,7 +658,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
             {/* Day-by-day exercise tables */}
             {trainingDays.map((day, i) => (
               <View key={i} wrap={false} style={{ marginTop: 12 }}>
-                <Text style={s.dayHead}>Day {i + 1} — {day.day} — {day.focus}</Text>
+                <Text style={s.dayHead}>Day {i + 1}, {day.day}, {day.focus}</Text>
                 <ExerciseTable
                   rows={day.exercises.map((ex) => ({
                     name: ex.name,
@@ -676,28 +676,28 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
 
             <View style={{ height: 8 }} />
             <LinenBox
-              head="Cool-Down — 5 minutes after every resistance session"
+              head="Cool-Down, 5 minutes after every resistance session"
               lines={[
-                'Standing quad stretch — 30 seconds each leg',
-                'Seated hamstring stretch — 30 seconds each leg, sit tall and hinge forward',
-                'Hip flexor lunge stretch — 30 seconds each side',
-                'Doorframe or band chest stretch — 30 seconds, open the chest',
-                "Child's pose — 45 seconds, lower back release",
-                '5 slow deep breaths — bring your heart rate back to Zone 1 before leaving the gym',
+                'Standing quad stretch, 30 seconds each leg',
+                'Seated hamstring stretch, 30 seconds each leg, sit tall and hinge forward',
+                'Hip flexor lunge stretch, 30 seconds each side',
+                'Doorframe or band chest stretch, 30 seconds, open the chest',
+                "Child's pose, 45 seconds, lower back release",
+                '5 slow deep breaths, bring your heart rate back to Zone 1 before leaving the gym',
               ]}
             />
 
-            {/* Multi-week progression — listed when programme is longer than 1 week */}
+            {/* Multi-week progression, listed when programme is longer than 1 week */}
             {trainingPlan.programme_length_weeks && trainingPlan.programme_length_weeks > 1 && trainingPlan.weekly_progression && trainingPlan.weekly_progression.length > 0 && (
               <View wrap={false} style={{ marginTop: 18 }}>
                 <Text style={[s.dayHead, { fontSize: 12 }]}>{trainingPlan.programme_length_weeks}-Week Progression</Text>
                 <Text style={[s.noteText, { marginBottom: 6 }]}>
-                  Week 1 is detailed above. The following weeks build on that base — keep the same structure unless told otherwise, and apply the modifications listed.
+                  Week 1 is detailed above. The following weeks build on that base, keep the same structure unless told otherwise, and apply the modifications listed.
                 </Text>
                 {trainingPlan.weekly_progression.map((wp, i) => (
                   <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
                     <Text style={[s.dayHead, { fontSize: 10 }]}>
-                      Week {wp.week} — {wp.focus}{wp.intensity_target ? `  ·  ${wp.intensity_target}` : ''}
+                      Week {wp.week}, {wp.focus}{wp.intensity_target ? `  ·  ${wp.intensity_target}` : ''}
                     </Text>
                     <Text style={s.noteText}>{wp.modifications}</Text>
                   </View>
@@ -707,23 +707,23 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           </>
         )}
 
-        {/* ──── SECTION 2 — YOGA & ACTIVE RECOVERY ──── */}
+        {/* ──── SECTION 2, YOGA & ACTIVE RECOVERY ──── */}
         <View break style={{ marginTop: 8 }}>
-          <SectionHeader eyebrow="Section 02" title="Day 5 — Yoga & Active Recovery" />
+          <SectionHeader eyebrow="Section 02" title="Day 5, Yoga & Active Recovery" />
           <Text style={s.noteText}>
             This session is your dedicated recovery and mobility day. Gentle, intentional,
             and just as important as resistance training. Yoga reduces cortisol, improves
-            flexibility, aids recovery, and supports mental wellbeing — all of which directly
-            support your goal. No gym required — do this at home on a yoga mat.
+            flexibility, aids recovery, and supports mental wellbeing, all of which directly
+            support your goal. No gym required, do this at home on a yoga mat.
           </Text>
 
           <View style={{ height: 6 }} />
           <DarkBox
             head="How to approach Day 5"
             lines={[
-              'Move slowly and intentionally — this is recovery, not a workout',
+              'Move slowly and intentionally, this is recovery, not a workout',
               'Never force a stretch. Work to the edge of comfort, not pain.',
-              'Focus on your breathing throughout — inhale through the nose, exhale slowly through the mouth',
+              'Focus on your breathing throughout, inhale through the nose, exhale slowly through the mouth',
               'Play calm music or a guided yoga audio if it helps you stay present',
               'Duration: 35–45 minutes total',
             ]}
@@ -733,12 +733,12 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           <Text style={s.dayHead}>Full Yoga Sequence</Text>
           <YogaTable
             rows={[
-              { pose: "Child's Pose",            dur: '90 sec',    benefit: 'Releases lower back, hips, and shoulders. Starting position — breathe deeply.' },
+              { pose: "Child's Pose",            dur: '90 sec',    benefit: 'Releases lower back, hips, and shoulders. Starting position, breathe deeply.' },
               { pose: 'Cat-Cow Flow',            dur: '10 rounds', benefit: 'Mobilises the spine. Inhale as you arch (cow), exhale as you round (cat). Slow.' },
-              { pose: 'Downward Facing Dog',     dur: '60 sec',    benefit: 'Full body stretch — hamstrings, calves, shoulders. Pedal the heels gently.' },
-              { pose: 'Low Lunge (each side)',   dur: '60s each',  benefit: 'Opens hip flexors — essential after lower body sessions. Keep back knee soft.' },
+              { pose: 'Downward Facing Dog',     dur: '60 sec',    benefit: 'Full body stretch, hamstrings, calves, shoulders. Pedal the heels gently.' },
+              { pose: 'Low Lunge (each side)',   dur: '60s each',  benefit: 'Opens hip flexors, essential after lower body sessions. Keep back knee soft.' },
               { pose: 'Pigeon Pose (each side)', dur: '90s each',  benefit: 'Deep glute and hip opener. One of the most important poses for gym-goers.' },
-              { pose: 'Seated Forward Fold',     dur: '60 sec',    benefit: 'Hamstring lengthening. Sit tall, hinge from the hips — don\'t round the back.' },
+              { pose: 'Seated Forward Fold',     dur: '60 sec',    benefit: 'Hamstring lengthening. Sit tall, hinge from the hips, don\'t round the back.' },
               { pose: 'Supine Spinal Twist',     dur: '60s each',  benefit: 'Releases the lower back and thoracic spine. Keep both shoulders on the mat.' },
               { pose: 'Legs Up the Wall',        dur: '3 min',     benefit: 'Promotes circulation, reduces swelling in legs, deeply calming.' },
               { pose: 'Savasana',                dur: '5 min',     benefit: 'Full rest. Lie still, close your eyes. Let the nervous system reset completely.' },
@@ -746,26 +746,26 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           />
           <Text style={[s.noteText, { marginTop: 6 }]}>
             <Text style={{ fontFamily: 'Helvetica-Bold' }}>Yoga tip: </Text>
-            If you&apos;re new to yoga, search &lsquo;Yoga with Adriene — 30 minute recovery flow&rsquo;
+            If you&apos;re new to yoga, search &lsquo;Yoga with Adriene, 30 minute recovery flow&rsquo;
             on YouTube. Free, beginner-friendly, and guided. Alternatively, the Alo Moves or
             Down Dog apps offer excellent guided sessions.
           </Text>
         </View>
 
-        {/* ──── SECTION 3 — CARDIO & STEPS ──── */}
+        {/* ──── SECTION 3, CARDIO & STEPS ──── */}
         <View break style={{ marginTop: 8 }}>
           <SectionHeader eyebrow="Section 03" title="Cardio & Daily Movement" />
           <TwoCol
-            lHead="Cardio — 2 to 3 sessions per week"
+            lHead="Cardio, 2 to 3 sessions per week"
             lLines={[
               '20–25 minutes incline treadmill walk or cross trainer',
-              'Perform on rest or mid-week — not the same day as weights',
+              'Perform on rest or mid-week, not the same day as weights',
               'Target Zone 2: 113–132 bpm throughout',
               'Treadmill: gradient 6–10, comfortable walking pace',
               'Cross trainer: moderate resistance, steady consistent rhythm',
               'You should be able to hold a conversation but feel it',
             ]}
-            rHead="Daily Step Target — 10,000 steps"
+            rHead="Daily Step Target, 10,000 steps"
             rLines={[
               '10,000 steps = approximately 7 km of movement per day',
               'A 10-minute walk after each meal adds 3,000 steps easily',
@@ -790,11 +790,11 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
             <Text style={{ fontFamily: 'Helvetica-Bold' }}>Why Zone 2? </Text>
             At this intensity your body uses fat as its primary fuel source, it doesn&apos;t spike
             cortisol or interfere with muscle recovery from weights, and it builds a strong
-            aerobic base over time. It should feel easy — that&apos;s intentional.
+            aerobic base over time. It should feel easy, that&apos;s intentional.
           </Text>
         </View>
 
-        {/* ──── SECTION 4 — NUTRITION ──── */}
+        {/* ──── SECTION 4, NUTRITION ──── */}
         {mealPlan && (
           <View break style={{ marginTop: 8 }}>
             <SectionHeader eyebrow="Section 04" title="Nutrition Plan" />
@@ -804,7 +804,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
               Quantities are given in grams and ml.
               {includeNumbers
                 ? ' Using a food scale for the first 1–2 weeks makes a significant difference to accuracy.'
-                : ' Simply follow the portions provided — the balance is taken care of for you.'}
+                : ' Simply follow the portions provided, the balance is taken care of for you.'}
             </Text>
 
             {breakfastMeals.length > 0 && (
@@ -824,7 +824,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
             )}
 
             <View style={{ height: 8 }} />
-            <Text style={s.dayHead}>Snacks — choose one per day</Text>
+            <Text style={s.dayHead}>Snacks, choose one per day</Text>
             <SnackStrip snacks={snacks} />
 
             {dinnerMeals.length > 0 && (
@@ -837,7 +837,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
 
             <View style={{ height: 10 }} />
             <TwoCol
-              lHead="Hydration — daily targets"
+              lHead="Hydration, daily targets"
               lLines={[
                 '2 to 2.5 litres of water per day as a minimum',
                 'Add 500ml extra on each training day',
@@ -846,7 +846,7 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
                 'Signs of good hydration: pale yellow urine throughout the day',
                 'A 1 litre water bottle refilled twice is the easiest method',
               ]}
-              rHead={includeNumbers ? 'Protein — why it matters' : 'Building balanced meals'}
+              rHead={includeNumbers ? 'Protein, why it matters' : 'Building balanced meals'}
               rLines={includeNumbers ? [
                 `Target: ${mealPlan.targets.protein_g}g protein per day`,
                 'Protein preserves and builds muscle while in a calorie deficit',
@@ -855,21 +855,21 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
                 'Chicken, eggs, Greek yoghurt and lean mince are your easiest wins',
                 'If hitting targets is difficult, a protein shake can help',
               ] : [
-                'Include a protein source at every meal — chicken, eggs, yoghurt, lean mince, tofu',
+                'Include a protein source at every meal, chicken, eggs, yoghurt, lean mince, tofu',
                 'Fill half your plate with vegetables and salad where you can',
-                'Include a carbohydrate — rice, pasta, potato, oats, bread — to fuel training',
-                'A small amount of healthy fat each day — olive oil, hummus, peanut butter',
+                'Include a carbohydrate, rice, pasta, potato, oats, bread, to fuel training',
+                'A small amount of healthy fat each day, olive oil, hummus, peanut butter',
                 'Eat slowly, without distractions, and stop when comfortably full',
                 'Following the portions in this plan takes care of the balance for you',
               ]}
             />
 
-            {/* Food facts — evidence-based one-liners with sources */}
+            {/* Food facts, evidence-based one-liners with sources */}
             {mealPlan.food_facts && mealPlan.food_facts.length > 0 && (
               <View wrap={false} style={{ marginTop: 18 }}>
                 <Text style={[s.dayHead, { fontSize: 12 }]}>The Science Behind Your Plan</Text>
                 <Text style={[s.noteText, { marginBottom: 6 }]}>
-                  Short evidence-based facts about the foods in this plan — for context, not prescription.
+                  Short evidence-based facts about the foods in this plan, for context, not prescription.
                 </Text>
                 {mealPlan.food_facts.map((f, i) => (
                   <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
@@ -883,14 +883,14 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           </View>
         )}
 
-        {/* ──── SECTION 5 — GENERAL GUIDANCE ──── */}
+        {/* ──── SECTION 5, GENERAL GUIDANCE ──── */}
         <View break style={{ marginTop: 8 }}>
           <SectionHeader eyebrow="Section 05" title="General Guidance" />
 
           <TwoCol
             lHead="Sleep & Recovery"
             lLines={[
-              'Aim for 7–9 hours every night — this is when your body adapts',
+              'Aim for 7–9 hours every night, this is when your body adapts',
               'Poor sleep raises ghrelin (hunger hormone) the next day',
               'A consistent bedtime routine makes the biggest difference',
               'Limit screen use 30 minutes before bed',
@@ -899,23 +899,23 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
             ]}
             rHead="Stress & Mindset"
             rLines={[
-              'Elevated stress raises cortisol — this actively slows progress',
-              'Progress is never perfectly linear — trust the process',
+              'Elevated stress raises cortisol, this actively slows progress',
+              'Progress is never perfectly linear, trust the process',
               'A bad day or week does not undo your progress',
-              'Focus on the next meal — not the last one',
+              'Focus on the next meal, not the last one',
               'Slow, sustainable change is the strategy. Patience is everything.',
-              "Use your weekly check-in honestly — it's where results are made",
+              "Use your weekly check-in honestly, it's where results are made",
             ]}
           />
 
           <View style={{ height: 8 }} />
           <LinenBox
-            head="Training day nutrition — timing"
+            head="Training day nutrition, timing"
             lines={[
-              'Pre-workout (60–90 mins before): small carbohydrate snack — banana, 2 rice cakes, or your breakfast',
-              'Do not train completely fasted — performance drops and recovery is slower',
-              'Post-workout (within 60 minutes): protein-rich meal — your lunch option or a protein yoghurt with fruit',
-              'On lower body days, you may feel hungrier — this is normal. Have your snack and don\'t skip it.',
+              'Pre-workout (60–90 mins before): small carbohydrate snack, banana, 2 rice cakes, or your breakfast',
+              'Do not train completely fasted, performance drops and recovery is slower',
+              'Post-workout (within 60 minutes): protein-rich meal, your lunch option or a protein yoghurt with fruit',
+              'On lower body days, you may feel hungrier, this is normal. Have your snack and don\'t skip it.',
             ]}
           />
 
@@ -923,14 +923,14 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           <DarkBox
             head="A note from Jess"
             lines={includeNumbers ? [
-              'This plan has been built specifically for you — your measurements, your goals, your food preferences, and your lifestyle. It is evidence-based, nutritionally balanced, and designed to create steady, sustainable progress without feeling restrictive.',
+              'This plan has been built specifically for you, your measurements, your goals, your food preferences, and your lifestyle. It is evidence-based, nutritionally balanced, and designed to create steady, sustainable progress without feeling restrictive.',
               `At ${mealPlan?.targets?.kcal ?? '~1,800'} kcal with ${mealPlan?.targets?.protein_g ?? '120–135'}g protein, you are eating enough to fuel your training, protect your muscle, and progress gradually. Slow and steady is the approach that lasts.`,
-              "Submit your check-in every week without fail. That is where I can help you most. If something isn't working — tell me. If you have a question — ask me.",
+              "Submit your check-in every week without fail. That is where I can help you most. If something isn't working, tell me. If you have a question, ask me.",
               'You have everything you need. Let\'s do this.',
             ] : [
-              'This plan has been built specifically for you — your goals, your food preferences, and your lifestyle. It is evidence-based, nutritionally balanced, and designed to feel sustainable and enjoyable, never restrictive.',
-              "You don't need to count or track anything. The meals and portions here have been carefully chosen to support your goal — simply follow the plan and trust it. Eat the meals, enjoy your food, and let the process do the work.",
-              "Submit your check-in every week without fail. That is where I can help you most. If something isn't working — tell me. If you have a question — ask me.",
+              'This plan has been built specifically for you, your goals, your food preferences, and your lifestyle. It is evidence-based, nutritionally balanced, and designed to feel sustainable and enjoyable, never restrictive.',
+              "You don't need to count or track anything. The meals and portions here have been carefully chosen to support your goal, simply follow the plan and trust it. Eat the meals, enjoy your food, and let the process do the work.",
+              "Submit your check-in every week without fail. That is where I can help you most. If something isn't working, tell me. If you have a question, ask me.",
               'You have everything you need. Let\'s do this.',
             ]}
           />

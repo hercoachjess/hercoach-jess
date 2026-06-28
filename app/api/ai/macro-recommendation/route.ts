@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
     if (!checkins || checkins.length === 0) {
       return NextResponse.json(
-        { error: 'No check-ins on record yet — I need at least one to recommend macro changes.' },
+        { error: 'No check-ins on record yet, I need at least one to recommend macro changes.' },
         { status: 400 },
       )
     }
@@ -82,7 +82,7 @@ ${latest.body_measurements && Object.keys(latest.body_measurements).length ? `Bo
 
 ${previous ? `PREVIOUS CHECK-IN (Week ${previous.week_number ?? '?'}, ${previous.created_at.slice(0, 10)}) for direction-of-travel:
 ${JSON.stringify(previous.payload, null, 2)}
-${previous.body_measurements && Object.keys(previous.body_measurements).length ? `Body measurements: ${JSON.stringify(previous.body_measurements)}` : ''}` : 'NO PREVIOUS CHECK-IN — this is the first one, so be conservative.'}
+${previous.body_measurements && Object.keys(previous.body_measurements).length ? `Body measurements: ${JSON.stringify(previous.body_measurements)}` : ''}` : 'NO PREVIOUS CHECK-IN, this is the first one, so be conservative.'}
 
 YOUR JOB
 Recommend new daily macro targets for this client. Use the check-in data, weight direction, hunger, training feel, energy, sleep, and stress to justify your call.
@@ -93,7 +93,7 @@ Apply Jess's clinical judgement:
 - Maintenance: keep kcal stable, adjust macro split if cravings / energy suggest it.
 - Protein: 1.6–2.2 g/kg body weight is the evidence range (ISSN). Never go below 1.4 g/kg unless coach has flagged a clinical reason.
 - Fat: minimum 0.6 g/kg for hormonal health, never below.
-- Carbs: fill remaining kcal — bias higher when training intensity is high.
+- Carbs: fill remaining kcal, bias higher when training intensity is high.
 
 Round kcal to nearest 25, macros to nearest 5g. Check the macros add up: protein × 4 + carbs × 4 + fat × 9 ≈ kcal (±50 kcal tolerance).
 

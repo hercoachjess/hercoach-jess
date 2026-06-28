@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfBuffer = await renderToBuffer(doc as any)
 
-    // Inline mode: stream the PDF straight back to the browser for download — no storage write.
+    // Inline mode: stream the PDF straight back to the browser for download, no storage write.
     if (mode === 'inline') {
       const safeName = (client.full_name as string).replace(/[^a-z0-9]+/gi, '-').toLowerCase()
       const sectionTag = scope === 'meal' ? 'meal-plan' : scope === 'training' ? 'training-plan' : 'full-plan'

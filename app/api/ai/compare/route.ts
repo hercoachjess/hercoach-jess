@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (areas.includes('hunger') && (F.hunger || T.hunger))
       lines.push(`Hunger: "${F.hunger || '—'}" → "${T.hunger || '—'}"`)
     if (areas.includes('training') && (F.training_sessions || T.training_sessions))
-      lines.push(`Training sessions: "${F.training_sessions || '—'}" → "${T.training_sessions || '—'}" — feel: "${F.training_feel || '—'}" → "${T.training_feel || '—'}"`)
+      lines.push(`Training sessions: "${F.training_sessions || '—'}" → "${T.training_sessions || '—'}", feel: "${F.training_feel || '—'}" → "${T.training_feel || '—'}"`)
     if (areas.includes('sleep') && (F.sleep_quality || T.sleep_quality))
       lines.push(`Sleep: "${F.sleep_quality || '—'}" → "${T.sleep_quality || '—'}"`)
     if (areas.includes('stress') && (F.stress_level || T.stress_level))
@@ -72,12 +72,12 @@ ${lines.join('\n')}
 
 Instructions:
 - Write in first person as Jess speaking directly to the client ("You've done...", "I can see...")
-- Warm, encouraging, professional tone — like a supportive RD not a generic chatbot
+- Warm, encouraging, professional tone, like a supportive RD not a generic chatbot
 - Lead with what's going well
 - Acknowledge any challenges without shame or blame
 - Reference evidence-based reasoning briefly where relevant (e.g. if sleep improved, note its role in recovery)
 - End with 1–2 specific, practical encouragements or focus points for the coming week
-- Keep it to 3–4 short paragraphs — readable and personal, not clinical
+- Keep it to 3–4 short paragraphs, readable and personal, not clinical
 - UK spelling throughout
 - No emojis, no headers, just natural prose`
 

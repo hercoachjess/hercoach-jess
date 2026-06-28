@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Service-role client — ONLY for server-side API routes.
+// Service-role client, ONLY for server-side API routes.
 // Never import this in browser/client code.
 //
 // Throws a clear, named error if either required env var is missing.

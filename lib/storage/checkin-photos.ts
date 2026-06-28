@@ -13,13 +13,13 @@ const SIGNED_URL_PREFIX_RE = /\/storage\/v1\/object\/sign\/checkin-photos\//
  */
 export function pathFromPhotoRef(ref: string): string | null {
   if (!ref) return null
-  // Legacy public URL — extract everything after the bucket prefix.
+  // Legacy public URL, extract everything after the bucket prefix.
   if (PUBLIC_URL_PREFIX_RE.test(ref)) {
     const split = ref.split(PUBLIC_URL_PREFIX_RE)
     const tail = split[1] ?? ''
     return tail.split('?')[0] || null
   }
-  // Existing signed URL — same idea, but stripping query.
+  // Existing signed URL, same idea, but stripping query.
   if (SIGNED_URL_PREFIX_RE.test(ref)) {
     const split = ref.split(SIGNED_URL_PREFIX_RE)
     const tail = split[1] ?? ''
@@ -32,7 +32,7 @@ export function pathFromPhotoRef(ref: string): string | null {
 /**
  * Server-side only. Resolves an array of photo refs (paths or legacy
  * public URLs) into fresh signed URLs with a 60-minute expiry. Returns
- * a parallel array — any unresolvable entry becomes `null`, which the
+ * a parallel array, any unresolvable entry becomes `null`, which the
  * UI can choose to skip rather than crash on.
  */
 export async function signCheckinPhotos(refs: string[]): Promise<(string | null)[]> {

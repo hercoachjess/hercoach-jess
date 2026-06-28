@@ -126,7 +126,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   }
 
   // Ask the AI to propose a new version of a single session. Result
-  // lands in pendingSessions[idx] for explicit accept/discard — it does
+  // lands in pendingSessions[idx] for explicit accept/discard, it does
   // not overwrite the current session until Jess clicks Accept.
   async function proposeSessionChange(sIdx: number) {
     setRegeneratingSessionIdx(sIdx)
@@ -345,7 +345,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-[#8a8680] leading-relaxed flex-1">
-                The AI rewrites only what you ask — everything else stays as it is. You always review and approve before saving.
+                The AI rewrites only what you ask, everything else stays as it is. You always review and approve before saving.
               </p>
               <Button size="sm" loading={aiRevising} disabled={!reviseInstructions.trim()} onClick={aiRevise}>
                 Update plan
@@ -355,7 +355,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         </Card>
       )}
 
-      {/* Things to avoid — injuries from onboarding plus coach-managed exercise dislikes.
+      {/* Things to avoid, injuries from onboarding plus coach-managed exercise dislikes.
           Always shown at the top so it's visible before generating or editing the plan. */}
       {(ob?.health_screening?.injuries || client.exercise_dislikes) && (
         <Card>
@@ -383,7 +383,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         </Card>
       )}
 
-      {/* Programme setup — drives the AI draft + revise prompts */}
+      {/* Programme setup, drives the AI draft + revise prompts */}
       <Card>
         <CardHeader>
           <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Programme setup</span>
@@ -418,9 +418,9 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
             <p className="text-xs text-[#b8b4ac] mb-1">Intensity</p>
             {editing ? (
               <select className="input-underline text-sm" value={intensity} onChange={(e) => setIntensity(e.target.value as TrainingPlan['intensity'])}>
-                <option value="light">Light — RPE 5–6</option>
-                <option value="moderate">Moderate — RPE 7–8</option>
-                <option value="high">High — RPE 8–9</option>
+                <option value="light">Light, RPE 5–6</option>
+                <option value="moderate">Moderate, RPE 7–8</option>
+                <option value="high">High, RPE 8–9</option>
               </select>
             ) : (
               <p className="text-sm text-[#f0ece4] capitalize">{intensity}</p>
@@ -463,7 +463,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         </CardBody>
       </Card>
 
-      {/* Weekly progression — shows weeks 2..N when programme length > 1 */}
+      {/* Weekly progression, shows weeks 2..N when programme length > 1 */}
       {programmeLengthWeeks > 1 && weeklyProgression.length > 0 && (
         <Card>
           <CardHeader>
@@ -509,13 +509,13 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
               </div>
             ))}
             <p className="text-xs text-[#8a8680] italic leading-relaxed">
-              Week 1 sessions are detailed below. To revise a specific later week, use &ldquo;Ask AI to change&rdquo; — e.g. <em>&quot;Make week 5 a deload, RPE 6 only, drop one accessory per session&quot;</em>.
+              Week 1 sessions are detailed below. To revise a specific later week, use &ldquo;Ask AI to change&rdquo;, e.g. <em>&quot;Make week 5 a deload, RPE 6 only, drop one accessory per session&quot;</em>.
             </p>
           </CardBody>
         </Card>
       )}
 
-      {/* Long-term plan card — 12-week coaching arc derived from goal + level */}
+      {/* Long-term plan card, 12-week coaching arc derived from goal + level */}
       {client.goal && (
         <Card>
           <CardHeader>
@@ -532,7 +532,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
               ))}
             </div>
             <p className="text-xs text-[#8a8680] italic mt-3 leading-relaxed">
-              Default progression for {client.goal.toLowerCase()} at {level} level — adjust pace based on weekly check-in feedback. Progressive overload: aim for 2.5–5% load increase or +1 rep per week on main lifts while RPE stays ≤8.
+              Default progression for {client.goal.toLowerCase()} at {level} level, adjust pace based on weekly check-in feedback. Progressive overload: aim for 2.5–5% load increase or +1 rep per week on main lifts while RPE stays ≤8.
             </p>
           </CardBody>
         </Card>
@@ -634,7 +634,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
                 </table>
               )}
 
-              {/* Per-session AI propose flow — edit mode + non-rest days only.
+              {/* Per-session AI propose flow, edit mode + non-rest days only.
                   AI's proposed session lands in pendingSessions[sIdx] for
                   explicit accept/discard, never silently overwriting. */}
               {editing && !isRest && (
@@ -707,7 +707,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       {error && <p className="text-sm text-[#b06060]">{error}</p>}
 
       <p className="text-xs text-[#8a8680] leading-relaxed">
-        AI uses evidence-based programming (progressive overload, balanced volume, injury adaptations) — you always review before saving.
+        AI uses evidence-based programming (progressive overload, balanced volume, injury adaptations), you always review before saving.
       </p>
 
       {editing && (
@@ -722,7 +722,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   )
 }
 
-// 12-week coaching arc — three 4-week phases derived from goal + experience.
+// 12-week coaching arc, three 4-week phases derived from goal + experience.
 // Used to give the client a sense of trajectory and the coach a default
 // programming framework to override.
 function longTermPhases(
@@ -734,12 +734,12 @@ function longTermPhases(
     return [
       { weeks: '1–4',  title: 'Foundation',  focus: 'Establish a consistent routine. Full-body or upper/lower split, RPE 6–7, focus on technique and habit. Aim for ~0.5 kg loss/week.' },
       { weeks: '5–8',  title: 'Progression', focus: 'Add small load + volume increases. Introduce one extra accessory per session. Maintain protein, hit step target. Reassess kcal at week 6.' },
-      { weeks: '9–12', title: 'Refine',     focus: 'Auto-regulate via RPE — back off intensity any week sleep or stress is high. Diet break optional. Plan transition to maintenance.' },
+      { weeks: '9–12', title: 'Refine',     focus: 'Auto-regulate via RPE, back off intensity any week sleep or stress is high. Diet break optional. Plan transition to maintenance.' },
     ]
   }
   if (g.includes('build muscle')) {
     return [
-      { weeks: '1–4',  title: 'Hypertrophy base', focus: 'Volume primer — 10–14 sets/muscle/week, RPE 7–8, slow eccentrics. Establish movement patterns at moderate load.' },
+      { weeks: '1–4',  title: 'Hypertrophy base', focus: 'Volume primer, 10–14 sets/muscle/week, RPE 7–8, slow eccentrics. Establish movement patterns at moderate load.' },
       { weeks: '5–8',  title: 'Progressive overload', focus: 'Add load weekly on compounds (2.5–5%) or +1 rep per set. Introduce intensity techniques (drop sets / rest-pause) on isolations.' },
       { weeks: '9–12', title: 'Peak + deload',  focus: 'Push to top sets RPE 8–9. Deload week 12 (−40% volume) before next block. Reassess macros at +0.2 kg/week target.' },
     ]
@@ -747,15 +747,15 @@ function longTermPhases(
   if (g.includes('recomp')) {
     return [
       { weeks: '1–4',  title: 'Habit + base', focus: 'Maintenance kcal with high protein (2.0–2.2 g/kg). 3–4 resistance sessions, RPE 6–7. Track strength + waist weekly.' },
-      { weeks: '5–8',  title: 'Strength bias', focus: 'Push compound lifts up — barbell squat / hinge / press / row. Maintain volume, hit protein every day. Add 1 cardio session for recovery.' },
+      { weeks: '5–8',  title: 'Strength bias', focus: 'Push compound lifts up, barbell squat / hinge / press / row. Maintain volume, hit protein every day. Add 1 cardio session for recovery.' },
       { weeks: '9–12', title: 'Composition shift', focus: 'Expect slow weight + faster shape change. Reassess via measurements and progress photos, not scale alone. Hold the line.' },
     ]
   }
   // Maintain / General health / default
-  const beginnerNote = level === 'beginner' ? ' Lots of repetition of fundamentals — squat, hinge, push, pull, carry.' : ''
+  const beginnerNote = level === 'beginner' ? ' Lots of repetition of fundamentals, squat, hinge, push, pull, carry.' : ''
   return [
     { weeks: '1–4',  title: 'Foundation', focus: `Build the habit. 2–3 full-body sessions, RPE 6.${beginnerNote}` },
     { weeks: '5–8',  title: 'Progression', focus: 'Small weekly progression on lifts. Add a 4th session if energy allows. Mobility 10 mins daily.' },
-    { weeks: '9–12', title: 'Consolidate', focus: 'Reassess goal — fat loss / muscle / maintain — and set the next block accordingly. Always end blocks with a deload.' },
+    { weeks: '9–12', title: 'Consolidate', focus: 'Reassess goal, fat loss / muscle / maintain, and set the next block accordingly. Always end blocks with a deload.' },
   ]
 }

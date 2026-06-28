@@ -176,7 +176,7 @@ export default function OnboardingDocument({ onboarding, clientName }: Props) {
   const a = p.acknowledgements ?? ({} as typeof p.acknowledgements)
 
   return (
-    <Document title={`Onboarding — ${clientName}`} author="HerCoach Jess">
+    <Document title={`Onboarding, ${clientName}`} author="HerCoach Jess">
       <Page size="A4" style={s.page}>
         {/* Header */}
         <View style={s.headerBar} fixed>
@@ -248,14 +248,14 @@ export default function OnboardingDocument({ onboarding, clientName }: Props) {
           <Block label="Current eating pattern" value={val(f.eating_pattern)} />
         </Section>
 
-        <Section title="Health — physical">
+        <Section title="Health, physical">
           <Block label="Injuries / limitations" value={val(h.injuries)} />
           <Row label="Diagnosed conditions" value={listVal(h.conditions)} />
           <Block label="Medications" value={val(h.medications)} />
           <Row label="Pregnancy / TTC" value={val(h.pregnancy)} />
         </Section>
 
-        <Section title="Health — mental & relationship with food">
+        <Section title="Health, mental & relationship with food">
           <Row label="Mental health" value={val(h.mental_health)} />
           <Row label="Food relationship" value={val(h.food_relationship)} />
           <Row label="ED history" value={listVal(h.ed_history)} />
