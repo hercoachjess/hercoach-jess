@@ -15,6 +15,16 @@ interface Props {
   payments: Payment[]
 }
 
+interface EditForm {
+  id: string
+  amount_gbp: string
+  due_date: string
+  paid_date: string
+  payment_method: string
+  notes: string
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled'
+}
+
 export default function PaymentsTab({ clientId, payments }: Props) {
   const router = useRouter()
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -24,6 +34,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
     notes: string
     payment_method: string
   } | null>(null)
+  const [editForm, setEditForm] = useState<EditForm | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -159,6 +170,65 @@ export default function PaymentsTab({ clientId, payments }: Props) {
     router.refresh()
   }
 
+  function openEdit(payment: Payment) {
+    // Normalise the row's stored status back into one of the four values
+    // the edit form allows. `resolvePaymentStatus` can synthesise 'overdue'
+    // for pending rows past their due date; treat those as pending when
+    // populating the form so Jess doesn't accidentally re-save that
+    // synthetic value back to the DB.
+    const rawStatus = (payment.status || 'pending') as EditForm['status']
+    setEditForm({
+      id: payment.id,
+      amount_gbp: String(payment.amount_gbp ?? ''),
+      due_date: payment.due_date ?? '',
+      paid_date: payment.paid_date ?? '',
+      payment_method: payment.payment_method ?? '',
+      notes: payment.notes ?? '',
+      status: rawStatus,
+    })
+    setError('')
+  }
+
+  async function saveEdit() {
+    if (!editForm) return
+    if (!editForm.amount_gbp || !editForm.due_date) {
+      setError('Amount and due date are required.')
+      return
+    }
+    setSaving(true); setError('')
+    const supabase = createClient()
+    // If Jess set a paid_date the status snaps to 'paid'. Otherwise honour
+    // the picked status. Empty paid_date clears the field.
+    const nextStatus: EditForm['status'] = editForm.paid_date ? 'paid' : editForm.status
+    const { error: e } = await supabase
+      .from('payments')
+      .update({
+        amount_gbp: parseFloat(editForm.amount_gbp),
+        due_date: editForm.due_date,
+        paid_date: editForm.paid_date || null,
+        payment_method: editForm.payment_method || null,
+        notes: editForm.notes || null,
+        status: nextStatus,
+      })
+      .eq('id', editForm.id)
+    setSaving(false)
+    if (e) { setError(e.message); return }
+    setEditForm(null)
+    router.refresh()
+  }
+
+  async function deletePayment() {
+    if (!editForm) return
+    if (!confirm('Delete this payment? This cannot be undone.')) return
+    setSaving(true); setError('')
+    const supabase = createClient()
+    const { error: e } = await supabase.from('payments').delete().eq('id', editForm.id)
+    setSaving(false)
+    if (e) { setError(e.message); return }
+    setEditForm(null)
+    router.refresh()
+  }
+
   const statusVariantMap: Record<string, 'paid' | 'pending' | 'overdue' | 'default'> = {
     paid: 'paid', pending: 'pending', overdue: 'overdue', cancelled: 'default',
   }
@@ -199,7 +269,10 @@ export default function PaymentsTab({ clientId, payments }: Props) {
                     <p className="text-xs mt-0.5" style={{ color: colour }}>
                       {p.status === 'overdue' ? `Overdue by ${-days} day${-days === 1 ? '' : 's'}` : days === 0 ? 'Due today' : `in ${days} day${days === 1 ? '' : 's'}`}
                     </p>
-                    <Button size="sm" variant="outline" className="mt-2" onClick={() => markPaid(p)}>Mark paid</Button>
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => markPaid(p)}>Mark paid</Button>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(p)}>Edit</Button>
+                    </div>
                   </div>
                 )
               })}
@@ -236,7 +309,7 @@ export default function PaymentsTab({ clientId, payments }: Props) {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
                   <Badge variant={statusVariantMap[payment.status] ?? 'default'}>
                     {payment.status}
                   </Badge>
@@ -245,6 +318,9 @@ export default function PaymentsTab({ clientId, payments }: Props) {
                       Mark paid
                     </Button>
                   )}
+                  <Button size="sm" variant="ghost" onClick={() => openEdit(payment)}>
+                    Edit
+                  </Button>
                 </div>
               </CardBody>
             </Card>
@@ -304,6 +380,90 @@ export default function PaymentsTab({ clientId, payments }: Props) {
           </label>
           {error && <p className="text-sm text-[#b06060]">{error}</p>}
         </div>
+      </Modal>
+
+      {/* Edit payment modal, lets Jess correct any field on an
+          existing row (amount, due date, paid date, method, notes,
+          status) or delete it entirely if it was logged in error. */}
+      <Modal
+        open={!!editForm}
+        onClose={() => { setEditForm(null); setError('') }}
+        title="Edit payment"
+        footer={
+          <>
+            <Button variant="ghost" onClick={deletePayment}>Delete</Button>
+            <div className="flex-1" />
+            <Button variant="ghost" onClick={() => { setEditForm(null); setError('') }}>Cancel</Button>
+            <Button onClick={saveEdit} loading={saving}>Save changes</Button>
+          </>
+        }
+      >
+        {editForm && (
+          <div className="flex flex-col gap-5">
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Amount (£) *</label>
+              <input
+                type="number" step="0.01"
+                className="input-underline text-sm"
+                value={editForm.amount_gbp}
+                onChange={(e) => setEditForm({ ...editForm, amount_gbp: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Due date *</label>
+              <input
+                type="date"
+                className="input-underline text-sm"
+                value={editForm.due_date}
+                onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">
+                Paid date <span className="text-[#8a8680] normal-case tracking-normal">(leave blank if not yet paid)</span>
+              </label>
+              <input
+                type="date"
+                className="input-underline text-sm"
+                value={editForm.paid_date}
+                onChange={(e) => setEditForm({ ...editForm, paid_date: e.target.value })}
+              />
+              <p className="text-xs text-[#8a8680] italic mt-1">
+                Filling this snaps the status to Paid on save.
+              </p>
+            </div>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Status</label>
+              <select
+                className="input-underline text-sm bg-transparent"
+                value={editForm.status}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as EditForm['status'] })}
+              >
+                <option value="pending" className="bg-[#0e0e0e]">Pending</option>
+                <option value="paid" className="bg-[#0e0e0e]">Paid</option>
+                <option value="cancelled" className="bg-[#0e0e0e]">Cancelled</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Payment method</label>
+              <input
+                className="input-underline text-sm"
+                placeholder="Bank transfer, PayPal..."
+                value={editForm.payment_method}
+                onChange={(e) => setEditForm({ ...editForm, payment_method: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Notes</label>
+              <input
+                className="input-underline text-sm"
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              />
+            </div>
+            {error && <p className="text-sm text-[#b06060]">{error}</p>}
+          </div>
+        )}
       </Modal>
 
       {/* Schedule-next-payment modal, opens after Mark paid or after saving a paid payment */}
