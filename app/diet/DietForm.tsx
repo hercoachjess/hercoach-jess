@@ -8,11 +8,13 @@ import type { DietDay, DietPayload } from '@/types'
 /**
  * Public weekly food tracker form.
  *
- * Warm cream palette to match the enquiry thank-you screen, on the
- * theory that anything client-facing should feel less "app" and more
- * "a note from Jess". Clients open the same link any time in the
- * week: the API upserts by (client + week_start), so their entries
- * come back pre-filled if they revisit.
+ * Dark theme to match the check-in form. Clients open the same link
+ * any time in the week: the API upserts by (client + week_start), so
+ * their entries come back pre-filled if they revisit.
+ *
+ * After saving, an "Export & send to Jess" button generates a PDF via
+ * /api/pdf/diet and opens the native share sheet so the client can
+ * send it via WhatsApp or email in one tap.
  */
 const SECTION_FIELDS = [
   { key: 'breakfast', label: 'Breakfast', placeholder: 'e.g. 80g oats with milk and berries' },
@@ -31,17 +33,18 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
   const [notes, setNotes] = useState('')
   const [days, setDays] = useState<DietDay[]>(() => emptyWeekDays(weekStart))
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]) // already-uploaded paths from a prior save
+  const [photoPaths, setPhotoPaths] = useState<string[]>([])
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
   const [loadingExisting, setLoadingExisting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [sharing, setSharing] = useState(false)
+  const [shareError, setShareError] = useState('')
 
-  // If we have an email prefill (they've been sent the personalised
-  // link), fetch any existing entries for this week so the form comes
-  // back pre-populated rather than blank. Best-effort, silent on error.
+  // Pre-fill from any existing entries for this week if the client
+  // revisits the personalised link. Best-effort, silent on error.
   useEffect(() => {
     async function loadExisting() {
       if (!email.trim()) return
@@ -54,12 +57,11 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
           if (data.payload.name) setName(data.payload.name)
           if (data.payload.notes) setNotes(data.payload.notes)
           if (Array.isArray(data.payload.days) && data.payload.days.length > 0) {
-            // Overlay any saved day data on the 7 empty templates.
             const byDate = new Map(data.payload.days.map((d) => [d.date, d] as const))
             setDays((prev) => prev.map((d) => byDate.get(d.date) ?? d))
           }
         }
-        if (Array.isArray(data?.photos)) setPhotoUrls(data.photos)
+        if (Array.isArray(data?.photos)) setPhotoPaths(data.photos)
       } finally {
         setLoadingExisting(false)
       }
@@ -84,13 +86,13 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
         const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
         const path = `${crypto.randomUUID()}.${ext}`
         const { error: uploadErr } = await supabase.storage
-          .from('checkin-photos') // reuse the existing private bucket
+          .from('checkin-photos')
           .upload(path, file, { contentType: file.type, upsert: false })
         if (uploadErr) { setPhotoError(uploadErr.message); continue }
         uploaded.push(path)
       }
       setPhotoFiles((prev) => [...prev, ...Array.from(files)])
-      setPhotoUrls((prev) => [...prev, ...uploaded])
+      setPhotoPaths((prev) => [...prev, ...uploaded])
     } catch (e: unknown) {
       setPhotoError(e instanceof Error ? e.message : 'Upload failed.')
     } finally {
@@ -99,7 +101,7 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
   }
 
   function removePhoto(idx: number) {
-    setPhotoUrls((prev) => prev.filter((_, i) => i !== idx))
+    setPhotoPaths((prev) => prev.filter((_, i) => i !== idx))
     setPhotoFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
@@ -118,7 +120,7 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
     const result = await safeSubmit('/api/diet', {
       payload,
       week_start: weekStart,
-      photos: photoUrls,
+      photos: photoPaths,
     })
     setSubmitting(false)
     if (!result.ok) {
@@ -129,27 +131,89 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  async function shareWithJess() {
+    setSharing(true); setShareError('')
+    try {
+      // Save first so what she sees on her end matches what the PDF
+      // captures. Then ask the server to generate a shareable link.
+      if (!name.trim() || !email.trim()) {
+        setShareError('Please add your name and email first.')
+        return
+      }
+      const payload: DietPayload = {
+        name: name.trim(),
+        email: email.trim(),
+        notes: notes.trim() || undefined,
+        days,
+      }
+      await safeSubmit('/api/diet', { payload, week_start: weekStart, photos: photoPaths })
+
+      const res = await fetch('/api/pdf/diet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), week_start: weekStart }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not create the PDF.')
+      const pdfUrl = data.pdf_url as string
+
+      const message = `Hi Jess, here's my food week for ${weekLabel(weekStart)}.\n\n${pdfUrl}`
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        try {
+          await navigator.share({ title: 'My food week', text: message, url: pdfUrl })
+          return
+        } catch {
+          // user cancelled or share unavailable
+        }
+      }
+      // Desktop fallback: open the PDF in a new tab so they can share
+      // it however they like.
+      if (typeof window !== 'undefined') window.open(pdfUrl, '_blank', 'noopener')
+    } catch (e: unknown) {
+      setShareError(e instanceof Error ? e.message : 'Could not create the PDF.')
+    } finally {
+      setSharing(false)
+    }
+  }
+
   if (submitted) {
     return (
-      <div className="min-h-screen relative" style={{ backgroundColor: '#F6F1E9' }}>
+      <div className="bg-[#080808] min-h-screen relative" style={{ color: '#e0d8cc' }}>
         <div className="relative z-10 max-w-[640px] mx-auto px-7 pb-24">
           <div className="text-center py-20 fade-in">
-            <span className="font-serif italic text-[60px] font-light block mb-6 opacity-30" style={{ color: '#4A4038' }}>✦</span>
-            <h2 className="font-serif text-[34px] font-light mb-4 leading-[1.2]" style={{ color: '#4A4038' }}>
+            <span className="font-serif italic text-[60px] font-light text-[#f0ece4] block mb-6 opacity-30">✦</span>
+            <h2 className="font-serif text-[34px] font-light text-[#f0ece4] mb-4 leading-[1.2]">
               Saved. Thank you.
             </h2>
-            <p className="text-sm leading-[1.8] font-light max-w-[440px] mx-auto mb-4" style={{ color: '#6a5e54' }}>
+            <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[440px] mx-auto mb-6">
               Come back to the same link any time this week to add more or edit. It stays open until next Monday.
             </p>
+
+            <div className="flex flex-col items-center gap-3 mb-6">
+              <button
+                onClick={shareWithJess}
+                disabled={sharing}
+                className="bg-[#f0ece4] border-0 text-[#080808] px-[42px] py-3 text-[10px] font-medium tracking-[3px] uppercase cursor-pointer font-sans rounded-[2px] transition-all hover:bg-[#e8e0d4] disabled:opacity-50"
+                style={{ touchAction: 'manipulation' }}
+              >
+                {sharing ? 'Preparing...' : 'Send my week to Jess'}
+              </button>
+              <p className="text-[11px] text-[#7a7670] italic font-serif max-w-[340px]">
+                Creates a neat PDF of what you saved and opens your share sheet, WhatsApp, email, whichever you use.
+              </p>
+              {shareError && <p className="text-[11px] text-[#b06060]">{shareError}</p>}
+            </div>
+
             <button
               type="button"
               onClick={() => setSubmitted(false)}
-              className="text-[11px] font-medium tracking-[2px] uppercase underline"
-              style={{ color: '#4A4038', fontFamily: 'var(--font-jost), sans-serif', touchAction: 'manipulation' }}
+              className="text-[11px] text-[#a8a49c] tracking-[2px] uppercase underline"
+              style={{ fontFamily: 'var(--font-jost), sans-serif', touchAction: 'manipulation' }}
             >
-              Keep adding
+              Keep adding to my week
             </button>
-            <span className="font-serif italic text-[17px] block mt-12" style={{ color: '#8a7c70' }}>
+
+            <span className="font-serif italic text-[17px] text-[#7a7670] block mt-12">
               Less restriction. More you.
             </span>
           </div>
@@ -159,38 +223,47 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
   }
 
   return (
-    <div className="min-h-screen relative" style={{ backgroundColor: '#F6F1E9' }}>
+    <div className="bg-[#080808] min-h-screen relative" style={{ fontFamily: 'var(--font-jost), sans-serif', color: '#e0d8cc' }}>
       <div className="relative z-10 max-w-[640px] mx-auto px-7 pb-24">
         {/* Hero */}
-        <div className="pt-16 pb-8 text-center">
-          <span className="text-[9px] tracking-[5px] uppercase font-light block mb-2" style={{ color: '#8a7c70' }}>Your food week</span>
-          <h1 className="font-serif italic text-[44px] font-light block mb-2" style={{ color: '#4A4038' }}>
+        <div className="pt-[72px] pb-[52px] text-center border-b border-[rgba(255,255,255,0.24)] mb-11">
+          <span className="font-serif italic text-[38px] font-light text-[#f0ece4] tracking-[-1px] block leading-none">hercoach Jess</span>
+          <div className="w-full h-px my-[9px] mb-2" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)' }} />
+          <span className="text-[9px] tracking-[5px] uppercase text-[#7a7670] font-light block mb-[30px]">Less restriction. More you.</span>
+          <div className="inline-block border border-[rgba(255,255,255,0.24)] rounded-[2px] px-4 py-[5px] text-[9px] tracking-[4px] uppercase text-[#a8a49c] mb-[22px]">
+            Your food week
+          </div>
+          <h1 className="font-serif font-light text-[clamp(26px,5vw,38px)] text-[#f0ece4] tracking-[-0.5px] mb-3.5 leading-[1.2]">
             {weekLabel(weekStart)}
           </h1>
-          <p className="text-[13px] leading-[1.7] font-light max-w-[440px] mx-auto" style={{ color: '#6a5e54' }}>
+          <p className="text-[13px] text-[#a8a49c] leading-[1.85] font-light max-w-[440px] mx-auto">
             Fill in what you actually had, not what you wish you had. No judgement. It doesn&apos;t have to be perfect. Even patchy days help me support you well.
           </p>
         </div>
 
         {loadingExisting && (
-          <p className="text-center text-xs italic mb-4" style={{ color: '#8a7c70' }}>
+          <p className="text-center text-xs italic text-[#7a7670] mb-4">
             Loading anything you&apos;ve already saved this week...
           </p>
         )}
 
         {/* Your details */}
-        <Section title="Your details" cream>
-          <Field label="First name">
-            <Input value={name} onChange={setName} placeholder="e.g. Sarah" autoComplete="given-name" />
-          </Field>
-          <Field label="Email (the one Jess has for you)">
-            <Input type="email" inputMode="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
-          </Field>
-        </Section>
+        <Card>
+          <CardLabel>Your details</CardLabel>
+          <G2>
+            <Field label="First name">
+              <Input value={name} onChange={setName} placeholder="e.g. Sarah" autoComplete="given-name" />
+            </Field>
+            <Field label="Email (the one Jess has for you)">
+              <Input type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" inputMode="email" />
+            </Field>
+          </G2>
+        </Card>
 
-        {/* Daily entries — 7 stacked day cards */}
+        {/* Daily entries */}
         {days.map((day, i) => (
-          <Section key={day.date} title={shortDayLabel(day.date)} cream>
+          <Card key={day.date}>
+            <CardLabel>{shortDayLabel(day.date)}</CardLabel>
             {SECTION_FIELDS.map((f) => (
               <Field key={f.key} label={f.label}>
                 <Textarea
@@ -200,26 +273,30 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
                 />
               </Field>
             ))}
-          </Section>
+          </Card>
         ))}
 
-        {/* Optional weekly note */}
-        <Section title="Anything else Jess should know" cream>
-          <Textarea
-            value={notes}
-            onChange={setNotes}
-            placeholder="e.g. felt hungry mid-afternoons, work was manic Thurs, skipped dinner Fri"
-          />
-        </Section>
+        {/* Weekly note */}
+        <Card>
+          <CardLabel>Anything else Jess should know</CardLabel>
+          <Field label="Optional note">
+            <Textarea
+              value={notes}
+              onChange={setNotes}
+              placeholder="e.g. felt hungry mid-afternoons, work was manic Thurs, skipped dinner Fri"
+            />
+          </Field>
+        </Card>
 
         {/* Photos */}
-        <Section title="Photos (optional)" cream>
-          <p className="text-[12px] leading-[1.6] mb-3" style={{ color: '#6a5e54' }}>
+        <Card>
+          <CardLabel>Photos (optional)</CardLabel>
+          <p className="text-[12px] text-[#a8a49c] leading-[1.7] mb-4 font-light">
             Photos of what you had are a great shortcut. Snap the plate, the packet, the coffee, whatever. Sometimes it&apos;s quicker than typing and Jess can see portion sizes at a glance.
           </p>
           <label
-            className="block text-center py-4 border-2 border-dashed rounded-sm cursor-pointer transition-colors"
-            style={{ borderColor: '#C49A5E', color: '#4A4038', touchAction: 'manipulation' }}
+            className="block text-center py-4 border-2 border-dashed border-[rgba(255,255,255,0.24)] rounded-sm cursor-pointer transition-colors hover:border-[rgba(255,255,255,0.4)]"
+            style={{ touchAction: 'manipulation' }}
           >
             <input
               type="file"
@@ -229,27 +306,24 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
               onChange={(e) => handlePhotoUpload(e.target.files)}
               disabled={photoUploading}
             />
-            <span className="text-[13px] font-light" style={{ fontFamily: 'var(--font-jost), sans-serif' }}>
-              {photoUploading ? 'Uploading...' : photoUrls.length > 0 ? 'Add more photos' : 'Add photos'}
+            <span className="text-[13px] text-[#a8a49c] font-light">
+              {photoUploading ? 'Uploading...' : photoPaths.length > 0 ? 'Add more photos' : 'Add photos'}
             </span>
           </label>
-          {photoError && <p className="text-[12px] mt-2" style={{ color: '#b06060' }}>{photoError}</p>}
-          {photoUrls.length > 0 && (
+          {photoError && <p className="text-[12px] text-[#b06060] mt-2">{photoError}</p>}
+          {photoPaths.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mt-3">
-              {photoUrls.map((path, i) => (
+              {photoPaths.map((path, i) => (
                 <div key={i} className="relative">
-                  <div
-                    className="aspect-square rounded-sm flex items-center justify-center text-[11px] italic"
-                    style={{ background: 'rgba(74,64,56,0.08)', color: '#6a5e54' }}
-                  >
+                  <div className="aspect-square rounded-sm bg-[rgba(255,255,255,0.06)] flex items-center justify-center text-[11px] italic text-[#7a7670]">
                     {photoFiles[i]?.name?.split('.')[0]?.slice(0, 16) || `Photo ${i + 1}`}
                   </div>
                   <button
                     type="button"
                     onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full text-[11px]"
-                    style={{ background: 'rgba(255,255,255,0.9)', color: '#4A4038' }}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/80 text-white text-[11px]"
                     aria-label="Remove photo"
+                    style={{ touchAction: 'manipulation' }}
                   >
                     ×
                   </button>
@@ -257,72 +331,69 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
               ))}
             </div>
           )}
-        </Section>
+        </Card>
 
         {error && (
-          <div className="text-center mb-5 px-4 py-3 rounded" style={{ background: 'rgba(176,96,96,0.08)', border: '1px solid rgba(176,96,96,0.2)' }}>
-            <p className="text-xs" style={{ color: '#b06060' }}>{error}</p>
+          <div className="text-center mb-5 px-4 py-3 bg-[rgba(176,96,96,0.08)] border border-[rgba(176,96,96,0.2)] rounded">
+            <p className="text-xs text-[#b06060] font-light">{error}</p>
           </div>
         )}
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-10">
           <button
             onClick={submit}
             disabled={submitting}
-            className="border-0 px-[52px] py-3.5 text-[10px] font-medium tracking-[3px] uppercase cursor-pointer rounded-[2px] transition-all hover:opacity-90 disabled:opacity-50"
-            style={{
-              background: '#C49A5E',
-              color: '#F6F1E9',
-              fontFamily: 'var(--font-jost), sans-serif',
-              letterSpacing: '0.18em',
-              touchAction: 'manipulation',
-            }}
+            className="bg-[#f0ece4] border-0 text-[#080808] px-[52px] py-3.5 text-[10px] font-medium tracking-[3px] uppercase cursor-pointer font-sans rounded-[2px] transition-all hover:bg-[#e8e0d4] disabled:opacity-50"
+            style={{ touchAction: 'manipulation' }}
           >
             {submitting ? 'Saving...' : 'Save my week'}
           </button>
-          <p className="block text-[11px] mt-3.5 italic font-serif" style={{ color: '#8a7c70' }}>
+          <span className="block text-[12px] text-[#7a7670] mt-3.5 italic font-serif">
             You can come back and edit any time this week.
-          </p>
+          </span>
         </div>
       </div>
     </div>
   )
 }
 
-// ── Local presentational primitives (cream theme) ───────────────────
+// ── Shared primitives (dark theme, matches the check-in form) ──
 
-function Section({ title, cream, children }: { title: string; cream?: boolean; children: React.ReactNode }) {
+function Card({ children }: { children: React.ReactNode }) {
+  return <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-2xl p-7 mb-3">{children}</div>
+}
+
+function CardLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="mb-4 p-5 rounded-sm"
-      style={{
-        background: cream ? 'rgba(255,255,255,0.6)' : 'rgba(74,64,56,0.04)',
-        border: '1px solid rgba(74,64,56,0.12)',
-      }}
-    >
-      <p className="text-[10px] tracking-[3px] uppercase mb-3" style={{ color: '#8a7c70' }}>{title}</p>
-      <div className="flex flex-col gap-3">{children}</div>
-    </div>
+    <span className="text-[9px] tracking-[4px] uppercase text-[#7a7670] font-normal mb-5 pb-3.5 border-b border-[rgba(255,255,255,0.24)] block">
+      {children}
+    </span>
   )
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="block text-[11px] mb-1" style={{ color: '#6a5e54' }}>{label}</label>
+    <div className="mb-6 last:mb-0">
+      <label className="block text-[10px] tracking-[2px] uppercase text-[#a8a49c] mb-[9px]">{label}</label>
       {children}
     </div>
   )
 }
 
-function Input({ value, onChange, ...rest }: { value: string; onChange: (v: string) => void; type?: string; inputMode?: 'email' | 'tel' | 'text' | 'numeric'; placeholder?: string; autoComplete?: string }) {
+function G2({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-7">{children}</div>
+}
+
+function Input({ value, onChange, placeholder, type = 'text', autoComplete, inputMode }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; autoComplete?: string; inputMode?: 'email' | 'tel' | 'text' | 'numeric' }) {
   return (
     <input
-      {...rest}
+      type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full text-[16px] py-2 border-b bg-transparent"
-      style={{ color: '#4A4038', borderColor: 'rgba(74,64,56,0.24)', outline: 'none', fontFamily: 'var(--font-jost), sans-serif' }}
+      placeholder={placeholder}
+      autoComplete={autoComplete}
+      inputMode={inputMode}
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#7a7670]"
     />
   )
 }
@@ -333,9 +404,8 @@ function Textarea({ value, onChange, placeholder }: { value: string; onChange: (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none focus:border-b-[rgba(255,255,255,0.3)] transition-colors placeholder:text-[#7a7670] resize-y min-h-[64px] leading-[1.7]"
       rows={2}
-      className="w-full text-[16px] py-2 border-b bg-transparent leading-relaxed"
-      style={{ color: '#4A4038', borderColor: 'rgba(74,64,56,0.24)', outline: 'none', fontFamily: 'var(--font-jost), sans-serif', resize: 'vertical' }}
     />
   )
 }

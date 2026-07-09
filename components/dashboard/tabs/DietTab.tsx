@@ -107,6 +107,11 @@ export default function DietTab({ client, submissions }: Props) {
   async function shareAdvice(sub: DietSubmission) {
     const advice = getAdvice(sub)
     if (!advice) return
+    // Send always saves the draft first so what Jess sends and what
+    // sits on the file are the same. saveAdvice already handles the
+    // supabase update + router.refresh; running it before opening the
+    // share sheet means the file never disagrees with the message.
+    await saveAdvice(sub)
     if (typeof navigator !== 'undefined' && 'share' in navigator) {
       try {
         const firstName = client.full_name.split(' ')[0] || 'there'
@@ -120,6 +125,23 @@ export default function DietTab({ client, submissions }: Props) {
       }
     }
     await copyAdvice(sub)
+  }
+
+  /** Human-friendly "2h ago" style time for the timestamps line. */
+  function timeAgo(iso: string): string {
+    const ms = Date.now() - new Date(iso).getTime()
+    if (ms < 60_000) return 'just now'
+    const min = Math.floor(ms / 60_000)
+    if (min < 60) return `${min} min ago`
+    const h = Math.floor(min / 60)
+    if (h < 24) return `${h}h ago`
+    const d = Math.floor(h / 24)
+    if (d < 7) return `${d}d ago`
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  }
+
+  function fullStamp(iso: string): string {
+    return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
 
   return (
@@ -153,17 +175,30 @@ export default function DietTab({ client, submissions }: Props) {
           return (
             <Card key={sub.id}>
               <button
-                className="w-full flex items-center justify-between px-5 py-4 text-left gap-3"
+                className="w-full flex items-start justify-between px-5 py-4 text-left gap-3"
                 onClick={() => setExpanded(isOpen ? null : sub.id)}
               >
-                <div className="flex items-center gap-3 flex-wrap min-w-0">
-                  <span className="text-sm font-medium text-[#f0ece4]">{weekLabel(sub.week_start)}</span>
-                  <span className="text-xs text-[#8a8680]">Updated {new Date(sub.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                  {sub.photos.length > 0 && (
-                    <span className="text-xs text-[#c89a6a]">{sub.photos.length} photo{sub.photos.length === 1 ? '' : 's'}</span>
-                  )}
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-[#f0ece4]">{weekLabel(sub.week_start)}</span>
+                    {sub.photos.length > 0 && (
+                      <span className="text-xs text-[#c89a6a]">{sub.photos.length} photo{sub.photos.length === 1 ? '' : 's'}</span>
+                    )}
+                    {(() => {
+                      const editedAt = new Date(sub.updated_at).getTime()
+                      const dayMs = 24 * 60 * 60 * 1000
+                      if (Date.now() - editedAt < dayMs) {
+                        return <span className="text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded-sm border border-[#7da87d] text-[#7da87d]">Fresh edit</span>
+                      }
+                      return null
+                    })()}
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap text-xs text-[#8a8680]">
+                    <span title={fullStamp(sub.created_at)}>First saved: {new Date(sub.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    <span title={fullStamp(sub.updated_at)}>Last edit: {timeAgo(sub.updated_at)} ({fullStamp(sub.updated_at)})</span>
+                  </div>
                 </div>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" className={`transition-transform ${isOpen ? 'rotate-90' : ''}`}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" className={`transition-transform mt-1 flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`}>
                   <path d="M5 2l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
