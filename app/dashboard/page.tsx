@@ -126,7 +126,7 @@ export default async function DashboardPage() {
       {/* Share links, public form URLs */}
       <div className="mb-10">
         <h2 className="text-sm text-[#e0d8cc] tracking-widest uppercase mb-3">Share with clients</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <CopyLink
             label="Coaching enquiry link"
             url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/enquire`}
@@ -141,6 +141,11 @@ export default async function DashboardPage() {
             label="Generic check-in link"
             url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/checkin`}
             hint="The same link for every client. For pre-filled per-client links, see Overview on each client file."
+          />
+          <CopyLink
+            label="Weekly food tracker link"
+            url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/diet`}
+            hint="Same link for every client. Their weekly food tracker. Personalised per-client link lives on the Diet tab of each client file."
           />
         </div>
       </div>

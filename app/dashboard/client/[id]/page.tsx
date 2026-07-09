@@ -11,6 +11,7 @@ import type {
   PlanHistory,
   Payment,
   ClientNote,
+  DietSubmission,
 } from '@/types'
 
 interface Props {
@@ -30,6 +31,7 @@ export default async function ClientFilePage({ params }: Props) {
     { data: planHistory },
     { data: payments },
     { data: notes },
+    { data: dietSubmissions },
   ] = await Promise.all([
     supabase.from('clients').select('*').eq('id', id).single(),
     supabase
@@ -73,6 +75,11 @@ export default async function ClientFilePage({ params }: Props) {
       .select('*')
       .eq('client_id', id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('diet_submissions')
+      .select('*')
+      .eq('client_id', id)
+      .order('week_start', { ascending: false }),
   ])
 
   if (!client) notFound()
@@ -90,6 +97,17 @@ export default async function ClientFilePage({ params }: Props) {
     }),
   )
 
+  // Same treatment for diet submission photos (same private bucket).
+  const dietList = (dietSubmissions ?? []) as DietSubmission[]
+  const dietWithSignedPhotos: DietSubmission[] = await Promise.all(
+    dietList.map(async (d) => {
+      const refs = d.photos ?? []
+      if (refs.length === 0) return d
+      const signed = await signCheckinPhotos(refs)
+      return { ...d, photos: signed.filter((u): u is string => !!u) }
+    }),
+  )
+
   return (
     <ClientFile
       client={client as Client}
@@ -100,6 +118,7 @@ export default async function ClientFilePage({ params }: Props) {
       planHistory={(planHistory ?? []) as PlanHistory[]}
       payments={(payments ?? []) as Payment[]}
       notes={(notes ?? []) as ClientNote[]}
+      dietSubmissions={dietWithSignedPhotos}
     />
   )
 }

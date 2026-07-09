@@ -311,3 +311,31 @@ export interface ClientNote {
   body: string
   created_at: string
 }
+
+/** One entry per day inside the weekly food tracker submission. */
+export interface DietDay {
+  date: string           // ISO date, YYYY-MM-DD
+  breakfast?: string
+  lunch?: string
+  dinner?: string
+  snacks?: string
+  drinks?: string
+}
+
+export interface DietPayload {
+  name: string
+  email: string
+  notes?: string         // overall note for the week
+  days: DietDay[]
+}
+
+export interface DietSubmission {
+  id: string
+  client_id: string
+  week_start: string     // ISO date, YYYY-MM-DD (Monday)
+  payload: DietPayload
+  photos: string[]
+  ai_advice: string | null
+  created_at: string
+  updated_at: string
+}
