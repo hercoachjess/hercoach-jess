@@ -17,6 +17,7 @@ import type {
   PlanHistory,
   Payment,
   ClientNote,
+  DietSubmission,
 } from '@/types'
 
 import OverviewTab from './tabs/OverviewTab'
@@ -24,6 +25,7 @@ import CheckinsTab from './tabs/CheckinsTab'
 import CompareTab from './tabs/CompareTab'
 import ProgressTab from './tabs/ProgressTab'
 import MealPlanTab from './tabs/MealPlanTab'
+import DietTab from './tabs/DietTab'
 import TrainingPlanTab from './tabs/TrainingPlanTab'
 import PlanHistoryTab from './tabs/PlanHistoryTab'
 import PaymentsTab from './tabs/PaymentsTab'
@@ -35,6 +37,7 @@ const TABS = [
   'Compare',
   'Progress',
   'Meal Plan',
+  'Diet',
   'Training',
   'Plan History',
   'Payments',
@@ -50,6 +53,7 @@ interface Props {
   planHistory: PlanHistory[]
   payments: Payment[]
   notes?: ClientNote[]
+  dietSubmissions?: DietSubmission[]
 }
 
 export default function ClientFile({
@@ -61,6 +65,7 @@ export default function ClientFile({
   planHistory,
   payments,
   notes = [],
+  dietSubmissions = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState(0)
 
@@ -162,9 +167,12 @@ export default function ClientFile({
           <MealPlanTab client={client} initialMealPlan={mealPlan} onboarding={onboarding} />
         )}
         {activeTab === 5 && (
-          <TrainingPlanTab client={client} initialTrainingPlan={trainingPlan} onboarding={onboarding} checkins={checkins} />
+          <DietTab client={client} submissions={dietSubmissions} />
         )}
         {activeTab === 6 && (
+          <TrainingPlanTab client={client} initialTrainingPlan={trainingPlan} onboarding={onboarding} checkins={checkins} />
+        )}
+        {activeTab === 7 && (
           <PlanHistoryTab
             clientId={client.id}
             client={client}
@@ -173,10 +181,10 @@ export default function ClientFile({
             currentTrainingPlan={trainingPlan}
           />
         )}
-        {activeTab === 7 && (
+        {activeTab === 8 && (
           <PaymentsTab clientId={client.id} payments={payments} />
         )}
-        {activeTab === 8 && (
+        {activeTab === 9 && (
           <OnboardingFileTab onboarding={onboarding} client={client} />
         )}
       </div>
