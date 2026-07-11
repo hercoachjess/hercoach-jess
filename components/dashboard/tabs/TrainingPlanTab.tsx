@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import PdfExportModal from '@/components/dashboard/PdfExportModal'
 import { formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, TrainingPlan, TrainingSession, WeeklyProgression, OnboardingSubmission, CheckinSubmission } from '@/types'
@@ -24,6 +25,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [aiRevising, setAiRevising] = useState(false)
   const [reviseInstructions, setReviseInstructions] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -184,7 +186,18 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
     })
   }
 
-  async function exportPdf() {
+  // Export button opens the customise-before-generate modal; doExport
+  // runs the actual fetch with Jess's chosen toggles + text overrides.
+  function exportPdf() {
+    setExportModalOpen(true)
+  }
+
+  async function doExport(customisation: {
+    includeClientStats: boolean
+    clientStatsOverride: string
+    includeWeeklyProgression: boolean
+    weeklyProgressionOverride: string
+  }) {
     setExporting(true)
     setError('')
     try {
@@ -205,6 +218,10 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           includeNumbers: true,
           scope: 'training',
           mode: 'inline',
+          includeClientStats: customisation.includeClientStats,
+          clientStatsOverride: customisation.clientStatsOverride || null,
+          includeWeeklyProgression: customisation.includeWeeklyProgression,
+          weeklyProgressionOverride: customisation.weeklyProgressionOverride || null,
         }),
       })
       if (!res.ok) {
@@ -218,11 +235,33 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-training-plan.pdf`
       document.body.appendChild(a); a.click(); document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      setExportModalOpen(false)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Export failed.')
     } finally {
       setExporting(false)
     }
+  }
+
+  // Default stats line Jess sees in the modal, matching what the PDF would
+  // render if she didn't override anything. Age from DOB, height, current weight.
+  function computeStatsDefault(): string {
+    const bits: string[] = []
+    if (client.date_of_birth) bits.push(`Age: ${new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()}`)
+    if (client.height_cm) bits.push(`Height: ${client.height_cm} cm`)
+    if (client.current_weight_kg) bits.push(`Current weight: ${client.current_weight_kg} kg`)
+    return bits.join('  ·  ')
+  }
+
+  // Default weekly progression paragraph, used only when programmeLengthWeeks > 1.
+  // Jess can toggle the whole card off in the modal or edit the wording here.
+  function computeWeeklyProgressionDefault(): string {
+    if (programmeLengthWeeks <= 1 || weeklyProgression.length === 0) return ''
+    const lines = weeklyProgression.map((wp) => {
+      const intensity = wp.intensity_target ? ` (${wp.intensity_target})` : ''
+      return `Week ${wp.week} · ${wp.focus}${intensity} — ${wp.modifications}`
+    })
+    return `Week 1 is detailed in the sessions below. The following weeks keep the same session structure and build on that base with the modifications listed.\n\n${lines.join('\n')}`
   }
 
   async function saveDraft() {
@@ -718,6 +757,20 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           </Button>
         </div>
       )}
+
+      {/* Customise-before-generate modal for the training plan PDF. */}
+      <PdfExportModal
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        scope="training"
+        defaults={{
+          statsLine: computeStatsDefault(),
+          weeklyProgressionText: computeWeeklyProgressionDefault(),
+        }}
+        onGenerate={doExport}
+        generating={exporting}
+        error={error}
+      />
     </div>
   )
 }

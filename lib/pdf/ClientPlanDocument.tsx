@@ -267,11 +267,13 @@ function WelcomeCard({
   onboarding,
   trainingPlan,
   mealPlan,
+  isTrainingOnly,
 }: {
   client: Client
   onboarding: OnboardingSubmission | null
   trainingPlan: TrainingPlan | null
   mealPlan: MealPlan | null
+  isTrainingOnly: boolean
 }) {
   const firstName = (client.full_name || '').split(' ')[0] || client.full_name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -280,12 +282,15 @@ function WelcomeCard({
   const primaryGoal: string = (p?.goals?.primary_goal || client.goal || '').trim()
   const timeline: string = (p?.goals?.timeline || '').trim()
 
-  // Programme bits at-a-glance
+  // Programme bits at-a-glance. Training-only exports skip the
+  // macro line entirely; the training PDF has no nutrition content.
   const summaryBits: string[] = []
-  if (mealPlan?.targets?.kcal) {
-    summaryBits.push(`${mealPlan.targets.kcal} kcal · ${mealPlan.targets.protein_g}g protein daily`)
-  } else if (client.primary_goal_kcal) {
-    summaryBits.push(`${client.primary_goal_kcal} kcal · ${client.protein_target_g ?? '—'}g protein daily`)
+  if (!isTrainingOnly) {
+    if (mealPlan?.targets?.kcal) {
+      summaryBits.push(`${mealPlan.targets.kcal} kcal · ${mealPlan.targets.protein_g}g protein daily`)
+    } else if (client.primary_goal_kcal) {
+      summaryBits.push(`${client.primary_goal_kcal} kcal · ${client.protein_target_g ?? '—'}g protein daily`)
+    }
   }
   if (trainingPlan?.days_per_week) {
     const wks = trainingPlan.programme_length_weeks && trainingPlan.programme_length_weeks > 1
@@ -521,25 +526,57 @@ interface Props {
   onboarding?: OnboardingSubmission | null
   version: string
   includeNumbers: boolean
+  // Per-export customisation set by Jess in the export modal.
+  // When include* is false the section is skipped entirely.
+  // When *Override is a non-empty string, that text replaces the
+  // auto-computed content for the section (only for text-based
+  // sections: stats line, weekly progression paragraph).
+  includeClientStats?: boolean
+  clientStatsOverride?: string | null
+  includeWeeklyProgression?: boolean
+  weeklyProgressionOverride?: string | null
 }
 
-export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onboarding = null, version, includeNumbers }: Props) {
+export default function ClientPlanDocument({
+  client,
+  mealPlan,
+  trainingPlan,
+  onboarding = null,
+  version,
+  includeNumbers,
+  includeClientStats = true,
+  clientStatsOverride = null,
+  includeWeeklyProgression = true,
+  weeklyProgressionOverride = null,
+}: Props) {
+  // Training-only export (no meal plan attached) must never leak
+  // nutrition or macro content. This flag drives all the strip-outs
+  // below so the training PDF reads as fitness-only.
+  const isTrainingOnly = !mealPlan && !!trainingPlan
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  // Macro chips vary by variant
-  const chips: [string, string][] = includeNumbers && mealPlan
+  // Macro chips vary by variant. Training-only exports don't show
+  // nutrition or macro content on the strip.
+  const chips: [string, string][] = isTrainingOnly
     ? [
-        [`~${mealPlan.targets.kcal} kcal`, 'Daily Calories'],
-        [`${mealPlan.targets.protein_g} g`, 'Protein Target'],
-        ['10,000', 'Daily Steps'],
-        ['Zone 2', 'Cardio Target'],
-      ]
-    : [
-        ['Balanced', 'Daily Nutrition'],
         [`${trainingPlan?.days_per_week ?? 5} Days`, 'Active Training'],
+        [`${trainingPlan?.programme_length_weeks ?? 1} Week${(trainingPlan?.programme_length_weeks ?? 1) > 1 ? 's' : ''}`, 'Programme Length'],
         ['10,000', 'Daily Steps'],
         ['Zone 2', 'Cardio Target'],
       ]
+    : includeNumbers && mealPlan
+      ? [
+          [`~${mealPlan.targets.kcal} kcal`, 'Daily Calories'],
+          [`${mealPlan.targets.protein_g} g`, 'Protein Target'],
+          ['10,000', 'Daily Steps'],
+          ['Zone 2', 'Cardio Target'],
+        ]
+      : [
+          ['Balanced', 'Daily Nutrition'],
+          [`${trainingPlan?.days_per_week ?? 5} Days`, 'Active Training'],
+          ['10,000', 'Daily Steps'],
+          ['Zone 2', 'Cardio Target'],
+        ]
 
   // Snack strip, variant aware
   const snacks: [string, string][] = includeNumbers
@@ -590,22 +627,28 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
           onboarding={onboarding}
           trainingPlan={trainingPlan}
           mealPlan={mealPlan}
+          isTrainingOnly={isTrainingOnly}
         />
 
-        {/* Client snapshot */}
-        <LinenBox
-          head="Client Overview"
-          lines={[
-            [
-              client.date_of_birth ? `Age: ${new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()}` : null,
-              client.height_cm ? `Height: ${client.height_cm} cm` : null,
-              client.current_weight_kg ? `Current weight: ${client.current_weight_kg} kg` : null,
-            ].filter(Boolean).join('  ·  '),
+        {/* Client snapshot. The stats line (age/height/weight) is
+            optional and coach-editable per export. */}
+        {(() => {
+          const autoStats = [
+            client.date_of_birth ? `Age: ${new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()}` : null,
+            client.height_cm ? `Height: ${client.height_cm} cm` : null,
+            client.current_weight_kg ? `Current weight: ${client.current_weight_kg} kg` : null,
+          ].filter(Boolean).join('  ·  ')
+          const statsLine = includeClientStats
+            ? (clientStatsOverride && clientStatsOverride.trim()) || autoStats
+            : ''
+          const overviewLines = [
+            statsLine,
             `Goal: ${client.goal || 'Personalised wellness & training programme'}`,
             `Programme: ${trainingPlan?.days_per_week ?? 5} active days, resistance training + recovery`,
             `Version: ${version}`,
-          ]}
-        />
+          ].filter((line) => line && line.trim().length > 0)
+          return <LinenBox head="Client Overview" lines={overviewLines} />
+        })()}
 
         <View style={{ height: 8 }} />
         <MacroChips chips={chips} />
@@ -687,21 +730,28 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
               ]}
             />
 
-            {/* Multi-week progression, listed when programme is longer than 1 week */}
-            {trainingPlan.programme_length_weeks && trainingPlan.programme_length_weeks > 1 && trainingPlan.weekly_progression && trainingPlan.weekly_progression.length > 0 && (
+            {/* Multi-week progression, listed when programme is longer
+                than 1 week. Toggle-off + text-override are respected. */}
+            {includeWeeklyProgression && trainingPlan.programme_length_weeks && trainingPlan.programme_length_weeks > 1 && trainingPlan.weekly_progression && trainingPlan.weekly_progression.length > 0 && (
               <View wrap={false} style={{ marginTop: 18 }}>
                 <Text style={[s.dayHead, { fontSize: 12 }]}>{trainingPlan.programme_length_weeks}-Week Progression</Text>
-                <Text style={[s.noteText, { marginBottom: 6 }]}>
-                  Week 1 is detailed above. The following weeks build on that base, keep the same structure unless told otherwise, and apply the modifications listed.
-                </Text>
-                {trainingPlan.weekly_progression.map((wp, i) => (
-                  <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
-                    <Text style={[s.dayHead, { fontSize: 10 }]}>
-                      Week {wp.week}, {wp.focus}{wp.intensity_target ? `  ·  ${wp.intensity_target}` : ''}
+                {weeklyProgressionOverride && weeklyProgressionOverride.trim() ? (
+                  <Text style={[s.noteText, { marginTop: 6 }]}>{weeklyProgressionOverride.trim()}</Text>
+                ) : (
+                  <>
+                    <Text style={[s.noteText, { marginBottom: 6 }]}>
+                      Week 1 is detailed above. The following weeks build on that base, keep the same structure unless told otherwise, and apply the modifications listed.
                     </Text>
-                    <Text style={s.noteText}>{wp.modifications}</Text>
-                  </View>
-                ))}
+                    {trainingPlan.weekly_progression.map((wp, i) => (
+                      <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
+                        <Text style={[s.dayHead, { fontSize: 10 }]}>
+                          Week {wp.week}, {wp.focus}{wp.intensity_target ? `  ·  ${wp.intensity_target}` : ''}
+                        </Text>
+                        <Text style={s.noteText}>{wp.modifications}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
               </View>
             )}
           </>
@@ -889,7 +939,13 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
 
           <TwoCol
             lHead="Sleep & Recovery"
-            lLines={[
+            lLines={isTrainingOnly ? [
+              'Aim for 7–9 hours every night, this is when your body adapts to training',
+              'A consistent bedtime routine makes the biggest difference',
+              'Limit screen use 30 minutes before bed',
+              'Poor sleep will stall training progress and slow recovery',
+              'Flag consistently poor sleep in your weekly check-in',
+            ] : [
               'Aim for 7–9 hours every night, this is when your body adapts',
               'Poor sleep raises ghrelin (hunger hormone) the next day',
               'A consistent bedtime routine makes the biggest difference',
@@ -898,7 +954,14 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
               'Flag consistently poor sleep in your weekly check-in',
             ]}
             rHead="Stress & Mindset"
-            rLines={[
+            rLines={isTrainingOnly ? [
+              'Elevated stress raises cortisol, this actively slows progress',
+              'Progress is never perfectly linear, trust the process',
+              'A bad day or week does not undo your training progress',
+              'Focus on the next session, not the last one',
+              'Slow, sustainable change is the strategy. Patience is everything.',
+              "Use your weekly check-in honestly, it's where results are made",
+            ] : [
               'Elevated stress raises cortisol, this actively slows progress',
               'Progress is never perfectly linear, trust the process',
               'A bad day or week does not undo your progress',
@@ -908,21 +971,31 @@ export default function ClientPlanDocument({ client, mealPlan, trainingPlan, onb
             ]}
           />
 
-          <View style={{ height: 8 }} />
-          <LinenBox
-            head="Training day nutrition, timing"
-            lines={[
-              'Pre-workout (60–90 mins before): small carbohydrate snack, banana, 2 rice cakes, or your breakfast',
-              'Do not train completely fasted, performance drops and recovery is slower',
-              'Post-workout (within 60 minutes): protein-rich meal, your lunch option or a protein yoghurt with fruit',
-              'On lower body days, you may feel hungrier, this is normal. Have your snack and don\'t skip it.',
-            ]}
-          />
+          {/* Nutrition-timing box only for combined/meal exports. */}
+          {!isTrainingOnly && (
+            <>
+              <View style={{ height: 8 }} />
+              <LinenBox
+                head="Training day nutrition, timing"
+                lines={[
+                  'Pre-workout (60–90 mins before): small carbohydrate snack, banana, 2 rice cakes, or your breakfast',
+                  'Do not train completely fasted, performance drops and recovery is slower',
+                  'Post-workout (within 60 minutes): protein-rich meal, your lunch option or a protein yoghurt with fruit',
+                  'On lower body days, you may feel hungrier, this is normal. Have your snack and don\'t skip it.',
+                ]}
+              />
+            </>
+          )}
 
           <View style={{ height: 8 }} />
           <DarkBox
             head="A note from Jess"
-            lines={includeNumbers ? [
+            lines={isTrainingOnly ? [
+              'This programme has been built specifically for you, your training experience, your goals, and any limitations you shared. It is evidence-based, appropriately progressive, and designed to feel sustainable rather than punishing.',
+              'Consistency beats intensity. Turning up week after week is how the adaptations happen. Focus on quality of movement and steady progress rather than pushing every session to failure.',
+              "Submit your check-in every week without fail. That is where I can help you most. If something isn't working, tell me. If you have a question, ask me.",
+              "You have everything you need. Let's do this.",
+            ] : includeNumbers ? [
               'This plan has been built specifically for you, your measurements, your goals, your food preferences, and your lifestyle. It is evidence-based, nutritionally balanced, and designed to create steady, sustainable progress without feeling restrictive.',
               `At ${mealPlan?.targets?.kcal ?? '~1,800'} kcal with ${mealPlan?.targets?.protein_g ?? '120–135'}g protein, you are eating enough to fuel your training, protect your muscle, and progress gradually. Slow and steady is the approach that lasts.`,
               "Submit your check-in every week without fail. That is where I can help you most. If something isn't working, tell me. If you have a question, ask me.",
