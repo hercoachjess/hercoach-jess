@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { safeSubmit } from '@/lib/safe-submit'
 import { currentWeekStart, emptyWeekDays, shortDayLabel, weekLabel } from '@/lib/diet-week'
 import type { DietDay, DietPayload } from '@/types'
@@ -8,13 +8,11 @@ import type { DietDay, DietPayload } from '@/types'
 /**
  * Public weekly food tracker form.
  *
- * Dark theme to match the check-in form. Clients open the same link
- * any time in the week: the API upserts by (client + week_start), so
- * their entries come back pre-filled if they revisit.
- *
- * After saving, an "Export & send to Jess" button generates a PDF via
- * /api/pdf/diet and opens the native share sheet so the client can
- * send it via WhatsApp or email in one tap.
+ * Dark theme to match the check-in form. The current week form sits at
+ * the top; below it, "Your previous weeks" lists every week the client
+ * has ever submitted, each collapsible and fully editable inline with
+ * its own save + resend controls. Clients can go back weeks or months
+ * later to amend an old entry (typo, forgot a snack) and re-send.
  */
 const SECTION_FIELDS = [
   { key: 'breakfast', label: 'Breakfast', placeholder: 'e.g. 80g oats with milk and berries' },
@@ -25,6 +23,15 @@ const SECTION_FIELDS = [
 ] as const
 
 type SectionKey = typeof SECTION_FIELDS[number]['key']
+
+interface PastWeek {
+  id: string
+  week_start: string
+  payload: DietPayload
+  photos: string[]
+  updated_at: string
+  created_at: string
+}
 
 export default function DietForm({ initialEmail }: { initialEmail: string }) {
   const weekStart = useMemo(() => currentWeekStart(), [])
@@ -43,16 +50,20 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
   const [sharing, setSharing] = useState(false)
   const [shareError, setShareError] = useState('')
 
-  // Pre-fill from any existing entries for this week if the client
-  // revisits the personalised link. Best-effort, silent on error.
-  useEffect(() => {
-    async function loadExisting() {
-      if (!email.trim()) return
-      setLoadingExisting(true)
-      try {
-        const res = await fetch(`/api/diet?email=${encodeURIComponent(email.trim())}&week_start=${weekStart}`)
-        if (!res.ok) return
-        const data = await res.json() as { payload?: DietPayload; photos?: string[] } | null
+  // Previous weeks the client has submitted before this one.
+  const [pastWeeks, setPastWeeks] = useState<PastWeek[]>([])
+
+  const loadExisting = useCallback(async () => {
+    if (!email.trim()) return
+    setLoadingExisting(true)
+    try {
+      const [thisWeekRes, allRes] = await Promise.all([
+        fetch(`/api/diet?email=${encodeURIComponent(email.trim())}&week_start=${weekStart}`),
+        fetch(`/api/diet?email=${encodeURIComponent(email.trim())}&all=1`),
+      ])
+
+      if (thisWeekRes.ok) {
+        const data = await thisWeekRes.json() as { payload?: DietPayload; photos?: string[] } | null
         if (data?.payload) {
           if (data.payload.name) setName(data.payload.name)
           if (data.payload.notes) setNotes(data.payload.notes)
@@ -62,13 +73,21 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
           }
         }
         if (Array.isArray(data?.photos)) setPhotoPaths(data.photos)
-      } finally {
-        setLoadingExisting(false)
       }
+
+      if (allRes.ok) {
+        const data = await allRes.json() as { weeks?: PastWeek[] }
+        const weeks = (data.weeks ?? []).filter((w) => w.week_start !== weekStart)
+        setPastWeeks(weeks)
+      }
+    } finally {
+      setLoadingExisting(false)
     }
+  }, [email, weekStart])
+
+  useEffect(() => {
     loadExisting()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email])
+  }, [loadExisting])
 
   function updateDay(idx: number, field: SectionKey, value: string) {
     setDays((prev) => prev.map((d, i) => (i === idx ? { ...d, [field]: value } : d)))
@@ -131,49 +150,53 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  async function shareWithJess() {
+  async function shareWithJess(target: 'current' | { pastWeek: PastWeek }) {
     setSharing(true); setShareError('')
     try {
-      // Save first so what she sees on her end matches what the PDF
-      // captures. Then ask the server to generate a shareable link.
-      if (!name.trim() || !email.trim()) {
-        setShareError('Please add your name and email first.')
-        return
-      }
-      const payload: DietPayload = {
-        name: name.trim(),
-        email: email.trim(),
-        notes: notes.trim() || undefined,
-        days,
-      }
-      await safeSubmit('/api/diet', { payload, week_start: weekStart, photos: photoPaths })
-
-      const res = await fetch('/api/pdf/diet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), week_start: weekStart }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Could not create the PDF.')
-      const pdfUrl = data.pdf_url as string
-
-      const message = `Hi Jess, here's my food week for ${weekLabel(weekStart)}.\n\n${pdfUrl}`
-      if (typeof navigator !== 'undefined' && 'share' in navigator) {
-        try {
-          await navigator.share({ title: 'My food week', text: message, url: pdfUrl })
+      if (target === 'current') {
+        if (!name.trim() || !email.trim()) {
+          setShareError('Please add your name and email first.')
           return
-        } catch {
-          // user cancelled or share unavailable
         }
+        const payload: DietPayload = {
+          name: name.trim(),
+          email: email.trim(),
+          notes: notes.trim() || undefined,
+          days,
+        }
+        await safeSubmit('/api/diet', { payload, week_start: weekStart, photos: photoPaths })
+
+        await openPdfShare(weekStart, email.trim())
+      } else {
+        const w = target.pastWeek
+        await openPdfShare(w.week_start, email.trim())
       }
-      // Desktop fallback: open the PDF in a new tab so they can share
-      // it however they like.
-      if (typeof window !== 'undefined') window.open(pdfUrl, '_blank', 'noopener')
     } catch (e: unknown) {
       setShareError(e instanceof Error ? e.message : 'Could not create the PDF.')
     } finally {
       setSharing(false)
     }
+  }
+
+  async function openPdfShare(wkStart: string, emailAddr: string) {
+    const res = await fetch('/api/pdf/diet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailAddr, week_start: wkStart }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Could not create the PDF.')
+    const pdfUrl = data.pdf_url as string
+    const message = `Hi Jess, here's my food week for ${weekLabel(wkStart)}.\n\n${pdfUrl}`
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({ title: 'My food week', text: message, url: pdfUrl })
+        return
+      } catch {
+        // user cancelled or share unavailable
+      }
+    }
+    if (typeof window !== 'undefined') window.open(pdfUrl, '_blank', 'noopener')
   }
 
   if (submitted) {
@@ -186,12 +209,12 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
               Saved. Thank you.
             </h2>
             <p className="text-sm text-[#a8a49c] leading-[1.8] font-light max-w-[440px] mx-auto mb-6">
-              Come back to the same link any time this week to add more or edit. It stays open until next Monday.
+              Come back to the same link any time to add more, amend, or scroll back through previous weeks.
             </p>
 
             <div className="flex flex-col items-center gap-3 mb-6">
               <button
-                onClick={shareWithJess}
+                onClick={() => shareWithJess('current')}
                 disabled={sharing}
                 className="bg-[#f0ece4] border-0 text-[#080808] px-[42px] py-3 text-[10px] font-medium tracking-[3px] uppercase cursor-pointer font-sans rounded-[2px] transition-all hover:bg-[#e8e0d4] disabled:opacity-50"
                 style={{ touchAction: 'manipulation' }}
@@ -260,7 +283,7 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
           </G2>
         </Card>
 
-        {/* Daily entries */}
+        {/* This week */}
         {days.map((day, i) => (
           <Card key={day.date}>
             <CardLabel>{shortDayLabel(day.date)}</CardLabel>
@@ -352,12 +375,167 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
             You can come back and edit any time this week.
           </span>
         </div>
+
+        {/* Previous weeks — always below the current form so the client
+            can scroll back and amend or resend older weeks. */}
+        {pastWeeks.length > 0 && (
+          <div className="mt-16">
+            <div className="text-center mb-6">
+              <div className="inline-block border border-[rgba(255,255,255,0.24)] rounded-[2px] px-4 py-[5px] text-[9px] tracking-[4px] uppercase text-[#a8a49c] mb-3">
+                Your previous weeks
+              </div>
+              <p className="text-[12px] text-[#7a7670] italic font-serif max-w-[380px] mx-auto">
+                Tap any week to look back, tidy up something you missed, or resend it to Jess.
+              </p>
+            </div>
+            {pastWeeks.map((w) => (
+              <PastWeekCard
+                key={w.id}
+                week={w}
+                email={email}
+                onSaved={loadExisting}
+                onSend={() => shareWithJess({ pastWeek: w })}
+                shareError={shareError}
+                sharing={sharing}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-// ── Shared primitives (dark theme, matches the check-in form) ──
+// ── Previous week collapsible card ─────────────────────────────────
+
+function PastWeekCard({
+  week,
+  email,
+  onSaved,
+  onSend,
+  shareError,
+  sharing,
+}: {
+  week: PastWeek
+  email: string
+  onSaved: () => void
+  onSend: () => void
+  shareError: string
+  sharing: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [days, setDays] = useState<DietDay[]>(() => week.payload.days ?? emptyWeekDays(week.week_start))
+  const [notes, setNotes] = useState(week.payload.notes ?? '')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [err, setErr] = useState('')
+
+  function updateDay(idx: number, field: SectionKey, value: string) {
+    setDays((prev) => prev.map((d, i) => (i === idx ? { ...d, [field]: value } : d)))
+  }
+
+  async function save() {
+    setSaving(true); setErr(''); setSaved(false)
+    const payload: DietPayload = {
+      name: week.payload.name || '',
+      email: email.trim(),
+      notes: notes.trim() || undefined,
+      days,
+    }
+    const result = await safeSubmit('/api/diet', {
+      payload,
+      week_start: week.week_start,
+      photos: week.photos,
+    })
+    setSaving(false)
+    if (!result.ok) {
+      setErr(result.error)
+      return
+    }
+    setSaved(true)
+    onSaved()
+  }
+
+  const filledCount = days.filter((d) => SECTION_FIELDS.some((s) => (d[s.key] as string | undefined)?.trim())).length
+  const dateSummary = new Date(week.week_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+
+  return (
+    <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-2xl mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-6 py-5 text-left"
+        style={{ touchAction: 'manipulation' }}
+      >
+        <div className="min-w-0">
+          <p className="text-[14px] text-[#f0ece4] font-medium leading-tight">Week of {dateSummary}</p>
+          <p className="text-[11px] text-[#7a7670] mt-1">
+            {filledCount} day{filledCount === 1 ? '' : 's'} filled
+            {week.updated_at !== week.created_at ? ' · edited since first save' : ''}
+          </p>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4" className={`transition-transform flex-shrink-0 ${open ? 'rotate-90' : ''}`}>
+          <path d="M5 2l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="px-6 pb-6 border-t border-[rgba(255,255,255,0.14)]">
+          {days.map((day, i) => (
+            <div key={day.date} className="mt-6">
+              <p className="text-[9px] tracking-[4px] uppercase text-[#7a7670] mb-3">{shortDayLabel(day.date)}</p>
+              {SECTION_FIELDS.map((f) => (
+                <Field key={f.key} label={f.label}>
+                  <Textarea
+                    value={(day[f.key] as string | undefined) ?? ''}
+                    onChange={(v) => updateDay(i, f.key, v)}
+                    placeholder={f.placeholder}
+                  />
+                </Field>
+              ))}
+            </div>
+          ))}
+
+          <div className="mt-6">
+            <Field label="Note for this week">
+              <Textarea value={notes} onChange={setNotes} placeholder="Optional" />
+            </Field>
+          </div>
+
+          {err && <p className="text-[12px] text-[#b06060] mt-3">{err}</p>}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t border-[rgba(255,255,255,0.10)]">
+            <p className="text-[11px] text-[#7a7670] italic font-serif">
+              {saved ? 'Saved. Jess will see the update on her end.' : 'Any edit is saved to your week and pulls through to Jess.'}
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={save}
+                disabled={saving}
+                className="bg-transparent border border-[rgba(255,255,255,0.24)] text-[#f0ece4] px-4 py-2 text-[10px] tracking-[2px] uppercase rounded-[2px] disabled:opacity-50"
+                style={{ touchAction: 'manipulation' }}
+              >
+                {saving ? 'Saving...' : 'Save this week'}
+              </button>
+              <button
+                onClick={onSend}
+                disabled={sharing}
+                className="bg-[#f0ece4] text-[#080808] border-0 px-4 py-2 text-[10px] tracking-[2px] uppercase rounded-[2px] disabled:opacity-50"
+                style={{ touchAction: 'manipulation' }}
+              >
+                {sharing ? 'Preparing...' : 'Resend to Jess'}
+              </button>
+            </div>
+          </div>
+
+          {shareError && <p className="text-[11px] text-[#b06060] mt-2">{shareError}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Shared primitives (dark theme, matches the check-in form) ──────
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-2xl p-7 mb-3">{children}</div>
