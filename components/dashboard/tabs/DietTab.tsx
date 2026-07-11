@@ -104,6 +104,45 @@ export default function DietTab({ client, submissions }: Props) {
     setTimeout(() => setCopied((c) => ({ ...c, [sub.id]: false })), 2000)
   }
 
+  // Generate a coach-branded PDF: personal note (Jess's edited advice)
+  // at the top, the client's food week below as reference. Saves the
+  // current draft first so the PDF and the on-file note match. Opens
+  // the native share sheet so Jess can send via WhatsApp / email in
+  // one tap. The PDF has NO mention of AI anywhere on it.
+  async function exportAdvicePdf(sub: DietSubmission) {
+    const advice = getAdvice(sub)
+    if (!advice) return
+    setSaving((s) => ({ ...s, [sub.id]: true }))
+    setErrors((e) => ({ ...e, [sub.id]: '' }))
+    try {
+      await saveAdvice(sub)
+      const res = await fetch('/api/pdf/diet-advice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dietSubmissionId: sub.id, advice }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Couldn't make the PDF.")
+      const pdfUrl = data.pdf_url as string
+
+      const firstName = client.full_name.split(' ')[0] || 'there'
+      const message = `Hi ${firstName}, this week's note plus your food for reference:\n\n${pdfUrl}`
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        try {
+          await navigator.share({ title: `Your week review, ${weekLabel(sub.week_start)}`, text: message, url: pdfUrl })
+          return
+        } catch {
+          // user cancelled or share unavailable, fall through
+        }
+      }
+      if (typeof window !== 'undefined') window.open(pdfUrl, '_blank', 'noopener')
+    } catch (err: unknown) {
+      setErrors((e) => ({ ...e, [sub.id]: err instanceof Error ? err.message : 'Failed to export.' }))
+    } finally {
+      setSaving((s) => ({ ...s, [sub.id]: false }))
+    }
+  }
+
   async function shareAdvice(sub: DietSubmission) {
     const advice = getAdvice(sub)
     if (!advice) return
@@ -267,7 +306,10 @@ export default function DietTab({ client, submissions }: Props) {
                             <Button size="sm" variant="ghost" onClick={() => copyAdvice(sub)}>
                               {copied[sub.id] ? 'Copied' : 'Copy'}
                             </Button>
-                            <Button size="sm" onClick={() => shareAdvice(sub)}>Send</Button>
+                            <Button size="sm" variant="outline" loading={saving[sub.id]} onClick={() => exportAdvicePdf(sub)}>
+                              Save as PDF
+                            </Button>
+                            <Button size="sm" onClick={() => shareAdvice(sub)}>Send text</Button>
                           </>
                         )}
                       </div>

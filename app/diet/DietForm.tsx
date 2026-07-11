@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { safeSubmit } from '@/lib/safe-submit'
-import { currentWeekStart, emptyWeekDays, shortDayLabel, weekLabel } from '@/lib/diet-week'
+import { currentWeekStart, emptyWeekDays, mondayOf, shortDayLabel, toIsoDate, weekLabel } from '@/lib/diet-week'
 import type { DietDay, DietPayload } from '@/types'
 
 /**
@@ -376,32 +376,163 @@ export default function DietForm({ initialEmail }: { initialEmail: string }) {
           </span>
         </div>
 
-        {/* Previous weeks — always below the current form so the client
-            can scroll back and amend or resend older weeks. */}
-        {pastWeeks.length > 0 && (
-          <div className="mt-16">
-            <div className="text-center mb-6">
-              <div className="inline-block border border-[rgba(255,255,255,0.24)] rounded-[2px] px-4 py-[5px] text-[9px] tracking-[4px] uppercase text-[#a8a49c] mb-3">
-                Your previous weeks
-              </div>
-              <p className="text-[12px] text-[#7a7670] italic font-serif max-w-[380px] mx-auto">
-                Tap any week to look back, tidy up something you missed, or resend it to Jess.
-              </p>
-            </div>
-            {pastWeeks.map((w) => (
-              <PastWeekCard
-                key={w.id}
-                week={w}
-                email={email}
-                onSaved={loadExisting}
-                onSend={() => shareWithJess({ pastWeek: w })}
-                shareError={shareError}
-                sharing={sharing}
+        {/* Previous weeks + add-a-past-week affordance. */}
+        <PreviousWeeksSection
+          pastWeeks={pastWeeks}
+          currentWeekStart={weekStart}
+          email={email}
+          onSaved={loadExisting}
+          onSend={(w) => shareWithJess({ pastWeek: w })}
+          shareError={shareError}
+          sharing={sharing}
+          onAddLocalWeek={(w) => setPastWeeks((prev) => [w, ...prev].sort((a, b) => b.week_start.localeCompare(a.week_start)))}
+          currentName={name}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ── Previous weeks section (adds "add older week" affordance) ──────
+
+function PreviousWeeksSection({
+  pastWeeks,
+  currentWeekStart,
+  email,
+  onSaved,
+  onSend,
+  shareError,
+  sharing,
+  onAddLocalWeek,
+  currentName,
+}: {
+  pastWeeks: PastWeek[]
+  currentWeekStart: string
+  email: string
+  onSaved: () => void
+  onSend: (w: PastWeek) => void
+  shareError: string
+  sharing: boolean
+  onAddLocalWeek: (w: PastWeek) => void
+  currentName: string
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerDate, setPickerDate] = useState('')
+  const [pickerError, setPickerError] = useState('')
+
+  function addWeek() {
+    setPickerError('')
+    if (!pickerDate) {
+      setPickerError('Pick a date first.')
+      return
+    }
+    // Snap any picked date to the Monday of that week so the tracker
+    // stays on the same Mon–Sun cadence as everywhere else.
+    const monday = toIsoDate(mondayOf(new Date(pickerDate)))
+    if (monday === currentWeekStart) {
+      setPickerError('That is this week already, edit it above.')
+      return
+    }
+    if (pastWeeks.some((w) => w.week_start === monday)) {
+      setPickerError('You have a week open for that date already, scroll down to it.')
+      return
+    }
+    const now = new Date().toISOString()
+    onAddLocalWeek({
+      id: `local-${monday}`,
+      week_start: monday,
+      payload: {
+        name: currentName || '',
+        email: email.trim(),
+        days: emptyWeekDays(monday),
+      },
+      photos: [],
+      created_at: now,
+      updated_at: now,
+    })
+    setPickerDate('')
+    setPickerOpen(false)
+  }
+
+  return (
+    <div className="mt-16">
+      <div className="text-center mb-6">
+        <div className="inline-block border border-[rgba(255,255,255,0.24)] rounded-[2px] px-4 py-[5px] text-[9px] tracking-[4px] uppercase text-[#a8a49c] mb-3">
+          Your previous weeks
+        </div>
+        <p className="text-[12px] text-[#7a7670] italic font-serif max-w-[420px] mx-auto">
+          Tap any week to look back, tidy up something you missed, or resend it to Jess. You can also add an older week you missed logging at the time.
+        </p>
+      </div>
+
+      {/* Add older week */}
+      <div className="mb-6">
+        {!pickerOpen ? (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="text-[11px] tracking-[2px] uppercase text-[#a8a49c] underline"
+              style={{ fontFamily: 'var(--font-jost), sans-serif', touchAction: 'manipulation' }}
+            >
+              + Add another week
+            </button>
+          </div>
+        ) : (
+          <div className="bg-[#0e0e0e] border border-[rgba(255,255,255,0.24)] rounded-2xl p-5">
+            <p className="text-[9px] tracking-[4px] uppercase text-[#7a7670] mb-3">Add an older week</p>
+            <p className="text-[12px] text-[#a8a49c] leading-[1.7] mb-4">
+              Pick any day inside the week you want to log. We&apos;ll snap it to the Monday of that week and open an empty tracker for you to fill.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+              <input
+                type="date"
+                value={pickerDate}
+                onChange={(e) => setPickerDate(e.target.value)}
+                className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.24)] py-2.5 text-sm text-[#f0ece4] font-light outline-none"
+                style={{ colorScheme: 'dark' }}
               />
-            ))}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setPickerOpen(false); setPickerDate(''); setPickerError('') }}
+                  className="text-[10px] tracking-[2px] uppercase px-4 py-2 border border-[rgba(255,255,255,0.24)] rounded-[2px] text-[#a8a49c]"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={addWeek}
+                  className="text-[10px] tracking-[2px] uppercase px-4 py-2 bg-[#f0ece4] text-[#080808] rounded-[2px]"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  Add week
+                </button>
+              </div>
+            </div>
+            {pickerError && <p className="text-[11px] text-[#b06060] mt-3">{pickerError}</p>}
           </div>
         )}
       </div>
+
+      {pastWeeks.length === 0 ? (
+        <p className="text-center text-[11px] italic text-[#7a7670]">
+          No older weeks yet. Add one above if you want to log a week you missed.
+        </p>
+      ) : (
+        pastWeeks.map((w) => (
+          <PastWeekCard
+            key={w.id}
+            week={w}
+            email={email}
+            onSaved={onSaved}
+            onSend={() => onSend(w)}
+            shareError={shareError}
+            sharing={sharing}
+          />
+        ))
+      )}
     </div>
   )
 }
