@@ -20,8 +20,18 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const email = url.searchParams.get('email')?.trim() || ''
     const weekStart = url.searchParams.get('week_start')?.trim() || ''
-    if (!email || !weekStart) {
-      return NextResponse.json({ error: 'email and week_start are required.' }, { status: 400 })
+    // If a client wants every week they've ever submitted, they pass
+    // `all=1`. This powers the "your previous weeks" list on the form
+    // so the client can scroll back and amend older weeks. The
+    // legacy single-week fetch (email + week_start) still works for
+    // the current-week prefill path so existing clients don't break.
+    const wantAll = url.searchParams.get('all') === '1'
+
+    if (!email) {
+      return NextResponse.json({ error: 'email is required.' }, { status: 400 })
+    }
+    if (!wantAll && !weekStart) {
+      return NextResponse.json({ error: 'week_start is required.' }, { status: 400 })
     }
 
     let supabase
@@ -44,8 +54,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Lookup failed.' }, { status: 500 })
     }
     if (!client) {
-      // Return empty rather than erroring — the form falls through to a blank week.
-      return NextResponse.json(null)
+      return NextResponse.json(wantAll ? { weeks: [] } : null)
+    }
+
+    if (wantAll) {
+      const { data: weeks } = await supabase
+        .from('diet_submissions')
+        .select('id, week_start, payload, photos, updated_at, created_at')
+        .eq('client_id', client.id)
+        .order('week_start', { ascending: false })
+      return NextResponse.json({ weeks: weeks ?? [] })
     }
 
     const { data: existing } = await supabase
