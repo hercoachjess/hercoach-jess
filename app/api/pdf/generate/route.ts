@@ -20,6 +20,10 @@ export async function POST(request: NextRequest) {
       includeNumbers = true,
       scope = 'full',
       mode = 'save',
+      includeClientStats = true,
+      clientStatsOverride = null,
+      includeWeeklyProgression = true,
+      weeklyProgressionOverride = null,
     }: {
       clientId: string
       mealPlan: MealPlan | null
@@ -28,6 +32,10 @@ export async function POST(request: NextRequest) {
       includeNumbers?: boolean
       scope?: Scope
       mode?: Mode
+      includeClientStats?: boolean
+      clientStatsOverride?: string | null
+      includeWeeklyProgression?: boolean
+      weeklyProgressionOverride?: string | null
     } = await request.json()
 
     const supabase = createAdminClient()
@@ -61,6 +69,10 @@ export async function POST(request: NextRequest) {
       onboarding: (onboarding as OnboardingSubmission | null) ?? null,
       version,
       includeNumbers,
+      includeClientStats,
+      clientStatsOverride,
+      includeWeeklyProgression,
+      weeklyProgressionOverride,
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

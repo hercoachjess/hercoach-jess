@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import PdfExportModal from '@/components/dashboard/PdfExportModal'
 import { formatDate, macrosForKcal, macroGuidance } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, MealPlan, Meal, MealItem, FoodFact, OnboardingSubmission } from '@/types'
@@ -47,6 +48,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   const [aiRevising, setAiRevising] = useState(false)
   const [reviseInstructions, setReviseInstructions] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -235,7 +237,19 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     }
   }
 
-  async function exportPdf() {
+  // Click on the Export button opens the customise-before-generate modal.
+  // The real fetch happens in doExport(customisation) which the modal
+  // calls when Jess taps Generate PDF.
+  function exportPdf() {
+    setExportModalOpen(true)
+  }
+
+  async function doExport(customisation: {
+    includeClientStats: boolean
+    clientStatsOverride: string
+    includeWeeklyProgression: boolean
+    weeklyProgressionOverride: string
+  }) {
     setExporting(true)
     setError('')
     try {
@@ -255,6 +269,10 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           includeNumbers: true,
           scope: 'meal',
           mode: 'inline',
+          includeClientStats: customisation.includeClientStats,
+          clientStatsOverride: customisation.clientStatsOverride || null,
+          includeWeeklyProgression: customisation.includeWeeklyProgression,
+          weeklyProgressionOverride: customisation.weeklyProgressionOverride || null,
         }),
       })
       if (!res.ok) {
@@ -268,11 +286,22 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-meal-plan.pdf`
       document.body.appendChild(a); a.click(); document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      setExportModalOpen(false)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Export failed.')
     } finally {
       setExporting(false)
     }
+  }
+
+  // Compute the default stats line Jess sees in the modal, matching
+  // exactly what the PDF would render if she didn't override anything.
+  function computeStatsDefault(): string {
+    const bits: string[] = []
+    if (client.date_of_birth) bits.push(`Age: ${new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()}`)
+    if (client.height_cm) bits.push(`Height: ${client.height_cm} cm`)
+    if (client.current_weight_kg) bits.push(`Current weight: ${client.current_weight_kg} kg`)
+    return bits.join('  ·  ')
   }
 
   async function saveDraft() {
@@ -1328,6 +1357,20 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           </Button>
         </div>
       )}
+
+      {/* Customise-before-generate modal for the meal plan PDF. */}
+      <PdfExportModal
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        scope="meal"
+        defaults={{
+          statsLine: computeStatsDefault(),
+          weeklyProgressionText: '',
+        }}
+        onGenerate={doExport}
+        generating={exporting}
+        error={error}
+      />
     </div>
   )
 }
