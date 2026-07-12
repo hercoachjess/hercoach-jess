@@ -35,6 +35,8 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   const [saving, setSaving] = useState(false)
   const [showCalc, setShowCalc] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [statusSaving, setStatusSaving] = useState<Client['status'] | null>(null)
+  const [confirmClose, setConfirmClose] = useState(false)
 
   const [targets, setTargets] = useState({
     primary_goal_kcal: client.primary_goal_kcal ?? '',
@@ -108,6 +110,19 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
     router.refresh()
   }
 
+  // Quick status change from the Overview header, one tap, no need to
+  // open the contact edit form. Keeps the local contact.status in sync
+  // so the edit form (if opened afterwards) shows the right value.
+  async function updateStatus(next: Client['status']) {
+    setStatusSaving(next)
+    const supabase = createClient()
+    await supabase.from('clients').update({ status: next }).eq('id', client.id)
+    setContact((c) => ({ ...c, status: next }))
+    setStatusSaving(null)
+    setConfirmClose(false)
+    router.refresh()
+  }
+
   async function saveContact() {
     setSaving(true)
     const supabase = createClient()
@@ -135,8 +150,59 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   const params = new URLSearchParams({ email: client.email, name: client.full_name }).toString()
   const personalisedCheckinUrl = `${baseUrl}/checkin?${params}`
 
+  const statusMeta: Record<Client['status'], { label: string; blurb: string; tone: string }> = {
+    active: { label: 'Active', blurb: 'Coaching is live. Check-ins, nudges and overdue flags are all on.', tone: '#7da87d' },
+    paused: { label: 'Paused', blurb: 'Coaching is on hold. Check-in reminders and overdue flags are suppressed until you reactivate.', tone: '#c89a6a' },
+    archived: { label: 'Closed', blurb: 'This client is closed and hidden from the active roster. Their file is kept for your records.', tone: '#b8b4ac' },
+  }
+  const current = statusMeta[client.status]
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Status controls — quick pause / reactivate / close without opening
+          the edit form. This is the primary place to manage client status. */}
+      <Card>
+        <CardBody className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: current.tone }} />
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Status</span>
+              <span className="text-sm font-medium" style={{ color: current.tone }}>{current.label}</span>
+            </div>
+            <p className="text-xs text-[#8a8680] leading-relaxed max-w-md">{current.blurb}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {client.status === 'active' && (
+              <Button size="sm" variant="outline" loading={statusSaving === 'paused'} onClick={() => updateStatus('paused')}>
+                Pause client
+              </Button>
+            )}
+            {client.status === 'paused' && (
+              <Button size="sm" variant="outline" loading={statusSaving === 'active'} onClick={() => updateStatus('active')}>
+                Reactivate
+              </Button>
+            )}
+            {client.status === 'archived' ? (
+              <Button size="sm" variant="outline" loading={statusSaving === 'active'} onClick={() => updateStatus('active')}>
+                Reopen client
+              </Button>
+            ) : confirmClose ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#b8b4ac]">Close this client?</span>
+                <Button size="sm" variant="danger" loading={statusSaving === 'archived'} onClick={() => updateStatus('archived')}>
+                  Yes, close
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmClose(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="danger" onClick={() => setConfirmClose(true)}>
+                Close client
+              </Button>
+            )}
+          </div>
+        </CardBody>
+      </Card>
+
       {/* Per-client check-in link */}
       <CopyLink
         label={`Personalised check-in link for ${client.full_name}`}

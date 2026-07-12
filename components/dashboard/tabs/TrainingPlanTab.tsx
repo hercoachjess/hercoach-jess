@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import PdfExportModal from '@/components/dashboard/PdfExportModal'
+import { buildDefaultCustomisation, type PdfCustomisation } from '@/lib/pdf/plan-content'
 import { formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, TrainingPlan, TrainingSession, WeeklyProgression, OnboardingSubmission, CheckinSubmission } from '@/types'
@@ -195,12 +196,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
     setExportModalOpen(true)
   }
 
-  async function doExport(customisation: {
-    includeClientStats: boolean
-    clientStatsOverride: string
-    includeWeeklyProgression: boolean
-    weeklyProgressionOverride: string
-  }) {
+  async function doExport(customisation: PdfCustomisation) {
     setExporting(true)
     setError('')
     try {
@@ -225,10 +221,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           includeNumbers: true,
           scope: 'training',
           mode: 'inline',
-          includeClientStats: customisation.includeClientStats,
-          clientStatsOverride: customisation.clientStatsOverride || null,
-          includeWeeklyProgression: customisation.includeWeeklyProgression,
-          weeklyProgressionOverride: customisation.weeklyProgressionOverride || null,
+          customisation,
         }),
       })
       if (!res.ok) {
@@ -770,10 +763,16 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         open={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         scope="training"
-        defaults={{
+        defaults={buildDefaultCustomisation({
+          scope: 'training',
+          isTrainingOnly: true,
+          includeNumbers: true,
           statsLine: computeStatsDefault(),
           weeklyProgressionText: computeWeeklyProgressionDefault(),
-        }}
+          proteinTargetG: client.protein_target_g,
+          kcalTarget: client.primary_goal_kcal,
+        })}
+        hasWeeklyProgression={programmeLengthWeeks > 1 && weeklyProgression.length > 0}
         onGenerate={doExport}
         generating={exporting}
         error={error}

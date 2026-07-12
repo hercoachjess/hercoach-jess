@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import PdfExportModal from '@/components/dashboard/PdfExportModal'
+import { buildDefaultCustomisation, type PdfCustomisation } from '@/lib/pdf/plan-content'
 import { formatDate, macrosForKcal, macroGuidance } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, MealPlan, Meal, MealItem, FoodFact, OnboardingSubmission } from '@/types'
@@ -247,12 +248,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     setExportModalOpen(true)
   }
 
-  async function doExport(customisation: {
-    includeClientStats: boolean
-    clientStatsOverride: string
-    includeWeeklyProgression: boolean
-    weeklyProgressionOverride: string
-  }) {
+  async function doExport(customisation: PdfCustomisation) {
     setExporting(true)
     setError('')
     try {
@@ -273,10 +269,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           includeNumbers: true,
           scope: 'meal',
           mode: 'inline',
-          includeClientStats: customisation.includeClientStats,
-          clientStatsOverride: customisation.clientStatsOverride || null,
-          includeWeeklyProgression: customisation.includeWeeklyProgression,
-          weeklyProgressionOverride: customisation.weeklyProgressionOverride || null,
+          customisation,
         }),
       })
       if (!res.ok) {
@@ -1367,10 +1360,15 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         open={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         scope="meal"
-        defaults={{
+        defaults={buildDefaultCustomisation({
+          scope: 'meal',
+          isTrainingOnly: false,
+          includeNumbers: true,
           statsLine: computeStatsDefault(),
-          weeklyProgressionText: '',
-        }}
+          proteinTargetG: editedTargets.protein_g,
+          kcalTarget: editedTargets.kcal,
+        })}
+        hasFoodFacts={foodFacts.length > 0}
         onGenerate={doExport}
         generating={exporting}
         error={error}
