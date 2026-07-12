@@ -3,6 +3,7 @@ import { createElement } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCoach } from '@/lib/supabase/require-coach'
 import ClientPlanDocument from '@/lib/pdf/ClientPlanDocument'
+import type { PdfCustomisation } from '@/lib/pdf/plan-content'
 import type { MealPlan, TrainingPlan, Client, OnboardingSubmission } from '@/types'
 
 // Vercel default is 10s which is too tight for @react-pdf/renderer to
@@ -25,10 +26,7 @@ export async function POST(request: NextRequest) {
       includeNumbers = true,
       scope = 'full',
       mode = 'save',
-      includeClientStats = true,
-      clientStatsOverride = null,
-      includeWeeklyProgression = true,
-      weeklyProgressionOverride = null,
+      customisation = null,
     }: {
       clientId: string
       mealPlan: MealPlan | null
@@ -37,10 +35,10 @@ export async function POST(request: NextRequest) {
       includeNumbers?: boolean
       scope?: Scope
       mode?: Mode
-      includeClientStats?: boolean
-      clientStatsOverride?: string | null
-      includeWeeklyProgression?: boolean
-      weeklyProgressionOverride?: string | null
+      // Full per-export customisation from the modal. When absent (e.g. the
+      // Plan History save flow) the document falls back to all-sections-on
+      // evidence-based defaults, so behaviour is unchanged for those callers.
+      customisation?: PdfCustomisation | null
     } = await request.json()
 
     const supabase = createAdminClient()
@@ -74,10 +72,7 @@ export async function POST(request: NextRequest) {
       onboarding: (onboarding as OnboardingSubmission | null) ?? null,
       version,
       includeNumbers,
-      includeClientStats,
-      clientStatsOverride,
-      includeWeeklyProgression,
-      weeklyProgressionOverride,
+      customisation,
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

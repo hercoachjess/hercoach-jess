@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import PdfExportModal from '@/components/dashboard/PdfExportModal'
+import { buildDefaultCustomisation, type PdfCustomisation } from '@/lib/pdf/plan-content'
 import { formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, TrainingPlan, TrainingSession, WeeklyProgression, OnboardingSubmission, CheckinSubmission } from '@/types'
@@ -25,6 +26,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [aiRevising, setAiRevising] = useState(false)
   const [reviseInstructions, setReviseInstructions] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -195,13 +197,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
     setExportModalOpen(true)
   }
 
-  async function doExport(customisation: {
-    includeClientStats: boolean
-    clientStatsOverride: string
-    includeWeeklyProgression: boolean
-    weeklyProgressionOverride: string
-  }) {
-    setExporting(true)
+  async function runExport(customisation: PdfCustomisation, preview: boolean) {
+    if (preview) setPreviewing(true); else setExporting(true)
     setError('')
     try {
       const res = await fetch('/api/pdf/generate', {
@@ -225,10 +222,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           includeNumbers: true,
           scope: 'training',
           mode: 'inline',
-          includeClientStats: customisation.includeClientStats,
-          clientStatsOverride: customisation.clientStatsOverride || null,
-          includeWeeklyProgression: customisation.includeWeeklyProgression,
-          weeklyProgressionOverride: customisation.weeklyProgressionOverride || null,
+          customisation,
         }),
       })
       if (!res.ok) {
@@ -237,18 +231,26 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-training-plan.pdf`
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      setExportModalOpen(false)
+      if (preview) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-training-plan.pdf`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setExportModalOpen(false)
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Export failed.')
     } finally {
-      setExporting(false)
+      if (preview) setPreviewing(false); else setExporting(false)
     }
   }
+
+  const doExport = (customisation: PdfCustomisation) => runExport(customisation, false)
+  const doPreview = (customisation: PdfCustomisation) => runExport(customisation, true)
 
   // Default stats line Jess sees in the modal, matching what the PDF would
   // render if she didn't override anything. Age from DOB, height, current weight.
@@ -770,12 +772,21 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         open={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         scope="training"
-        defaults={{
+        defaults={buildDefaultCustomisation({
+          scope: 'training',
+          isTrainingOnly: true,
+          includeNumbers: true,
           statsLine: computeStatsDefault(),
           weeklyProgressionText: computeWeeklyProgressionDefault(),
-        }}
+          proteinTargetG: client.protein_target_g,
+          kcalTarget: client.primary_goal_kcal,
+        })}
+        hasWeeklyProgression={programmeLengthWeeks > 1 && weeklyProgression.length > 0}
+        storageKey={`pdf-preset:${client.id}:training`}
         onGenerate={doExport}
+        onPreview={doPreview}
         generating={exporting}
+        previewing={previewing}
         error={error}
       />
     </div>
