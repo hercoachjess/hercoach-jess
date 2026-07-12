@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
-import type { PdfCustomisation, YogaRow, SnackItem, CustomSection } from '@/lib/pdf/plan-content'
+import {
+  SECTION_LABELS, normalizeSectionOrder,
+  type PdfCustomisation, type YogaRow, type SnackItem, type CustomSection, type SectionKey,
+} from '@/lib/pdf/plan-content'
 
 interface Props {
   open: boolean
@@ -85,6 +88,32 @@ export default function PdfExportModal({
 
   const isTrainingScope = scope === 'training'
   const isMealScope = scope === 'meal'
+
+  // Sections that actually render for this scope, in the coach-chosen order.
+  // (Training only appears on training exports, Nutrition only on meal.)
+  const applicableKeys: SectionKey[] = isTrainingScope
+    ? ['training', 'yoga', 'cardio', 'general', 'custom']
+    : ['nutrition', 'yoga', 'cardio', 'general', 'custom']
+  const orderedApplicable = normalizeSectionOrder(cx.sectionOrder).filter((k) => applicableKeys.includes(k))
+
+  const sectionEnabled: Record<SectionKey, boolean> = {
+    training: cx.includeTraining,
+    yoga: cx.includeYoga,
+    cardio: cx.includeCardio,
+    nutrition: cx.includeNutrition,
+    general: cx.includeGeneralGuidance,
+    custom: cx.customSections.some((s) => s.title.trim() || s.lines.some((l) => l.trim())),
+  }
+
+  function moveSection(index: number, dir: -1 | 1) {
+    const full = normalizeSectionOrder(cx.sectionOrder)
+    const app = full.filter((k) => applicableKeys.includes(k))
+    const rest = full.filter((k) => !applicableKeys.includes(k))
+    const j = index + dir
+    if (j < 0 || j >= app.length) return
+    ;[app[index], app[j]] = [app[j], app[index]]
+    set('sectionOrder', [...app, ...rest])
+  }
 
   function clean(): PdfCustomisation {
     // Drop blank bullet lines and empty yoga/snack/custom rows so the PDF
@@ -239,6 +268,38 @@ export default function PdfExportModal({
             </div>
           </div>
         )}
+
+        {/* ── SECTION ORDER ── */}
+        <GroupHeading>Section order</GroupHeading>
+        <p className="text-xs text-[#8a8680] italic leading-relaxed -mt-1">
+          Drag isn&apos;t needed, use the arrows to set the order sections appear on the PDF. The cover stays first
+          and the sign-off stays last. Sections switched off keep their place but won&apos;t print.
+        </p>
+        <div className="flex flex-col gap-1">
+          {orderedApplicable.map((key, i) => (
+            <div key={key} className="flex items-center justify-between gap-2 border border-[rgba(255,255,255,0.14)] rounded-sm px-3 py-2">
+              <span className="text-sm text-[#e0d8cc] flex items-center gap-2">
+                <span className="text-xs text-[#8a8680] tabular-nums w-4">{i + 1}.</span>
+                {SECTION_LABELS[key]}
+                {!sectionEnabled[key] && <span className="text-xs text-[#8a8680] italic">· off</span>}
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  className="p-1 text-[#b8b4ac] hover:text-[#f0ece4] disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => moveSection(i, -1)} disabled={i === 0} aria-label={`Move ${SECTION_LABELS[key]} up`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M7 10V4M4 7l3-3 3 3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+                <button
+                  className="p-1 text-[#b8b4ac] hover:text-[#f0ece4] disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => moveSection(i, 1)} disabled={i === orderedApplicable.length - 1} aria-label={`Move ${SECTION_LABELS[key]} down`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M7 4v6M4 7l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
 
         {/* ── TRAINING (training scope only) ── */}
         {isTrainingScope && (

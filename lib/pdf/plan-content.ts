@@ -38,6 +38,39 @@ export interface MacroOverride {
   carbs_g: number
 }
 
+/** The reorderable body sections. The cover (welcome / stats / chips) is
+ *  always first and the closing sign-off always last; everything between
+ *  renders in `sectionOrder`. */
+export type SectionKey = 'training' | 'yoga' | 'cardio' | 'nutrition' | 'general' | 'custom'
+
+export const ALL_SECTION_KEYS: SectionKey[] = ['training', 'yoga', 'cardio', 'nutrition', 'general', 'custom']
+
+export const DEFAULT_SECTION_ORDER: SectionKey[] = [...ALL_SECTION_KEYS]
+
+export const SECTION_LABELS: Record<SectionKey, string> = {
+  training: 'Training plan',
+  yoga: 'Yoga & active recovery',
+  cardio: 'Cardio & daily movement',
+  nutrition: 'Nutrition',
+  general: 'General guidance',
+  custom: 'Extra sections',
+}
+
+/** Return a valid, de-duplicated order that always contains every known key,
+ *  appending any that a saved/stale order is missing. */
+export function normalizeSectionOrder(order: SectionKey[] | undefined | null): SectionKey[] {
+  const seen = new Set<SectionKey>()
+  const result: SectionKey[] = []
+  for (const k of order ?? []) {
+    if (ALL_SECTION_KEYS.includes(k) && !seen.has(k)) {
+      seen.add(k)
+      result.push(k)
+    }
+  }
+  for (const k of ALL_SECTION_KEYS) if (!seen.has(k)) result.push(k)
+  return result
+}
+
 /**
  * Full set of per-export choices. Every `include*` flag toggles a section /
  * sub-section on the PDF; every `*Lines` / text field is the editable content
@@ -104,6 +137,9 @@ export interface PdfCustomisation {
 
   // ── Extra coach-authored sections ──
   customSections: CustomSection[]
+
+  // ── Order of the reorderable body sections ──
+  sectionOrder: SectionKey[]
 
   includeClosing: boolean
 }
@@ -421,6 +457,8 @@ export function buildDefaultCustomisation(opts: BuildDefaultOpts): PdfCustomisat
     ),
 
     customSections: [],
+
+    sectionOrder: [...DEFAULT_SECTION_ORDER],
 
     includeClosing: true,
   }

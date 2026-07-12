@@ -5,7 +5,11 @@ import {
 import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative, OnboardingSubmission } from '@/types'
 import { normalizeMealItems } from '@/lib/meal'
 import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
-import { buildDefaultCustomisation, computeHrZones, type PdfCustomisation, type HrZoneRow } from '@/lib/pdf/plan-content'
+import type { ReactNode } from 'react'
+import {
+  buildDefaultCustomisation, computeHrZones, normalizeSectionOrder,
+  type PdfCustomisation, type HrZoneRow, type SectionKey,
+} from '@/lib/pdf/plan-content'
 
 // ───────────────── FONTS ─────────────────
 // Using PDF built-in fonts (Helvetica + Times-Italic) so PDFs always generate
@@ -655,11 +659,13 @@ export default function ClientPlanDocument({
           </>
         )}
 
-        {/* ──── SECTION 1, TRAINING ──── */}
-        {trainingPlan && cx.includeTraining && (
+        {/* Body sections render in the coach-chosen order (cx.sectionOrder).
+            The cover above is always first; the closing sign-off always last.
+            Section numbers and the page break between sections are assigned
+            dynamically from the running order. */}
+        {(() => {
+          const trainingBody: ReactNode = (trainingPlan && cx.includeTraining) ? (
           <>
-            <SectionHeader eyebrow="Section 01" title="Training Plan" />
-
             {cx.includeWarmup && cx.warmupLines.length > 0 && (
               <>
                 <DarkBox
@@ -753,12 +759,10 @@ export default function ClientPlanDocument({
               </View>
             )}
           </>
-        )}
+          ) : null
 
-        {/* ──── SECTION 2, YOGA & ACTIVE RECOVERY ──── */}
-        {cx.includeYoga && (
-          <View break style={{ marginTop: 8 }}>
-            <SectionHeader eyebrow="Section 02" title="Yoga & Active Recovery" />
+          const yogaBody: ReactNode = cx.includeYoga ? (
+          <>
             {cx.yogaIntro.trim().length > 0 && (
               <Text style={s.noteText}>{cx.yogaIntro.trim()}</Text>
             )}
@@ -783,13 +787,11 @@ export default function ClientPlanDocument({
                 {cx.yogaTip.trim()}
               </Text>
             )}
-          </View>
-        )}
+          </>
+          ) : null
 
-        {/* ──── SECTION 3, CARDIO & STEPS ──── */}
-        {cx.includeCardio && (
-          <View break style={{ marginTop: 8 }}>
-            <SectionHeader eyebrow="Section 03" title="Cardio & Daily Movement" />
+          const cardioBody: ReactNode = cx.includeCardio ? (
+          <>
             <TwoCol
               lHead="Cardio, 2 to 3 sessions per week"
               lLines={cx.cardioLines}
@@ -823,13 +825,11 @@ export default function ClientPlanDocument({
                 </Text>
               </>
             )}
-          </View>
-        )}
+          </>
+          ) : null
 
-        {/* ──── SECTION 4, NUTRITION ──── */}
-        {mealPlan && cx.includeNutrition && (
-          <View break style={{ marginTop: 8 }}>
-            <SectionHeader eyebrow="Section 04" title="Nutrition Plan" />
+          const nutritionBody: ReactNode = (mealPlan && cx.includeNutrition) ? (
+          <>
             <Text style={s.noteText}>
               All foods are readily available at UK supermarkets (Tesco, Aldi, Lidl, Sainsbury&apos;s,
               Asda, Morrisons). Choose one option per meal each day and rotate throughout the week.
@@ -899,61 +899,94 @@ export default function ClientPlanDocument({
                 ))}
               </View>
             )}
-          </View>
-        )}
+          </>
+          ) : null
 
-        {/* ──── SECTION 5, GENERAL GUIDANCE ──── */}
-        <View break style={{ marginTop: 8 }}>
-          {cx.includeGeneralGuidance && (
+          const generalBody: ReactNode = cx.includeGeneralGuidance ? (
+          <>
+            {/* Sleep + stress render side-by-side when both are on, or as a
+                single full-width box when only one is kept. */}
+            {cx.includeSleep && cx.includeStress ? (
+              <TwoCol
+                lHead="Sleep & Recovery"
+                lLines={cx.sleepLines}
+                rHead="Stress & Mindset"
+                rLines={cx.stressLines}
+              />
+            ) : cx.includeSleep ? (
+              <LinenBox head="Sleep & Recovery" lines={cx.sleepLines} />
+            ) : cx.includeStress ? (
+              <LinenBox head="Stress & Mindset" lines={cx.stressLines} />
+            ) : null}
+
+            {/* Nutrition-timing box only for combined/meal exports. */}
+            {!isTrainingOnly && cx.includeTrainingDayNutrition && cx.trainingDayNutritionLines.length > 0 && (
+              <>
+                <View style={{ height: 8 }} />
+                <LinenBox head="Training day nutrition, timing" lines={cx.trainingDayNutritionLines} />
+              </>
+            )}
+
+            {cx.includeNoteFromJess && cx.noteFromJessLines.length > 0 && (
+              <>
+                <View style={{ height: 8 }} />
+                <DarkBox head="A note from Jess" lines={cx.noteFromJessLines} />
+              </>
+            )}
+          </>
+          ) : null
+
+          // Extra coach-authored sections, rendered together wherever the
+          // 'custom' key sits in the section order.
+          const customList = cx.customSections.filter((sec) => sec.title.trim() || sec.lines.some((l) => l.trim()))
+          const customBody: ReactNode = customList.length > 0 ? (
             <>
-              <SectionHeader eyebrow="Section 05" title="General Guidance" />
-
-              {/* Sleep + stress render side-by-side when both are on, or as a
-                  single full-width box when only one is kept. */}
-              {cx.includeSleep && cx.includeStress ? (
-                <TwoCol
-                  lHead="Sleep & Recovery"
-                  lLines={cx.sleepLines}
-                  rHead="Stress & Mindset"
-                  rLines={cx.stressLines}
-                />
-              ) : cx.includeSleep ? (
-                <LinenBox head="Sleep & Recovery" lines={cx.sleepLines} />
-              ) : cx.includeStress ? (
-                <LinenBox head="Stress & Mindset" lines={cx.stressLines} />
-              ) : null}
-
-              {/* Nutrition-timing box only for combined/meal exports. */}
-              {!isTrainingOnly && cx.includeTrainingDayNutrition && cx.trainingDayNutritionLines.length > 0 && (
-                <>
-                  <View style={{ height: 8 }} />
-                  <LinenBox head="Training day nutrition, timing" lines={cx.trainingDayNutritionLines} />
-                </>
-              )}
-
-              {cx.includeNoteFromJess && cx.noteFromJessLines.length > 0 && (
-                <>
-                  <View style={{ height: 8 }} />
-                  <DarkBox head="A note from Jess" lines={cx.noteFromJessLines} />
-                </>
-              )}
+              {customList.map((sec, i) => (
+                <View key={i} style={{ marginTop: i === 0 ? 0 : 12 }}>
+                  <LinenBox
+                    head={sec.title.trim() || 'Extra guidance'}
+                    lines={sec.lines.filter((l) => l.trim().length > 0)}
+                  />
+                </View>
+              ))}
             </>
-          )}
+          ) : null
 
-          {/* ──── EXTRA COACH-AUTHORED SECTIONS ──── */}
-          {cx.customSections
-            .filter((sec) => sec.title.trim() || sec.lines.some((l) => l.trim()))
-            .map((sec, i) => (
-              <View key={i} style={{ marginTop: 12 }}>
-                <LinenBox
-                  head={sec.title.trim() || 'Extra guidance'}
-                  lines={sec.lines.filter((l) => l.trim().length > 0)}
-                />
-              </View>
-            ))}
+          const defs: Record<SectionKey, { title: string; body: ReactNode } | null> = {
+            training: trainingBody ? { title: 'Training Plan', body: trainingBody } : null,
+            yoga: yogaBody ? { title: 'Yoga & Active Recovery', body: yogaBody } : null,
+            cardio: cardioBody ? { title: 'Cardio & Daily Movement', body: cardioBody } : null,
+            nutrition: nutritionBody ? { title: 'Nutrition Plan', body: nutritionBody } : null,
+            general: generalBody ? { title: 'General Guidance', body: generalBody } : null,
+            custom: customBody ? { title: '', body: customBody } : null,
+          }
 
-          {/* ──── CLOSING PANEL ──── */}
-          {cx.includeClosing && (
+          const nodes: ReactNode[] = []
+          let sectionNo = 0
+          for (const key of normalizeSectionOrder(cx.sectionOrder)) {
+            const def = defs[key]
+            if (!def) continue
+            const isFirst = nodes.length === 0
+            if (key === 'custom') {
+              // Custom boxes are self-titled, so no numbered section header.
+              nodes.push(
+                <View key={key} break={!isFirst} style={{ marginTop: 8 }}>{def.body}</View>,
+              )
+            } else {
+              sectionNo += 1
+              nodes.push(
+                <View key={key} break={!isFirst} style={{ marginTop: 8 }}>
+                  <SectionHeader eyebrow={`Section ${String(sectionNo).padStart(2, '0')}`} title={def.title} />
+                  {def.body}
+                </View>,
+              )
+            }
+          }
+          return <>{nodes}</>
+        })()}
+
+        {/* ──── CLOSING PANEL ──── always last, after the ordered sections. */}
+        {cx.includeClosing && (
           <View style={s.closeBox} wrap={false}>
             <Text style={s.closeLogo}>hercoach · Jess</Text>
             <View style={s.closeRule} />
@@ -973,8 +1006,7 @@ export default function ClientPlanDocument({
               if you have any concerns about your physical health.
             </Text>
           </View>
-          )}
-        </View>
+        )}
       </Page>
     </Document>
   )
