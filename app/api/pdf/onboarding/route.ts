@@ -5,6 +5,9 @@ import { requireCoach } from '@/lib/supabase/require-coach'
 import OnboardingDocument from '@/lib/pdf/OnboardingDocument'
 import type { OnboardingSubmission } from '@/types'
 
+// PDF rendering on a cold start easily exceeds Vercel's 10s default.
+export const maxDuration = 60
+
 type Mode = 'save' | 'inline'
 
 export async function POST(request: NextRequest) {

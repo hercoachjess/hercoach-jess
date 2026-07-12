@@ -5,6 +5,11 @@ import { requireCoach } from '@/lib/supabase/require-coach'
 import ClientPlanDocument from '@/lib/pdf/ClientPlanDocument'
 import type { MealPlan, TrainingPlan, Client, OnboardingSubmission } from '@/types'
 
+// Vercel default is 10s which is too tight for @react-pdf/renderer to
+// render the full multi-page plan document on a cold start. 60s covers
+// the worst case comfortably (typical render is 3-8s).
+export const maxDuration = 60
+
 type Scope = 'meal' | 'training' | 'full'
 type Mode = 'save' | 'inline'
 

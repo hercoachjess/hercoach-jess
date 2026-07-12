@@ -5,6 +5,10 @@ import { getCoachStyleBlock } from '@/lib/ai/coach-style'
 import { extractJson } from '@/lib/ai/extract-json'
 import type { TrainingSession, CheckinSubmission } from '@/types'
 
+// Anthropic streaming responses can run 20-40s on the longer prompts.
+// Vercel default is 10s, bump to 60s so requests dont timeout mid-call.
+export const maxDuration = 60
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 /**

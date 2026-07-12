@@ -5,6 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import DietAdviceDocument from '@/lib/pdf/DietAdviceDocument'
 import type { DietSubmission } from '@/types'
 
+// PDF rendering on a cold start easily exceeds Vercel's 10s default.
+export const maxDuration = 60
+
 /**
  * Coach-side PDF export: personal note from Jess + client's food week
  * for reference. Auth-gated with requireCoach so only Jess can hit it.

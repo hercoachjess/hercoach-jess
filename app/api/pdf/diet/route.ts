@@ -4,6 +4,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import DietWeekDocument from '@/lib/pdf/DietWeekDocument'
 import type { DietSubmission } from '@/types'
 
+// PDF rendering on a cold start easily exceeds Vercel's 10s default.
+export const maxDuration = 60
+
 /**
  * Public "generate diet week PDF" endpoint.
  *

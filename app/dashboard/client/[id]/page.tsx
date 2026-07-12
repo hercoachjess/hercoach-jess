@@ -40,7 +40,7 @@ export default async function ClientFilePage({ params }: Props) {
       .eq('client_id', id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('checkin_submissions')
       .select('*')
@@ -52,14 +52,14 @@ export default async function ClientFilePage({ params }: Props) {
       .eq('client_id', id)
       .eq('is_current', true)
       .limit(1)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('training_plans')
       .select('*')
       .eq('client_id', id)
       .eq('is_current', true)
       .limit(1)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('plan_history')
       .select('*')
