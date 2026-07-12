@@ -122,8 +122,11 @@ Respond with a JSON object ONLY, no markdown fences:
   "coach_notes": "Optional overall note about the programme + progressive overload guidance"
 }`
 
+    // Haiku 4.5 draft: 3-5k tokens of structured JSON. Sonnet clocks
+    // ~60-90s which iOS Safari kills at its 60s fetch timeout. Haiku
+    // finishes in 15-25s comfortably inside every timeout window.
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 5000,
       messages: [{ role: 'user', content: prompt }],
     })

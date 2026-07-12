@@ -112,8 +112,10 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
   "coach_notes": "Brief note on what changed and why"
 }`
 
+    // Haiku 4.5 revise: same 5-7k token JSON output as meal-plan.
+    // Sonnet at 90s times out on iOS Safari's 60s fetch limit.
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     })
