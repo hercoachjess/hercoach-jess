@@ -188,7 +188,10 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
 
   // Export button opens the customise-before-generate modal; doExport
   // runs the actual fetch with Jess's chosen toggles + text overrides.
+  // Clear any stale error from an earlier action so the modal doesn't
+  // open with a red message that has nothing to do with the export.
   function exportPdf() {
+    setError('')
     setExportModalOpen(true)
   }
 
@@ -211,6 +214,10 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
             ...(trainingPlan ?? {}),
             level,
             days_per_week: daysPerWeek,
+            intensity,
+            training_style: trainingStyle || null,
+            programme_length_weeks: programmeLengthWeeks,
+            weekly_progression: weeklyProgression,
             sessions: editedSessions,
             coach_notes: coachNotes,
           },

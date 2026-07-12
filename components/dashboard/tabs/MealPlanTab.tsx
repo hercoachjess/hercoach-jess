@@ -239,8 +239,11 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
 
   // Click on the Export button opens the customise-before-generate modal.
   // The real fetch happens in doExport(customisation) which the modal
-  // calls when Jess taps Generate PDF.
+  // calls when Jess taps Generate PDF. Clear any stale error from an
+  // earlier action so the modal doesn't open with a red message that
+  // has nothing to do with the export.
   function exportPdf() {
+    setError('')
     setExportModalOpen(true)
   }
 
@@ -262,6 +265,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
             ...(mealPlan ?? {}),
             targets: editedTargets,
             meals: editedMeals,
+            food_facts: foodFacts,
             coach_notes: coachNotes,
           },
           trainingPlan: null,
