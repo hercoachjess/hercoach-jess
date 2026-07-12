@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
-import type { PdfCustomisation, YogaRow, SnackItem } from '@/lib/pdf/plan-content'
+import type { PdfCustomisation, YogaRow, SnackItem, CustomSection } from '@/lib/pdf/plan-content'
 
 interface Props {
   open: boolean
@@ -16,7 +16,12 @@ interface Props {
   /** Whether this meal plan has any food facts to show. */
   hasFoodFacts?: boolean
   onGenerate: (customisation: PdfCustomisation) => Promise<void>
+  /** Optional: open the PDF inline in a new tab instead of downloading. */
+  onPreview?: (customisation: PdfCustomisation) => Promise<void>
+  /** localStorage key for a per-client saved setup (preset). */
+  storageKey?: string
   generating: boolean
+  previewing?: boolean
   error?: string
 }
 
@@ -38,15 +43,39 @@ export default function PdfExportModal({
   hasWeeklyProgression = false,
   hasFoodFacts = false,
   onGenerate,
+  onPreview,
+  storageKey,
   generating,
+  previewing = false,
   error,
 }: Props) {
   const [cx, setCx] = useState<PdfCustomisation>(defaults)
+  const [presetLoaded, setPresetLoaded] = useState(false)
+  const [savedTick, setSavedTick] = useState(false)
 
-  // Re-seed from defaults every time the modal opens so edits made on the
-  // plan itself (targets, step goal, weekly progression) flow through.
+  // Re-seed every time the modal opens. Start from the fresh defaults (so
+  // edits made on the plan itself — targets, step goal, weekly progression —
+  // flow through), then overlay any saved per-client setup for the section
+  // toggles + wording. Macros always stay live from the current plan targets.
   useEffect(() => {
-    if (open) setCx(defaults)
+    if (!open) return
+    let next = defaults
+    let loaded = false
+    if (storageKey && typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem(storageKey)
+        if (raw) {
+          const saved = JSON.parse(raw) as Partial<PdfCustomisation>
+          next = { ...defaults, ...saved, macroOverride: defaults.macroOverride }
+          loaded = true
+        }
+      } catch {
+        /* ignore corrupt preset */
+      }
+    }
+    setCx(next)
+    setPresetLoaded(loaded)
+    setSavedTick(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -57,11 +86,11 @@ export default function PdfExportModal({
   const isTrainingScope = scope === 'training'
   const isMealScope = scope === 'meal'
 
-  async function generate() {
-    // Clean pass: drop blank bullet lines and empty yoga/snack rows so the
-    // PDF never renders a stray empty bullet or row.
+  function clean(): PdfCustomisation {
+    // Drop blank bullet lines and empty yoga/snack/custom rows so the PDF
+    // never renders a stray empty bullet or row.
     const cleanLines = (arr: string[]) => arr.map((l) => l.replace(/\s+$/g, '')).filter((l) => l.trim().length > 0)
-    const cleaned: PdfCustomisation = {
+    return {
       ...cx,
       warmupLines: cleanLines(cx.warmupLines),
       progressiveOverloadLines: cleanLines(cx.progressiveOverloadLines),
@@ -77,8 +106,46 @@ export default function PdfExportModal({
       stressLines: cleanLines(cx.stressLines),
       trainingDayNutritionLines: cleanLines(cx.trainingDayNutritionLines),
       noteFromJessLines: cleanLines(cx.noteFromJessLines),
+      customSections: cx.customSections
+        .map((sec) => ({ title: sec.title.trim(), lines: cleanLines(sec.lines) }))
+        .filter((sec) => sec.title || sec.lines.length > 0),
     }
-    await onGenerate(cleaned)
+  }
+
+  async function generate() {
+    await onGenerate(clean())
+  }
+
+  async function preview() {
+    if (onPreview) await onPreview(clean())
+  }
+
+  function savePreset() {
+    if (!storageKey || typeof window === 'undefined') return
+    // Section choices + wording are worth remembering; macros always come
+    // fresh from the plan, so don't freeze them into the preset.
+    const toStore = { ...clean(), macroOverride: null }
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(toStore))
+      setPresetLoaded(true)
+      setSavedTick(true)
+      setTimeout(() => setSavedTick(false), 2500)
+    } catch {
+      /* storage full / unavailable — silently ignore */
+    }
+  }
+
+  function resetToDefaults() {
+    setCx(defaults)
+    setPresetLoaded(false)
+    setSavedTick(false)
+    if (storageKey && typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(storageKey)
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   return (
@@ -88,18 +155,42 @@ export default function PdfExportModal({
       title={isTrainingScope ? 'Review & export training plan' : 'Review & export meal plan'}
       size="xl"
       footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={generate} loading={generating}>Generate PDF</Button>
-        </>
+        <div className="flex items-center justify-between gap-2 w-full flex-wrap">
+          <div className="flex items-center gap-2">
+            {storageKey && (
+              <Button variant="ghost" onClick={savePreset}>
+                {savedTick ? 'Saved ✓' : 'Save setup'}
+              </Button>
+            )}
+            {onPreview && (
+              <Button variant="outline" onClick={preview} loading={previewing}>Preview</Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button onClick={generate} loading={generating}>Generate PDF</Button>
+          </div>
+        </div>
       }
     >
       <div className="flex flex-col gap-5">
         <p className="text-xs text-[#8a8680] italic leading-relaxed">
           This is exactly what will appear on the PDF. Switch any section off, or edit its wording,
-          before generating. In the bullet-list boxes each line is one bullet. Changes only affect
-          this one export, the saved plan stays untouched.
+          before generating. In the bullet-list boxes each line is one bullet. Use <span className="text-[#b8b4ac]">Preview</span> to
+          open a draft in a new tab, and <span className="text-[#b8b4ac]">Save setup</span> to remember these choices for this client.
+          Changes only affect this export, the saved plan stays untouched.
         </p>
+
+        {presetLoaded && (
+          <div className="flex items-center justify-between gap-3 flex-wrap border border-[rgba(125,168,125,0.4)] bg-[rgba(125,168,125,0.06)] rounded-sm px-3 py-2">
+            <p className="text-xs text-[#7da87d] leading-relaxed">
+              Loaded your saved setup for this client. Macros &amp; stats are still taken live from the current plan.
+            </p>
+            <button className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] transition-colors whitespace-nowrap" onClick={resetToDefaults}>
+              Reset to defaults
+            </button>
+          </div>
+        )}
 
         {/* ── COVER & OVERVIEW ── */}
         <GroupHeading>Cover &amp; overview</GroupHeading>
@@ -119,10 +210,34 @@ export default function PdfExportModal({
             onChange={(v) => set('stepGoal', v)} hint="Shown on the chips and used across the cardio & movement section." />
         </Section>
 
-        {isMealScope && (
-          <p className="text-xs text-[#8a8680] italic leading-relaxed -mt-1">
-            Calories &amp; macros come from the targets on the Meal Plan tab, edit them there and they update here on the next open.
-          </p>
+        {isMealScope && cx.macroOverride && (
+          <div className="border border-[rgba(255,255,255,0.14)] rounded-sm p-4">
+            <p className="text-sm text-[#f0ece4] font-medium leading-tight">Macro targets on the PDF</p>
+            <p className="text-xs text-[#8a8680] italic leading-relaxed mt-0.5 mb-3">
+              Amend the calories &amp; macros shown on the chips and nutrition guidance for this export.
+              Seeded from the Meal Plan tab targets.
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {([
+                { key: 'kcal', label: 'Calories' },
+                { key: 'protein_g', label: 'Protein (g)' },
+                { key: 'fat_g', label: 'Fat (g)' },
+                { key: 'carbs_g', label: 'Carbs (g)' },
+              ] as const).map(({ key, label }) => (
+                <div key={key}>
+                  <p className="text-xs text-[#b8b4ac] mb-1">{label}</p>
+                  <input
+                    type="number"
+                    className="input-underline text-sm w-full"
+                    value={cx.macroOverride![key]}
+                    onChange={(e) =>
+                      set('macroOverride', { ...cx.macroOverride!, [key]: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* ── TRAINING (training scope only) ── */}
@@ -245,14 +360,14 @@ export default function PdfExportModal({
           checked={cx.includeGeneralGuidance} onCheck={(v) => set('includeGeneralGuidance', v)} />
         {cx.includeGeneralGuidance && (
           <div className="flex flex-col gap-4 pl-3 border-l border-[rgba(255,255,255,0.10)]">
-            <div>
-              <FieldLabel>Sleep &amp; recovery</FieldLabel>
+            <Section label="Sleep & recovery" hint="Sleep hygiene and recovery guidance."
+              checked={cx.includeSleep} onCheck={(v) => set('includeSleep', v)}>
               <LinesField value={cx.sleepLines} onChange={(v) => set('sleepLines', v)} rows={6} />
-            </div>
-            <div>
-              <FieldLabel>Stress &amp; mindset</FieldLabel>
+            </Section>
+            <Section label="Stress & mindset" hint="Mindset and consistency guidance."
+              checked={cx.includeStress} onCheck={(v) => set('includeStress', v)}>
               <LinesField value={cx.stressLines} onChange={(v) => set('stressLines', v)} rows={6} />
-            </div>
+            </Section>
             {isMealScope && (
               <Section label="Training-day nutrition timing" hint="Pre / post-workout fuelling guidance."
                 checked={cx.includeTrainingDayNutrition} onCheck={(v) => set('includeTrainingDayNutrition', v)}>
@@ -265,6 +380,14 @@ export default function PdfExportModal({
             </Section>
           </div>
         )}
+
+        {/* ── EXTRA SECTIONS ── */}
+        <GroupHeading>Extra sections</GroupHeading>
+        <p className="text-xs text-[#8a8680] italic leading-relaxed -mt-1">
+          Add your own one-off sections for this export, e.g. supplement guidance, holiday eating, a specific
+          rehab note. Each shows as a titled box near the end of the plan.
+        </p>
+        <CustomSectionsEditor sections={cx.customSections} onChange={(v) => set('customSections', v)} />
 
         <Toggle label="Closing panel & disclaimers" hint="The hercoach sign-off with the professional registration and safety disclaimers. Recommended to keep on."
           checked={cx.includeClosing} onCheck={(v) => set('includeClosing', v)} />
@@ -396,6 +519,34 @@ function YogaEditor({ rows, onChange }: { rows: YogaRow[]; onChange: (v: YogaRow
       </div>
       <button className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors mt-2" onClick={add}>
         + Add pose
+      </button>
+    </div>
+  )
+}
+
+function CustomSectionsEditor({ sections, onChange }: { sections: CustomSection[]; onChange: (v: CustomSection[]) => void }) {
+  const updateTitle = (i: number, title: string) =>
+    onChange(sections.map((s, j) => (j === i ? { ...s, title } : s)))
+  const updateLines = (i: number, lines: string[]) =>
+    onChange(sections.map((s, j) => (j === i ? { ...s, lines } : s)))
+  const remove = (i: number) => onChange(sections.filter((_, j) => j !== i))
+  const add = () => onChange([...sections, { title: '', lines: [] }])
+  return (
+    <div className="flex flex-col gap-3">
+      {sections.map((sec, i) => (
+        <div key={i} className="border border-[rgba(255,255,255,0.14)] rounded-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <input className="input-underline text-sm flex-1" value={sec.title} placeholder="Section title (e.g. Supplements)"
+              onChange={(e) => updateTitle(i, e.target.value)} />
+            <button className="text-[#b8b4ac] hover:text-[#b06060] transition-colors p-1" onClick={() => remove(i)} aria-label="Remove section">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" /></svg>
+            </button>
+          </div>
+          <LinesField value={sec.lines} onChange={(v) => updateLines(i, v)} rows={4} />
+        </div>
+      ))}
+      <button className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors" onClick={add}>
+        + Add a section
       </button>
     </div>
   )

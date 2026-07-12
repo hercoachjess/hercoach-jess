@@ -5,7 +5,7 @@ import {
 import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative, OnboardingSubmission } from '@/types'
 import { normalizeMealItems } from '@/lib/meal'
 import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
-import { buildDefaultCustomisation, type PdfCustomisation } from '@/lib/pdf/plan-content'
+import { buildDefaultCustomisation, computeHrZones, type PdfCustomisation, type HrZoneRow } from '@/lib/pdf/plan-content'
 
 // ───────────────── FONTS ─────────────────
 // Using PDF built-in fonts (Helvetica + Times-Italic) so PDFs always generate
@@ -485,14 +485,7 @@ function SnackStrip({ snacks }: { snacks: [string, string][] }) {
   )
 }
 
-function HRTable() {
-  const zones = [
-    { z: '1', intensity: 'Very light',  hr: '94–113 bpm',  feel: 'Easy, full conversation',          use: 'Warm-up, cool-down, recovery walks' },
-    { z: '2', intensity: 'Light',       hr: '113–132 bpm', feel: 'Comfortable, slightly breathless', use: 'Incline walk cardio, YOUR TARGET' },
-    { z: '3', intensity: 'Moderate',    hr: '132–151 bpm', feel: 'Breathing harder, still talking',   use: 'Cross trainer, steady state' },
-    { z: '4', intensity: 'Hard',        hr: '151–170 bpm', feel: 'Short sentences only',              use: 'Optional, not needed at this stage' },
-    { z: '5', intensity: 'Max effort',  hr: '170+ bpm',    feel: 'Cannot speak',                      use: 'Not recommended currently' },
-  ]
+function HRTable({ zones }: { zones: HrZoneRow[] }) {
   return (
     <View>
       <View style={s.tableHeader}>
@@ -558,8 +551,18 @@ export default function ClientPlanDocument({
     isTrainingOnly,
     includeNumbers,
     proteinTargetG: mealPlan?.targets?.protein_g ?? client.protein_target_g,
+    fatTargetG: mealPlan?.targets?.fat_g ?? client.fat_target_g,
+    carbsTargetG: mealPlan?.targets?.carbs_g ?? client.carbs_target_g,
     kcalTarget: mealPlan?.targets?.kcal ?? client.primary_goal_kcal,
   })
+
+  // Personalised HR zones from the client's own max HR (from vitals, or
+  // 220 − age). Falls back inside computeHrZones when age is unknown.
+  const age = client.date_of_birth
+    ? new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()
+    : null
+  const maxHr = client.hr_max ?? (age ? 220 - age : null)
+  const hrZones = computeHrZones(maxHr)
 
   // Macro chips vary by variant. Training-only exports don't show
   // nutrition or macro content on the strip.
@@ -805,7 +808,13 @@ export default function ClientPlanDocument({
                   are accurate enough.
                 </Text>
                 <View style={{ height: 4 }} />
-                <HRTable />
+                <HRTable zones={hrZones} />
+                {client.hr_resting && (
+                  <Text style={[s.noteText, { marginTop: 4 }]}>
+                    Your resting heart rate on file is {client.hr_resting} bpm. A lower resting HR over
+                    time is a good sign your aerobic fitness is improving.
+                  </Text>
+                )}
                 <Text style={[s.noteText, { marginTop: 6 }]}>
                   <Text style={{ fontFamily: 'Helvetica-Bold' }}>Why Zone 2? </Text>
                   At this intensity your body uses fat as its primary fuel source, it doesn&apos;t spike
@@ -899,12 +908,20 @@ export default function ClientPlanDocument({
             <>
               <SectionHeader eyebrow="Section 05" title="General Guidance" />
 
-              <TwoCol
-                lHead="Sleep & Recovery"
-                lLines={cx.sleepLines}
-                rHead="Stress & Mindset"
-                rLines={cx.stressLines}
-              />
+              {/* Sleep + stress render side-by-side when both are on, or as a
+                  single full-width box when only one is kept. */}
+              {cx.includeSleep && cx.includeStress ? (
+                <TwoCol
+                  lHead="Sleep & Recovery"
+                  lLines={cx.sleepLines}
+                  rHead="Stress & Mindset"
+                  rLines={cx.stressLines}
+                />
+              ) : cx.includeSleep ? (
+                <LinenBox head="Sleep & Recovery" lines={cx.sleepLines} />
+              ) : cx.includeStress ? (
+                <LinenBox head="Stress & Mindset" lines={cx.stressLines} />
+              ) : null}
 
               {/* Nutrition-timing box only for combined/meal exports. */}
               {!isTrainingOnly && cx.includeTrainingDayNutrition && cx.trainingDayNutritionLines.length > 0 && (
@@ -922,6 +939,18 @@ export default function ClientPlanDocument({
               )}
             </>
           )}
+
+          {/* ──── EXTRA COACH-AUTHORED SECTIONS ──── */}
+          {cx.customSections
+            .filter((sec) => sec.title.trim() || sec.lines.some((l) => l.trim()))
+            .map((sec, i) => (
+              <View key={i} style={{ marginTop: 12 }}>
+                <LinenBox
+                  head={sec.title.trim() || 'Extra guidance'}
+                  lines={sec.lines.filter((l) => l.trim().length > 0)}
+                />
+              </View>
+            ))}
 
           {/* ──── CLOSING PANEL ──── */}
           {cx.includeClosing && (

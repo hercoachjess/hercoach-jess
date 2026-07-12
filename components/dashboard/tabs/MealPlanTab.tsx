@@ -49,6 +49,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   const [aiRevising, setAiRevising] = useState(false)
   const [reviseInstructions, setReviseInstructions] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -248,8 +249,8 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     setExportModalOpen(true)
   }
 
-  async function doExport(customisation: PdfCustomisation) {
-    setExporting(true)
+  async function runExport(customisation: PdfCustomisation, preview: boolean) {
+    if (preview) setPreviewing(true); else setExporting(true)
     setError('')
     try {
       const res = await fetch('/api/pdf/generate', {
@@ -259,7 +260,9 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           clientId: client.id,
           mealPlan: {
             ...(mealPlan ?? {}),
-            targets: editedTargets,
+            // Macros amended in the export modal override the plan targets
+            // for this one PDF (chips + nutrition guidance).
+            targets: customisation.macroOverride ?? editedTargets,
             meals: editedMeals,
             food_facts: foodFacts,
             coach_notes: coachNotes,
@@ -278,18 +281,27 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
       }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-meal-plan.pdf`
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      setExportModalOpen(false)
+      if (preview) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        // Give the new tab time to load before revoking.
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-meal-plan.pdf`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setExportModalOpen(false)
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Export failed.')
     } finally {
-      setExporting(false)
+      if (preview) setPreviewing(false); else setExporting(false)
     }
   }
+
+  const doExport = (customisation: PdfCustomisation) => runExport(customisation, false)
+  const doPreview = (customisation: PdfCustomisation) => runExport(customisation, true)
 
   // Compute the default stats line Jess sees in the modal, matching
   // exactly what the PDF would render if she didn't override anything.
@@ -1366,11 +1378,16 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
           includeNumbers: true,
           statsLine: computeStatsDefault(),
           proteinTargetG: editedTargets.protein_g,
+          fatTargetG: editedTargets.fat_g,
+          carbsTargetG: editedTargets.carbs_g,
           kcalTarget: editedTargets.kcal,
         })}
         hasFoodFacts={foodFacts.length > 0}
+        storageKey={`pdf-preset:${client.id}:meal`}
         onGenerate={doExport}
+        onPreview={doPreview}
         generating={exporting}
+        previewing={previewing}
         error={error}
       />
     </div>

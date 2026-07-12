@@ -26,6 +26,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   const [aiRevising, setAiRevising] = useState(false)
   const [reviseInstructions, setReviseInstructions] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -196,8 +197,8 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
     setExportModalOpen(true)
   }
 
-  async function doExport(customisation: PdfCustomisation) {
-    setExporting(true)
+  async function runExport(customisation: PdfCustomisation, preview: boolean) {
+    if (preview) setPreviewing(true); else setExporting(true)
     setError('')
     try {
       const res = await fetch('/api/pdf/generate', {
@@ -230,18 +231,26 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
       }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-training-plan.pdf`
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      setExportModalOpen(false)
+      if (preview) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${client.full_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-training-plan.pdf`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setExportModalOpen(false)
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Export failed.')
     } finally {
-      setExporting(false)
+      if (preview) setPreviewing(false); else setExporting(false)
     }
   }
+
+  const doExport = (customisation: PdfCustomisation) => runExport(customisation, false)
+  const doPreview = (customisation: PdfCustomisation) => runExport(customisation, true)
 
   // Default stats line Jess sees in the modal, matching what the PDF would
   // render if she didn't override anything. Age from DOB, height, current weight.
@@ -773,8 +782,11 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           kcalTarget: client.primary_goal_kcal,
         })}
         hasWeeklyProgression={programmeLengthWeeks > 1 && weeklyProgression.length > 0}
+        storageKey={`pdf-preset:${client.id}:training`}
         onGenerate={doExport}
+        onPreview={doPreview}
         generating={exporting}
+        previewing={previewing}
         error={error}
       />
     </div>

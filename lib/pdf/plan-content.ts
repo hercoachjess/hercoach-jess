@@ -23,6 +23,21 @@ export interface SnackItem {
   detail: string
 }
 
+/** A coach-authored extra section (title + bullet lines), rendered near the
+ *  end of the plan before the closing panel. Lets Jess drop in one-off
+ *  guidance (supplements, holiday eating, a specific rehab note, …). */
+export interface CustomSection {
+  title: string
+  lines: string[]
+}
+
+export interface MacroOverride {
+  kcal: number
+  protein_g: number
+  fat_g: number
+  carbs_g: number
+}
+
 /**
  * Full set of per-export choices. Every `include*` flag toggles a section /
  * sub-section on the PDF; every `*Lines` / text field is the editable content
@@ -38,6 +53,9 @@ export interface PdfCustomisation {
   includeMacroChips: boolean
   /** Daily step target, shown on the macro chip strip + cardio section. */
   stepGoal: string
+  /** Editable macro targets for meal exports (chips + protein line + note).
+   *  Null for training exports, which carry no nutrition content. */
+  macroOverride: MacroOverride | null
 
   // ── Training ──
   includeTraining: boolean
@@ -75,12 +93,18 @@ export interface PdfCustomisation {
 
   // ── General guidance ──
   includeGeneralGuidance: boolean
+  includeSleep: boolean
   sleepLines: string[]
+  includeStress: boolean
   stressLines: string[]
   includeTrainingDayNutrition: boolean
   trainingDayNutritionLines: string[]
   includeNoteFromJess: boolean
   noteFromJessLines: string[]
+
+  // ── Extra coach-authored sections ──
+  customSections: CustomSection[]
+
   includeClosing: boolean
 }
 
@@ -283,6 +307,34 @@ export function defaultNoteFromJessLines(
   ]
 }
 
+// ── Heart-rate zones ─────────────────────────────────────────────────────
+
+export interface HrZoneRow {
+  z: string
+  intensity: string
+  hr: string
+  feel: string
+  use: string
+}
+
+/**
+ * Personalised HR zones from the client's estimated max HR (Karvonen-free
+ * %HRmax bands, the standard 5-zone model). Zone 2 is the coached cardio
+ * target. Falls back to a sensible max when age is unknown.
+ */
+export function computeHrZones(maxHr: number | null | undefined): HrZoneRow[] {
+  const hrMax = maxHr && maxHr > 0 ? maxHr : 190
+  const band = (loPct: number, hiPct: number) =>
+    `${Math.round(hrMax * loPct)}–${Math.round(hrMax * hiPct)} bpm`
+  return [
+    { z: '1', intensity: 'Very light', hr: band(0.5, 0.6),  feel: 'Easy, full conversation',          use: 'Warm-up, cool-down, recovery walks' },
+    { z: '2', intensity: 'Light',      hr: band(0.6, 0.7),  feel: 'Comfortable, slightly breathless', use: 'Incline walk cardio, YOUR TARGET' },
+    { z: '3', intensity: 'Moderate',   hr: band(0.7, 0.8),  feel: 'Breathing harder, still talking',  use: 'Cross trainer, steady state' },
+    { z: '4', intensity: 'Hard',       hr: band(0.8, 0.9),  feel: 'Short sentences only',             use: 'Optional, not needed at this stage' },
+    { z: '5', intensity: 'Max effort', hr: `${Math.round(hrMax * 0.9)}+ bpm`, feel: 'Cannot speak',    use: 'Not recommended currently' },
+  ]
+}
+
 // ── Default customisation builder ────────────────────────────────────────
 
 export interface BuildDefaultOpts {
@@ -292,6 +344,8 @@ export interface BuildDefaultOpts {
   statsLine?: string
   weeklyProgressionText?: string
   proteinTargetG?: number | null
+  fatTargetG?: number | null
+  carbsTargetG?: number | null
   kcalTarget?: number | null
 }
 
@@ -309,6 +363,17 @@ export function buildDefaultCustomisation(opts: BuildDefaultOpts): PdfCustomisat
     clientStatsOverride: opts.statsLine ?? '',
     includeMacroChips: true,
     stepGoal,
+    // Only meal exports carry editable macros; training exports have no
+    // nutrition content so this stays null.
+    macroOverride:
+      !opts.isTrainingOnly && opts.kcalTarget != null
+        ? {
+            kcal: opts.kcalTarget,
+            protein_g: opts.proteinTargetG ?? 0,
+            fat_g: opts.fatTargetG ?? 0,
+            carbs_g: opts.carbsTargetG ?? 0,
+          }
+        : null,
 
     includeTraining: true,
     includeWarmup: true,
@@ -341,7 +406,9 @@ export function buildDefaultCustomisation(opts: BuildDefaultOpts): PdfCustomisat
     includeFoodFacts: true,
 
     includeGeneralGuidance: true,
+    includeSleep: true,
     sleepLines: defaultSleepLines(opts.isTrainingOnly),
+    includeStress: true,
     stressLines: defaultStressLines(opts.isTrainingOnly),
     includeTrainingDayNutrition: !opts.isTrainingOnly,
     trainingDayNutritionLines: [...DEFAULT_TRAINING_DAY_NUTRITION_LINES],
@@ -352,6 +419,9 @@ export function buildDefaultCustomisation(opts: BuildDefaultOpts): PdfCustomisat
       opts.kcalTarget,
       opts.proteinTargetG,
     ),
+
+    customSections: [],
+
     includeClosing: true,
   }
 }
