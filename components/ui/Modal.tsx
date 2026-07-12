@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ModalProps {
   open: boolean
@@ -62,6 +63,11 @@ export default function Modal({ open, onClose, title, children, footer, size = '
   }, [open])
 
   if (!open) return null
+  // SSR-safe portal target. In an environment without document (SSR)
+  // we render inline; in the browser we portal to body so the modal
+  // escapes any ancestor with transform/filter/will-change that would
+  // trap position:fixed (the .fade-in tab wrapper is one such ancestor).
+  if (typeof document === 'undefined') return null
 
   const desktopWidth = size === 'xl' ? 'sm:max-w-2xl' : 'sm:max-w-lg'
 
@@ -73,7 +79,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
     `sm:left-1/2 sm:right-auto sm:bottom-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-sm sm:w-full ${desktopWidth}`,
   ].join(' ')
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50">
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -126,6 +132,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -140,10 +140,13 @@ input[type="range"]::-webkit-slider-thumb {
   letter-spacing: 0.01em;
 }
 
-/* Fade-in animation */
+/* Fade-in animation. Opacity only, no transform, transform on the tab
+   wrapper creates a containing block that traps position:fixed children
+   (portalled Modal is safe, inline modals would be positioned inside
+   the tab area instead of the viewport). */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .fade-in {
   animation: fadeIn 0.4s ease both;

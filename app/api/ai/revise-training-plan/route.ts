@@ -123,8 +123,10 @@ Respond with a JSON object ONLY, no markdown fences, in this exact structure:
   "coach_notes": "Brief note on what changed and why"
 }`
 
+    // Haiku 4.5 revise: same 3-5k token JSON as training-plan draft.
+    // Faster than Sonnet, fits inside every timeout window.
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 5000,
       messages: [{ role: 'user', content: prompt }],
     })
