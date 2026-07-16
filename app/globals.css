@@ -27,6 +27,14 @@ html {
   font-family: var(--font-jost), system-ui, sans-serif;
   /* Stop iOS from auto-resizing text on rotate */
   -webkit-text-size-adjust: 100%;
+  /* Smooth in-page anchor scrolling (public marketing page nav) */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
