@@ -225,6 +225,29 @@ export function formatDate(dateStr: string | null): string {
   })
 }
 
+// Friendly date + time, e.g. "Tue 22 Jul, 6:30 pm". Used for booked calls.
+export function formatDateTime(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+// Convert a stored ISO timestamp to the value a <input type="datetime-local">
+// expects (local time, "YYYY-MM-DDTHH:mm"). Returns '' when unset.
+export function toDatetimeLocalValue(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export function getWeeksSince(dateStr: string | null): number {
   if (!dateStr) return 0
   const start = new Date(dateStr)

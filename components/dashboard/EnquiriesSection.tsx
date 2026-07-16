@@ -6,7 +6,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Modal from '@/components/ui/Modal'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatDateTime, toDatetimeLocalValue } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Enquiry } from '@/types'
 
@@ -33,6 +33,9 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [contactModal, setContactModal] = useState<Enquiry | null>(null)
   const [contactNotes, setContactNotes] = useState('')
+  const [bookModal, setBookModal] = useState<Enquiry | null>(null)
+  const [bookWhen, setBookWhen] = useState('')
+  const [bookNote, setBookNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -70,6 +73,29 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
     if (e) { setError(e.message); return }
     setContactModal(null)
     setContactNotes('')
+    router.refresh()
+  }
+
+  async function bookCall(enquiry: Enquiry, whenLocal: string, note: string) {
+    if (!whenLocal) { setError('Pick a date and time for the call.'); return }
+    setSaving(true); setError('')
+    const supabase = createClient()
+    const iso = new Date(whenLocal).toISOString()
+    const { error: e } = await supabase
+      .from('enquiries')
+      .update({
+        discovery_call_at: iso,
+        // Booking someone in counts as having contacted them.
+        status: enquiry.status === 'new' ? 'contacted' : enquiry.status,
+        contacted_at: enquiry.contacted_at ?? new Date().toISOString(),
+        coach_notes: note.trim() || enquiry.coach_notes,
+      })
+      .eq('id', enquiry.id)
+    setSaving(false)
+    if (e) { setError(e.message); return }
+    setBookModal(null)
+    setBookWhen('')
+    setBookNote('')
     router.refresh()
   }
 
@@ -159,6 +185,14 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
                       {enq.contacted_at && <Row label="Contacted" value={formatDate(enq.contacted_at)} />}
                     </div>
 
+                    {enq.discovery_call_at && (
+                      <div className="flex items-center gap-2 px-3 py-2.5 rounded-sm bg-[rgba(125,168,125,0.08)] border border-[rgba(125,168,125,0.25)]">
+                        <span aria-hidden className="text-[#7da87d]">✓</span>
+                        <span className="text-xs tracking-wider uppercase text-[#7da87d]">Discovery call booked</span>
+                        <span className="text-sm text-[#e0d8cc] ml-auto">{formatDateTime(enq.discovery_call_at)}</span>
+                      </div>
+                    )}
+
                     {enq.about && (
                       <div>
                         <p className="text-xs text-[#b8b4ac] tracking-wider uppercase mb-1">Where they&apos;re at</p>
@@ -173,7 +207,9 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
                       </div>
                     )}
 
-                    {/* Quick contact links, mobile-first */}
+                    {/* Quick contact links, mobile-first. Once a call is booked
+                        these send the "you're booked in for …" confirmation
+                        instead of the first follow-up. */}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {enq.phone && (
                         <a
@@ -182,18 +218,27 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
                           rel="noopener noreferrer"
                           className="px-3 py-2 text-xs tracking-widest uppercase border border-[rgba(255,255,255,0.24)] rounded-sm text-[#e0d8cc] hover:border-[rgba(255,255,255,0.4)] transition-colors"
                         >
-                          WhatsApp + onboarding link
+                          {enq.discovery_call_at ? 'WhatsApp booking confirmation' : 'WhatsApp + onboarding link'}
                         </a>
                       )}
                       <a
                         href={mailHref(enq, onboardingUrl)}
                         className="px-3 py-2 text-xs tracking-widest uppercase border border-[rgba(255,255,255,0.24)] rounded-sm text-[#e0d8cc] hover:border-[rgba(255,255,255,0.4)] transition-colors"
                       >
-                        Email + onboarding link
+                        {enq.discovery_call_at ? 'Email booking confirmation' : 'Email + onboarding link'}
                       </a>
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-1">
+                      {enq.status !== 'converted' && (
+                        <Button
+                          size="sm"
+                          variant={enq.discovery_call_at ? 'ghost' : 'outline'}
+                          onClick={() => { setBookWhen(toDatetimeLocalValue(enq.discovery_call_at)); setBookNote(''); setBookModal(enq) }}
+                        >
+                          {enq.discovery_call_at ? 'Reschedule call' : 'Book discovery call'}
+                        </Button>
+                      )}
                       {enq.status !== 'contacted' && enq.status !== 'converted' && (
                         <Button size="sm" variant="outline" onClick={() => { setContactNotes(enq.coach_notes || ''); setContactModal(enq) }}>
                           Mark contacted
@@ -255,6 +300,48 @@ export default function EnquiriesSection({ enquiries, onboardingUrl }: Props) {
           {error && <p className="text-sm text-[#b06060]">{error}</p>}
         </div>
       </Modal>
+
+      {/* Book / reschedule the free discovery call */}
+      <Modal
+        open={!!bookModal}
+        onClose={() => { setBookModal(null); setBookWhen(''); setBookNote(''); setError('') }}
+        title={bookModal ? `Book ${bookModal.first_name}'s discovery call` : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setBookModal(null); setBookWhen(''); setBookNote(''); setError('') }}>Cancel</Button>
+            <Button onClick={() => bookModal && bookCall(bookModal, bookWhen, bookNote)} loading={saving}>
+              Save booking
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-[#e0d8cc] leading-relaxed">
+            Pick when the free 20-minute discovery call will happen. Afterwards, the WhatsApp / Email buttons
+            send {bookModal?.first_name} a &ldquo;you&rsquo;re booked in&rdquo; confirmation with the date, time and onboarding link.
+          </p>
+          <div>
+            <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Call date &amp; time</label>
+            <input
+              type="datetime-local"
+              className="input-underline text-sm"
+              value={bookWhen}
+              onChange={(e) => setBookWhen(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-[#b8b4ac] tracking-widest uppercase block mb-1.5">Note (optional)</label>
+            <textarea
+              className="input-underline text-sm"
+              rows={3}
+              value={bookNote}
+              onChange={(e) => setBookNote(e.target.value)}
+              placeholder="Anything to remember about this booking..."
+            />
+          </div>
+          {error && <p className="text-sm text-[#b06060]">{error}</p>}
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -269,6 +356,17 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function templatedMessage(enq: Enquiry, onboardingUrl: string): string {
+  // Once a discovery call is booked, send a confirmation with the date/time.
+  if (enq.discovery_call_at) {
+    return `Hi ${enq.first_name}, you're booked in for your free discovery call on ${formatDateTime(enq.discovery_call_at)}. 🎉
+
+It's a relaxed 20-minute chat (no obligation) to talk through your goals and whether we'd be a good fit${enq.best_contact ? `. I'll reach out via ${enq.best_contact}` : ''}.
+
+If you get a chance beforehand, my onboarding form is here (about 5–8 minutes) so I can make the most of our call:
+${onboardingUrl}
+
+Any questions before then, just message me here. Speak soon! Jess`
+  }
   return `Hi ${enq.first_name}, thanks for reaching out. I've read what you sent and I'd love to chat properly about whether we'd be a good fit.
 
 When you're ready, my onboarding form is here, it's about 5–8 minutes and gives me everything I need to design a plan around you:
@@ -287,5 +385,8 @@ function whatsAppHref(enq: Enquiry, onboardingUrl: string): string {
 
 function mailHref(enq: Enquiry, onboardingUrl: string): string {
   const message = templatedMessage(enq, onboardingUrl)
-  return `mailto:${enq.email}?subject=${encodeURIComponent(`Following up on your coaching enquiry, ${enq.first_name}`)}&body=${encodeURIComponent(message)}`
+  const subject = enq.discovery_call_at
+    ? `You're booked in — your discovery call, ${enq.first_name}`
+    : `Following up on your coaching enquiry, ${enq.first_name}`
+  return `mailto:${enq.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
 }

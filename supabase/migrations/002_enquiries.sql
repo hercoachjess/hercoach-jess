@@ -19,6 +19,8 @@ create table if not exists public.enquiries (
   status       text not null default 'new'
                  check (status in ('new','contacted','converted','closed')),
   contacted_at timestamptz,
+  -- Date/time of the booked free discovery call (set from the dashboard).
+  discovery_call_at timestamptz,
   coach_notes  text,
   -- Links an enquiry to an existing client when the email matches.
   client_id    uuid references public.clients(id) on delete set null

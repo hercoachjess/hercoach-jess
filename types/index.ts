@@ -288,6 +288,7 @@ export interface Enquiry {
   best_contact: string | null
   status: 'new' | 'contacted' | 'converted' | 'closed'
   contacted_at: string | null
+  discovery_call_at: string | null
   coach_notes: string | null
   client_id: string | null
 }
