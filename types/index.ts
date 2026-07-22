@@ -313,6 +313,19 @@ export interface Enquiry {
   client_id: string | null
 }
 
+// Guide / PDF purchase enquiries — the public "buy a guide" form fills these.
+export interface PdfEnquiry {
+  id: string
+  created_at: string
+  name: string
+  email: string
+  phone: string | null
+  guide: string
+  message: string | null
+  status: 'new' | 'contacted' | 'sent' | 'closed'
+  coach_notes: string | null
+}
+
 export interface DashboardStats {
   active_clients: number
   checkins_to_review: number

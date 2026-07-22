@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { resolvePaymentStatus } from '@/lib/utils'
 import { isCheckinOverdue } from '@/lib/checkin-day'
-import type { Client, CheckinSubmission, Payment, Enquiry } from '@/types'
+import type { Client, CheckinSubmission, Payment, Enquiry, PdfEnquiry } from '@/types'
 import AddClientButton from '@/components/dashboard/AddClientButton'
 import CopyLink from '@/components/ui/CopyLink'
 import ClientListSection from '@/components/dashboard/ClientListSection'
 import EnquiriesSection from '@/components/dashboard/EnquiriesSection'
+import PdfEnquiriesSection from '@/components/dashboard/PdfEnquiriesSection'
 import TodayActions from '@/components/dashboard/TodayActions'
 
 function getHour() {
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
     { data: recentCheckins },
     { data: payments },
     { data: enquiries },
+    { data: pdfEnquiries },
   ] = await Promise.all([
     supabase.from('clients').select('*').order('created_at', { ascending: false }),
     supabase
@@ -39,12 +41,14 @@ export default async function DashboardPage() {
       .select('client_id, status, due_date, paid_date')
       .in('status', ['pending', 'paid']),
     supabase.from('enquiries').select('*').order('created_at', { ascending: false }),
+    supabase.from('pdf_enquiries').select('*').order('created_at', { ascending: false }),
   ])
 
   const clientList = (clients ?? []) as Client[]
   const checkinList = (recentCheckins ?? []) as CheckinSubmission[]
   const paymentList = (payments ?? []) as Payment[]
   const enquiryList = (enquiries ?? []) as Enquiry[]
+  const pdfEnquiryList = (pdfEnquiries ?? []) as PdfEnquiry[]
   const newEnquiries = enquiryList.filter((e) => e.status === 'new').length
 
   // Build quick lookup maps
@@ -147,6 +151,11 @@ export default async function DashboardPage() {
             url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/diet`}
             hint="Same link for every client. Their weekly food tracker. Personalised per-client link lives on the Diet tab of each client file."
           />
+          <CopyLink
+            label="Guides / PDF shop link"
+            url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/guides`}
+            hint="Share this to sell your guides. People pick a guide and enquire, they land in 'Guide enquiries' below for you to send + take payment."
+          />
         </div>
       </div>
 
@@ -155,6 +164,9 @@ export default async function DashboardPage() {
         enquiries={enquiryList}
         onboardingUrl={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meal-generator-murex.vercel.app'}/onboarding`}
       />
+
+      {/* Guide / PDF purchase enquiries (hidden until the first one arrives) */}
+      <PdfEnquiriesSection enquiries={pdfEnquiryList} />
 
       {/* Client list, interactive search + status filters live in the client component */}
       <ClientListSection
