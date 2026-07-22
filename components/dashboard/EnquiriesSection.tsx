@@ -362,9 +362,6 @@ function templatedMessage(enq: Enquiry, onboardingUrl: string): string {
 
 It's a relaxed 20-minute chat (no obligation) to talk through your goals and whether we'd be a good fit${enq.best_contact ? `. I'll reach out via ${enq.best_contact}` : ''}.
 
-If you get a chance beforehand, my onboarding form is here (about 5–8 minutes) so I can make the most of our call:
-${onboardingUrl}
-
 Any questions before then, just message me here. Speak soon! Jess`
   }
   return `Hi ${enq.first_name}, thanks for reaching out. I've read what you sent and I'd love to chat properly about whether we'd be a good fit.
