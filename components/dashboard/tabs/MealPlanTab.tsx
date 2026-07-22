@@ -320,7 +320,7 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     const now = new Date().toISOString()
 
     if (mealPlan?.id) {
-      await supabase.from('meal_plans').update({
+      const { error } = await supabase.from('meal_plans').update({
         meals: editedMeals,
         targets: editedTargets,
         food_facts: foodFacts,
@@ -328,8 +328,13 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         status: 'draft',
         updated_at: now,
       }).eq('id', mealPlan.id)
+      if (error) {
+        setError(`Couldn't save the meal plan: ${error.message}`)
+        setSaving(false)
+        return
+      }
     } else {
-      const { data } = await supabase.from('meal_plans').insert({
+      const { data, error } = await supabase.from('meal_plans').insert({
         client_id: client.id,
         meals: editedMeals,
         targets: editedTargets,
@@ -339,6 +344,11 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         is_current: true,
         updated_at: now,
       }).select().single()
+      if (error) {
+        setError(`Couldn't save the meal plan: ${error.message}`)
+        setSaving(false)
+        return
+      }
       if (data) setMealPlan(data)
     }
     setEditing(false)
