@@ -280,7 +280,7 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
     const now = new Date().toISOString()
 
     if (trainingPlan?.id) {
-      await supabase.from('training_plans').update({
+      const { error } = await supabase.from('training_plans').update({
         sessions: editedSessions,
         level,
         days_per_week: daysPerWeek,
@@ -292,8 +292,13 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         status: 'draft',
         updated_at: now,
       }).eq('id', trainingPlan.id)
+      if (error) {
+        setError(`Couldn't save the training plan: ${error.message}`)
+        setSaving(false)
+        return
+      }
     } else {
-      const { data } = await supabase.from('training_plans').insert({
+      const { data, error } = await supabase.from('training_plans').insert({
         client_id: client.id,
         sessions: editedSessions,
         level,
@@ -307,6 +312,11 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
         is_current: true,
         updated_at: now,
       }).select().single()
+      if (error) {
+        setError(`Couldn't save the training plan: ${error.message}`)
+        setSaving(false)
+        return
+      }
       if (data) setTrainingPlan(data)
     }
     setEditing(false)

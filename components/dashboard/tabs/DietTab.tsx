@@ -90,9 +90,14 @@ export default function DietTab({ client, submissions }: Props) {
   async function saveAdvice(sub: DietSubmission) {
     const advice = getAdvice(sub)
     setSaving((s) => ({ ...s, [sub.id]: true }))
+    setErrors((e) => ({ ...e, [sub.id]: '' }))
     const supabase = createBrowserClient()
-    await supabase.from('diet_submissions').update({ ai_advice: advice || null }).eq('id', sub.id)
+    const { error } = await supabase.from('diet_submissions').update({ ai_advice: advice || null }).eq('id', sub.id)
     setSaving((s) => ({ ...s, [sub.id]: false }))
+    if (error) {
+      setErrors((e) => ({ ...e, [sub.id]: `Couldn't save: ${error.message}` }))
+      return
+    }
     router.refresh()
   }
 
