@@ -6,15 +6,46 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Modal from '@/components/ui/Modal'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatDateTime } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { CheckinSubmission, CheckinPayload, BodyMeasurements, Client, OnboardingSubmission } from '@/types'
+import type {
+  CheckinSubmission,
+  CheckinPayload,
+  BodyMeasurements,
+  Client,
+  OnboardingSubmission,
+  MealPlan,
+  TrainingPlan,
+  DietSubmission,
+  WeeklyReview,
+} from '@/types'
 
 interface Props {
   checkins: CheckinSubmission[]
   clientId: string
   client?: Client
   onboarding?: OnboardingSubmission | null
+  mealPlan?: MealPlan | null
+  trainingPlan?: TrainingPlan | null
+  dietSubmissions?: DietSubmission[]
+}
+
+// Match a check-in to that week's food diary: the diary whose week_start is
+// within 6 days before → 1 day after the check-in date (diaries are Monday-
+// dated, check-ins can land a day either side).
+function findWeekDiary(checkinIso: string, diaries: DietSubmission[]): DietSubmission | null {
+  const c = new Date(checkinIso).getTime()
+  let best: DietSubmission | null = null
+  let bestGap = Infinity
+  for (const d of diaries) {
+    const ws = new Date(d.week_start + 'T00:00:00').getTime()
+    const gapDays = (c - ws) / (1000 * 60 * 60 * 24)
+    if (gapDays >= -1 && gapDays <= 7 && Math.abs(gapDays) < bestGap) {
+      best = d
+      bestGap = Math.abs(gapDays)
+    }
+  }
+  return best
 }
 
 // Editable check-in fields with display labels, drives the Edit modal UI.
@@ -49,10 +80,13 @@ const MEASUREMENT_FIELDS: { key: keyof BodyMeasurements; label: string }[] = [
   { key: 'arm_cm',   label: 'Arm (cm)' },
 ]
 
-export default function CheckinsTab({ checkins, client, onboarding }: Props) {
+export default function CheckinsTab({ checkins, client, onboarding, mealPlan, trainingPlan, dietSubmissions = [] }: Props) {
   const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(checkins[0]?.id ?? null)
   const [aiReplyState, setAiReplyState] = useState<Record<string, { loading: boolean; reply: string; concerns: string[]; copied: boolean; error?: string }>>({})
+  // Weekly review state, per check-in.
+  const [reviewState, setReviewState] = useState<Record<string, { loading: boolean; error?: string; copied?: boolean; applied?: boolean }>>({})
+  const [includeDiary, setIncludeDiary] = useState<Record<string, boolean>>({})
   const [summaryState, setSummaryState] = useState<Record<string, { loading: boolean; error?: string }>>({})
   const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({})
   const [savingResponse, setSavingResponse] = useState<Record<string, boolean>>({})
@@ -119,6 +153,113 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
     } catch (e: unknown) {
       setSummaryState((s) => ({ ...s, [checkin.id]: { loading: false, error: e instanceof Error ? e.message : 'Failed to generate.' } }))
     }
+  }
+
+  async function generateReview(checkin: CheckinSubmission) {
+    if (!client) return
+    setReviewState((s) => ({ ...s, [checkin.id]: { loading: true } }))
+    const idx = checkins.findIndex((c) => c.id === checkin.id)
+    const previousCheckin = idx >= 0 && idx + 1 < checkins.length ? checkins[idx + 1] : null
+    const older = idx >= 0 ? checkins.slice(idx + 1) : []
+    const priorSummaries = older
+      .filter((c) => c.ai_summary && c.ai_summary.length > 0)
+      .slice(0, 4)
+      .map((c) => ({ week_number: c.week_number, date: c.created_at.slice(0, 10), bullets: c.ai_summary as string[] }))
+
+    const weekDiary = findWeekDiary(checkin.created_at, dietSubmissions)
+    const useDiary = weekDiary ? includeDiary[checkin.id] !== false : false
+
+    try {
+      const res = await fetch('/api/ai/weekly-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client: {
+            full_name: client.full_name,
+            goal: client.goal,
+            sex: client.sex,
+            current_weight_kg: client.current_weight_kg,
+            starting_weight_kg: client.starting_weight_kg,
+            primary_goal_kcal: client.primary_goal_kcal,
+            protein_target_g: client.protein_target_g,
+            fat_target_g: client.fat_target_g,
+            carbs_target_g: client.carbs_target_g,
+          },
+          checkin,
+          previousCheckin,
+          priorSummaries,
+          onboardingPayload: onboarding?.payload ?? null,
+          mealPlan: mealPlan
+            ? { targets: mealPlan.targets, coach_notes: mealPlan.coach_notes, meal_count: mealPlan.meals?.length ?? 0 }
+            : null,
+          trainingPlan: trainingPlan
+            ? {
+                level: trainingPlan.level,
+                days_per_week: trainingPlan.days_per_week,
+                intensity: trainingPlan.intensity,
+                training_style: trainingPlan.training_style,
+                session_count: trainingPlan.sessions?.length ?? 0,
+              }
+            : null,
+          foodDiary: useDiary && weekDiary ? weekDiary.payload : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('checkin_submissions')
+        .update({ ai_weekly_review: data.review })
+        .eq('id', checkin.id)
+      if (error) throw new Error(error.message)
+      setReviewState((s) => ({ ...s, [checkin.id]: { loading: false } }))
+      router.refresh()
+    } catch (e: unknown) {
+      setReviewState((s) => ({ ...s, [checkin.id]: { loading: false, error: e instanceof Error ? e.message : 'Failed to generate review.' } }))
+    }
+  }
+
+  // Apply the AI's suggested macro targets to the client and their current
+  // meal plan, so the change is live and the meal plan can be rescaled.
+  async function applyMacros(checkin: CheckinSubmission, t: NonNullable<WeeklyReview['suggested_targets']>) {
+    if (!client) return
+    setReviewState((s) => ({ ...s, [checkin.id]: { ...(s[checkin.id] || { loading: false }), applied: false, error: undefined } }))
+    const supabase = createClient()
+    const { error: clientErr } = await supabase
+      .from('clients')
+      .update({
+        primary_goal_kcal: t.kcal,
+        protein_target_g: t.protein_g,
+        fat_target_g: t.fat_g,
+        carbs_target_g: t.carbs_g,
+      })
+      .eq('id', client.id)
+    if (clientErr) {
+      setReviewState((s) => ({ ...s, [checkin.id]: { ...(s[checkin.id] || { loading: false }), error: `Couldn't apply: ${clientErr.message}` } }))
+      return
+    }
+    if (mealPlan?.id) {
+      const { error: mpErr } = await supabase
+        .from('meal_plans')
+        .update({ targets: { kcal: t.kcal, protein_g: t.protein_g, fat_g: t.fat_g, carbs_g: t.carbs_g }, updated_at: new Date().toISOString() })
+        .eq('id', mealPlan.id)
+      if (mpErr) {
+        setReviewState((s) => ({ ...s, [checkin.id]: { ...(s[checkin.id] || { loading: false }), error: `Targets saved to client, but meal plan update failed: ${mpErr.message}` } }))
+        return
+      }
+    }
+    setReviewState((s) => ({ ...s, [checkin.id]: { ...(s[checkin.id] || { loading: false }), applied: true } }))
+    router.refresh()
+  }
+
+  async function copyReviewMessage(checkin: CheckinSubmission) {
+    const msg = checkin.ai_weekly_review?.client_message
+    if (!msg) return
+    await navigator.clipboard.writeText(msg)
+    setReviewState((s) => ({ ...s, [checkin.id]: { ...(s[checkin.id] || { loading: false }), copied: true } }))
+    setTimeout(() => {
+      setReviewState((s) => ({ ...s, [checkin.id]: { ...(s[checkin.id] || { loading: false }), copied: false } }))
+    }, 2000)
   }
 
   function openEdit(checkin: CheckinSubmission) {
@@ -235,6 +376,9 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
         // show at the top of this one for context.
         const previousCheckin = idx + 1 < checkins.length ? checkins[idx + 1] : null
         const previousSummary = previousCheckin?.ai_summary && previousCheckin.ai_summary.length > 0 ? previousCheckin.ai_summary : null
+        const review = checkin.ai_weekly_review ?? null
+        const rState = reviewState[checkin.id]
+        const weekDiary = findWeekDiary(checkin.created_at, dietSubmissions)
 
         return (
           <Card key={checkin.id}>
@@ -265,6 +409,82 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
                         <li key={i} className="text-xs text-[#e0d8cc] leading-relaxed">{line}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* AI weekly review — the main coaching read-out */}
+                {client && (
+                  <div className="pt-4 rounded-sm border border-[rgba(200,154,106,0.3)] bg-[rgba(200,154,106,0.04)] p-4">
+                    <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                      <p className="text-xs text-[#c89a6a] tracking-widest uppercase">AI weekly review</p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {weekDiary && (
+                          <label className="flex items-center gap-1.5 text-xs text-[#b8b4ac] cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={includeDiary[checkin.id] !== false}
+                              onChange={(e) => setIncludeDiary((d) => ({ ...d, [checkin.id]: e.target.checked }))}
+                            />
+                            Include this week&apos;s food diary
+                          </label>
+                        )}
+                        <Button size="sm" variant="outline" loading={rState?.loading} onClick={() => generateReview(checkin)}>
+                          {review ? 'Regenerate' : 'Generate review'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {rState?.error && <p className="text-xs text-[#b06060] mb-2">{rState.error}</p>}
+
+                    {!review && !rState?.loading && (
+                      <p className="text-xs text-[#8a8680] italic leading-relaxed">
+                        Pulls this check-in, the trend, their current plan &amp; goals{weekDiary ? ', and this week’s food diary,' : ''} into one read-out:
+                        what&apos;s working, what to watch, specific changes, and a draft message to send.
+                        {!weekDiary && ' (No food diary logged for this week.)'}
+                      </p>
+                    )}
+
+                    {review && (
+                      <div className="flex flex-col gap-4">
+                        <ReviewList title="Snapshot" items={review.snapshot} colour="#e0d8cc" />
+                        <ReviewList title="Working well" items={review.working_well} colour="#7da87d" />
+                        {review.flags.length > 0 && <ReviewList title="Flags" items={review.flags} colour="#c89a6a" />}
+                        <ReviewList title="Recommended changes" items={review.recommendations} colour="#e0d8cc" />
+
+                        {review.suggested_targets && (
+                          <div className="rounded-sm border border-[rgba(125,168,125,0.3)] bg-[rgba(125,168,125,0.06)] p-3">
+                            <p className="text-xs text-[#7da87d] tracking-wider uppercase mb-1.5">Suggested new macros</p>
+                            <p className="text-sm text-[#f0ece4] mb-1">
+                              {review.suggested_targets.kcal} kcal · {review.suggested_targets.protein_g}g P · {review.suggested_targets.fat_g}g F · {review.suggested_targets.carbs_g}g C
+                            </p>
+                            <p className="text-xs text-[#b8b4ac] italic leading-relaxed mb-3">{review.suggested_targets.rationale}</p>
+                            {rState?.applied ? (
+                              <p className="text-xs text-[#7da87d]">✓ Applied to client &amp; meal plan. Rescale the meals in the Meal Plan tab.</p>
+                            ) : (
+                              <Button size="sm" onClick={() => applyMacros(checkin, review.suggested_targets!)}>
+                                Apply these macros
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {review.client_message && (
+                          <div className="pt-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-[#b8b4ac] tracking-widest uppercase">Draft message to client</p>
+                              <Button size="sm" variant="outline" onClick={() => copyReviewMessage(checkin)}>
+                                {rState?.copied ? 'Copied ✓' : 'Copy'}
+                              </Button>
+                            </div>
+                            <p className="text-sm text-[#e0d8cc] leading-relaxed whitespace-pre-wrap">{review.client_message}</p>
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-[#8a8680] italic">
+                          Generated {formatDateTime(review.generated_at)}{review.used_food_diary ? ' · included food diary' : ''}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -578,6 +798,22 @@ export default function CheckinsTab({ checkins, client, onboarding }: Props) {
           </div>
         )}
       </Modal>
+    </div>
+  )
+}
+
+function ReviewList({ title, items, colour }: { title: string; items: string[]; colour: string }) {
+  if (!items || items.length === 0) return null
+  return (
+    <div>
+      <p className="text-xs tracking-widest uppercase mb-1.5" style={{ color: colour }}>{title}</p>
+      <ul className="flex flex-col gap-1">
+        {items.map((line, i) => (
+          <li key={i} className="text-sm text-[#e0d8cc] leading-relaxed pl-3 relative">
+            <span className="absolute left-0 text-[#8a8680]">·</span>{line}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

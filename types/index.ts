@@ -110,6 +110,26 @@ export interface CheckinSubmission {
   coach_reviewed_at?: string | null
   coach_response_sent?: string | null
   ai_summary?: string[] | null
+  ai_weekly_review?: WeeklyReview | null
+}
+
+// AI weekly review — pulls the check-in, trend, current plan + goals, and
+// (optionally) that week's food diary into one coaching read-out.
+export interface WeeklyReview {
+  snapshot: string[]            // adherence / trend at a glance
+  working_well: string[]
+  flags: string[]               // concerns worth the coach's attention
+  recommendations: string[]     // specific suggested changes this week
+  suggested_targets: {          // present only when a macro change is advised
+    kcal: number
+    protein_g: number
+    fat_g: number
+    carbs_g: number
+    rationale: string
+  } | null
+  client_message: string        // draft message the coach can send
+  used_food_diary: boolean      // whether a food diary fed this review
+  generated_at: string
 }
 
 export interface BodyMeasurements {

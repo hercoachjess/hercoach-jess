@@ -155,7 +155,15 @@ export default function ClientFile({
           <OverviewTab client={client} checkins={checkins} onboarding={onboarding} />
         )}
         {activeTab === 1 && (
-          <CheckinsTab checkins={checkins} clientId={client.id} client={client} onboarding={onboarding} />
+          <CheckinsTab
+            checkins={checkins}
+            clientId={client.id}
+            client={client}
+            onboarding={onboarding}
+            mealPlan={mealPlan}
+            trainingPlan={trainingPlan}
+            dietSubmissions={dietSubmissions}
+          />
         )}
         {activeTab === 2 && (
           <CompareTab checkins={checkins} client={client} />
