@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import { GUIDES } from '@/lib/guides'
 
 /*
  * hercoach · Jess — public one-page marketing / booking site.
@@ -66,19 +67,6 @@ const COACHING = {
     ],
   },
 } as const
-
-// Digital guides / PDFs sold separately from coaching. To sell another one,
-// add an object here. Set `buyUrl` to a Stripe Payment Link / Gumroad / PayPal
-// link to make it a direct "Buy" button; leave it '' and it becomes an
-// "Enquire to buy" link to the enquiry form.
-const GUIDES = [
-  {
-    name: 'Supermarket & label-reading guide',
-    price: '£20',
-    blurb: 'Shop smarter — exactly what to look for on labels, aisle by aisle.',
-    buyUrl: '',
-  },
-] as const
 
 export const metadata: Metadata = {
   title: 'hercoach · Jess — Registered Dietitian & Online Coach for Women',
@@ -571,7 +559,7 @@ function Coaching() {
                 {g.blurb}
               </p>
               <Link
-                href={g.buyUrl || '/enquire'}
+                href={g.buyUrl || `/guides?guide=${encodeURIComponent(g.name)}`}
                 target={g.buyUrl ? '_blank' : undefined}
                 rel={g.buyUrl ? 'noopener noreferrer' : undefined}
                 className="mt-6 text-center text-[10px] font-medium uppercase py-3 rounded-[2px] transition-all hover:opacity-90"

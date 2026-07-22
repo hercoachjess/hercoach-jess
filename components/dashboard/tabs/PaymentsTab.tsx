@@ -125,10 +125,12 @@ export default function PaymentsTab({ clientId, payments }: Props) {
   async function markPaid(payment: Payment) {
     const supabase = createClient()
     const today = new Date().toISOString().split('T')[0]
-    await supabase.from('payments').update({
+    setError('')
+    const { error: e } = await supabase.from('payments').update({
       status: 'paid',
       paid_date: today,
     }).eq('id', payment.id)
+    if (e) { setError(`Couldn't mark paid: ${e.message}`); return }
     // Offer to schedule the next one, prefilled to same amount, due 1 month after this due_date.
     setNextPaymentModal({
       amount: String(payment.amount_gbp),

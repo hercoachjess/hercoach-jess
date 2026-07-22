@@ -55,20 +55,25 @@ export default function PlanHistoryTab({
           includeNumbers,
         }),
       })
+      if (!pdfRes.ok) {
+        const j = await pdfRes.json().catch(() => ({}))
+        throw new Error(j.error || 'Could not generate the plan PDF.')
+      }
       const pdfData = await pdfRes.json()
       const pdfUrl = pdfData.pdf_url ?? null
 
       const supabase = createClient()
 
       // Mark all existing as not current
-      await supabase
+      const { error: e1 } = await supabase
         .from('plan_history')
         .update({ is_current: false })
         .eq('client_id', clientId)
+      if (e1) throw new Error(e1.message)
 
       // Insert new history entry
       const variantTag = includeNumbers ? '[with numbers] ' : '[no numbers] '
-      await supabase.from('plan_history').insert({
+      const { error: e2 } = await supabase.from('plan_history').insert({
         client_id: clientId,
         version: newVersion,
         note: variantTag + (changeNote || `Plan saved ${new Date().toLocaleDateString('en-GB')}`),
@@ -77,21 +82,24 @@ export default function PlanHistoryTab({
         pdf_url: pdfUrl,
         is_current: true,
       })
+      if (e2) throw new Error(e2.message)
 
       // Update meal plan status
       if (currentMealPlan?.id) {
-        await supabase
+        const { error: e3 } = await supabase
           .from('meal_plans')
           .update({ status: 'saved', updated_at: new Date().toISOString() })
           .eq('id', currentMealPlan.id)
+        if (e3) throw new Error(e3.message)
       }
 
       // Update training plan status
       if (currentTrainingPlan?.id) {
-        await supabase
+        const { error: e4 } = await supabase
           .from('training_plans')
           .update({ status: 'saved', updated_at: new Date().toISOString() })
           .eq('id', currentTrainingPlan.id)
+        if (e4) throw new Error(e4.message)
       }
 
       setSaveModalOpen(false)

@@ -37,6 +37,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   const [applying, setApplying] = useState(false)
   const [statusSaving, setStatusSaving] = useState<Client['status'] | null>(null)
   const [confirmClose, setConfirmClose] = useState(false)
+  const [error, setError] = useState('')
 
   const [targets, setTargets] = useState({
     primary_goal_kcal: client.primary_goal_kcal ?? '',
@@ -78,14 +79,16 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
 
   async function saveTargets() {
     setSaving(true)
+    setError('')
     const supabase = createClient()
-    await supabase.from('clients').update({
+    const { error: e } = await supabase.from('clients').update({
       primary_goal_kcal: Number(targets.primary_goal_kcal) || null,
       protein_target_g: Number(targets.protein_target_g) || null,
       fat_target_g: Number(targets.fat_target_g) || null,
       carbs_target_g: Number(targets.carbs_target_g) || null,
     }).eq('id', client.id)
     setSaving(false)
+    if (e) { setError(`Couldn't save targets: ${e.message}`); return }
     setEditingTargets(false)
     router.refresh()
   }
@@ -93,13 +96,15 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   async function applyEstimate() {
     if (!estimate) return
     setApplying(true)
+    setError('')
     const supabase = createClient()
-    await supabase.from('clients').update({
+    const { error: e } = await supabase.from('clients').update({
       primary_goal_kcal: estimate.kcal,
       protein_target_g: estimate.protein_g,
       fat_target_g: estimate.fat_g,
       carbs_target_g: estimate.carbs_g,
     }).eq('id', client.id)
+    if (e) { setApplying(false); setError(`Couldn't apply estimate: ${e.message}`); return }
     setTargets({
       primary_goal_kcal: estimate.kcal,
       protein_target_g: estimate.protein_g,
@@ -115,18 +120,21 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
   // so the edit form (if opened afterwards) shows the right value.
   async function updateStatus(next: Client['status']) {
     setStatusSaving(next)
+    setError('')
     const supabase = createClient()
-    await supabase.from('clients').update({ status: next }).eq('id', client.id)
-    setContact((c) => ({ ...c, status: next }))
+    const { error: e } = await supabase.from('clients').update({ status: next }).eq('id', client.id)
     setStatusSaving(null)
+    if (e) { setError(`Couldn't change status: ${e.message}`); return }
+    setContact((c) => ({ ...c, status: next }))
     setConfirmClose(false)
     router.refresh()
   }
 
   async function saveContact() {
     setSaving(true)
+    setError('')
     const supabase = createClient()
-    await supabase.from('clients').update({
+    const { error: e } = await supabase.from('clients').update({
       full_name: contact.full_name.trim() || client.full_name,
       phone: contact.phone,
       email: contact.email,
@@ -138,6 +146,7 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
       status: contact.status,
     }).eq('id', client.id)
     setSaving(false)
+    if (e) { setError(`Couldn't save details: ${e.message}`); return }
     setEditingContact(false)
     router.refresh()
   }
@@ -159,6 +168,11 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <div className="px-4 py-3 rounded-sm border border-[rgba(176,96,96,0.4)] bg-[rgba(176,96,96,0.08)]">
+          <p className="text-sm text-[#b06060]">{error}</p>
+        </div>
+      )}
       {/* Status controls — quick pause / reactivate / close without opening
           the edit form. This is the primary place to manage client status. */}
       <Card>
