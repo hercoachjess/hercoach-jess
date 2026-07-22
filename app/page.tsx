@@ -51,38 +51,34 @@ const COACHING = {
     tiers: [
       {
         name: 'Nutrition Coaching',
-        price: '£90',
+        price: '£125',
         cadence: '/mo',
-        blurb: 'Custom nutrition plan, monthly check-in, app & message support.',
+        blurb: 'Custom nutrition plan, regular check-ins & message support.',
         popular: false,
       },
       {
         name: 'Nutrition + Training',
-        price: '£130',
+        price: '£150',
         cadence: '/mo',
-        blurb: 'Nutrition & training plans together, fortnightly check-ins.',
+        blurb: 'Nutrition & training plans together, weekly check-ins & WhatsApp support.',
         popular: true,
-      },
-      {
-        name: 'Premium 1:1',
-        price: '£190',
-        cadence: '/mo',
-        blurb: 'Fully bespoke, weekly check-ins, direct WhatsApp support.',
-        popular: false,
       },
     ],
   },
-  oneOff: {
-    name: 'Initial RD consultation',
-    price: '£120',
-    detail: '60 minutes · full assessment + personalised plan',
-  },
-  boltOns: [
-    { name: 'Bespoke meal plan PDF', price: '£45' },
-    { name: '4-week training programme', price: '£40' },
-    { name: 'Supermarket & label-reading guide', price: '£20' },
-  ],
 } as const
+
+// Digital guides / PDFs sold separately from coaching. To sell another one,
+// add an object here. Set `buyUrl` to a Stripe Payment Link / Gumroad / PayPal
+// link to make it a direct "Buy" button; leave it '' and it becomes an
+// "Enquire to buy" link to the enquiry form.
+const GUIDES = [
+  {
+    name: 'Supermarket & label-reading guide',
+    price: '£20',
+    blurb: 'Shop smarter — exactly what to look for on labels, aisle by aisle.',
+    buyUrl: '',
+  },
+] as const
 
 export const metadata: Metadata = {
   title: 'hercoach · Jess — Registered Dietitian & Online Coach for Women',
@@ -459,7 +455,7 @@ function Coaching() {
         <Eyebrow>{COACHING.monthly.note}</Eyebrow>
       </div>
 
-      <div className="mt-8 grid md:grid-cols-3 gap-6">
+      <div className="mt-8 grid md:grid-cols-2 gap-6 max-w-[820px] mx-auto">
         {COACHING.monthly.tiers.map((tier) => (
           <div
             key={tier.name}
@@ -530,31 +526,65 @@ function Coaching() {
         ))}
       </div>
 
-      {/* One-off + discovery */}
-      <div className="mt-8 grid md:grid-cols-2 gap-6">
+      {/* Free discovery call */}
+      <div className="mt-8 max-w-[820px] mx-auto">
         <ConsultRow
           name={COACHING.discovery.name}
           detail={COACHING.discovery.detail}
           price={COACHING.discovery.price}
         />
-        <ConsultRow
-          name={COACHING.oneOff.name}
-          detail={COACHING.oneOff.detail}
-          price={COACHING.oneOff.price}
-        />
       </div>
 
-      {/* Bolt-ons */}
-      <div className="mt-10">
-        <Eyebrow>Optional bolt-ons</Eyebrow>
-        <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
-          {COACHING.boltOns.map((b) => (
-            <span key={b.name} className="text-[14px] font-light" style={{ color: '#4A4038' }}>
-              {b.name}{' '}
-              <span className="font-medium" style={{ color: C.ink }}>
-                {b.price}
-              </span>
-            </span>
+      {/* Guides & extras — digital PDFs sold separately */}
+      <div className="mt-16 max-w-[820px] mx-auto">
+        <div className="text-center mb-8">
+          <Eyebrow color={C.rosewood}>Guides &amp; extras</Eyebrow>
+          <h3
+            className="font-serif font-light mt-3 text-[clamp(26px,3.5vw,38px)]"
+            style={{ fontFamily: 'var(--font-cormorant), serif' }}
+          >
+            Not ready for coaching?{' '}
+            <em className="italic" style={{ color: C.rosewood }}>
+              Start here.
+            </em>
+          </h3>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-6">
+          {GUIDES.map((g) => (
+            <div
+              key={g.name}
+              className="flex flex-col p-7 rounded-[3px]"
+              style={{ backgroundColor: '#EFE7DC' }}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <h4 className="font-serif text-[21px] font-light" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                  {g.name}
+                </h4>
+                <span
+                  className="font-serif text-[26px] font-light shrink-0"
+                  style={{ fontFamily: 'var(--font-cormorant), serif', color: C.rosewood }}
+                >
+                  {g.price}
+                </span>
+              </div>
+              <p className="text-[13.5px] font-light leading-[1.7] mt-2 flex-1" style={{ color: '#4A4038' }}>
+                {g.blurb}
+              </p>
+              <Link
+                href={g.buyUrl || '/enquire'}
+                target={g.buyUrl ? '_blank' : undefined}
+                rel={g.buyUrl ? 'noopener noreferrer' : undefined}
+                className="mt-6 text-center text-[10px] font-medium uppercase py-3 rounded-[2px] transition-all hover:opacity-90"
+                style={{
+                  backgroundColor: C.ink,
+                  color: C.bone,
+                  fontFamily: 'var(--font-montserrat), sans-serif',
+                  letterSpacing: '0.18em',
+                }}
+              >
+                {g.buyUrl ? `Buy · ${g.price}` : 'Enquire to buy'}
+              </Link>
+            </div>
           ))}
         </div>
       </div>
