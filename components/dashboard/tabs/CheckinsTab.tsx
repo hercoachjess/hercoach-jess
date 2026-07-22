@@ -95,16 +95,19 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
   const [editMeasurements, setEditMeasurements] = useState<BodyMeasurements>({})
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
+  const [actionError, setActionError] = useState('')
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
   // Mark a check-in as reviewed, clears the notification + (if not yet cached)
   // generates the AI summary in the background so it's ready for next week.
   async function markReviewed(checkin: CheckinSubmission) {
+    setActionError('')
     const supabase = createClient()
-    await supabase
+    const { error } = await supabase
       .from('checkin_submissions')
       .update({ coach_reviewed_at: new Date().toISOString() })
       .eq('id', checkin.id)
+    if (error) { setActionError(`Couldn't mark reviewed: ${error.message}`); return }
     if (!checkin.ai_summary || checkin.ai_summary.length === 0) {
       // Fire-and-refresh, don't block the click on summary generation.
       generateSummary(checkin)
@@ -114,22 +117,26 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
   }
 
   async function unmarkReviewed(checkin: CheckinSubmission) {
+    setActionError('')
     const supabase = createClient()
-    await supabase
+    const { error } = await supabase
       .from('checkin_submissions')
       .update({ coach_reviewed_at: null })
       .eq('id', checkin.id)
+    if (error) { setActionError(`Couldn't update: ${error.message}`); return }
     router.refresh()
   }
 
   async function saveResponseSent(checkin: CheckinSubmission, value: string) {
     setSavingResponse((s) => ({ ...s, [checkin.id]: true }))
+    setActionError('')
     const supabase = createClient()
-    await supabase
+    const { error } = await supabase
       .from('checkin_submissions')
       .update({ coach_response_sent: value })
       .eq('id', checkin.id)
     setSavingResponse((s) => ({ ...s, [checkin.id]: false }))
+    if (error) { setActionError(`Couldn't save your reply: ${error.message}`); return }
     router.refresh()
   }
 
@@ -363,6 +370,11 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
 
   return (
     <div className="flex flex-col gap-3">
+      {actionError && (
+        <div className="px-4 py-3 rounded-sm border border-[rgba(176,96,96,0.4)] bg-[rgba(176,96,96,0.08)]">
+          <p className="text-sm text-[#b06060]">{actionError}</p>
+        </div>
+      )}
       {checkins.map((checkin, idx) => {
         const isNew = new Date(checkin.created_at) > oneWeekAgo
         const isOpen = expanded === checkin.id

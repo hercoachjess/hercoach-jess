@@ -71,7 +71,8 @@ export default function OnboardingFileTab({ onboarding, client }: Props) {
     if (editPayload.basics?.height_cm) clientUpdates.height_cm = parseFloat(editPayload.basics.height_cm)
     if (editPayload.goals?.primary_goal) clientUpdates.goal = editPayload.goals.primary_goal
     if (Object.keys(clientUpdates).length > 0) {
-      await supabase.from('clients').update(clientUpdates).eq('id', onboarding!.client_id)
+      const { error: ce } = await supabase.from('clients').update(clientUpdates).eq('id', onboarding!.client_id)
+      if (ce) { setSaving(false); setEditError(`Saved the form, but syncing the client record failed: ${ce.message}`); return }
     }
 
     setSaving(false)
