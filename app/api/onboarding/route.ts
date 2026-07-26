@@ -69,8 +69,21 @@ export async function POST(request: NextRequest) {
       // insert errors and we report it.
     }
 
+    // Routine preference captured on the Lifestyle step — stored on the
+    // client so it can drive day-by-day plan structuring and be edited later.
+    const routineType: string | null = (payload?.lifestyle?.routine_type || '').trim() || null
+    const routineNotes: string | null = (payload?.lifestyle?.routine_notes || '').trim() || null
+
     if (existingClient?.id) {
       clientId = existingClient.id
+      // Refresh routine on re-onboarding, non-fatal if it fails.
+      if (routineType || routineNotes) {
+        const { error: routineErr } = await supabase
+          .from('clients')
+          .update({ routine_type: routineType, routine_notes: routineNotes })
+          .eq('id', clientId)
+        if (routineErr) console.error('[onboarding] routine update (non-fatal):', routineErr)
+      }
     } else {
       // Approximate DOB from age, Jan 1 of (this year - age)
       let dob: string | null = null
@@ -94,6 +107,8 @@ export async function POST(request: NextRequest) {
           starting_weight_kg: startingWeight,
           current_weight_kg: startingWeight,
           goal: payload?.goals?.primary_goal || null,
+          routine_type: routineType,
+          routine_notes: routineNotes,
         })
         .select('id')
         .single()

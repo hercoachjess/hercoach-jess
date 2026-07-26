@@ -548,6 +548,9 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
                   {p.training_intensity && <Row label="Intensity" value={p.training_intensity} />}
                   {p.prs && <RowFull label="PBs / improvements" value={p.prs} />}
                   {p.discomfort && <RowFull label="Discomfort" value={p.discomfort} />}
+                  {p.routine_changed === 'Yes — see notes' && (
+                    <RowFull label="⚠ Routine change" value={p.routine_change_notes?.trim() || 'Client flagged a change — no detail given'} />
+                  )}
                 </Section>
 
                 {/* Recovery */}

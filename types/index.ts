@@ -24,6 +24,11 @@ export interface Client {
   pinned_note: string | null
   food_dislikes_override: string | null
   exercise_dislikes: string | null
+  /** 'fixed' = set training days + meal times to build the plan around;
+   *  'flexible' = client wants leeway on timing/days. Null = not captured. */
+  routine_type: string | null
+  /** Free-text: their typical day — when they train, roughly when they eat. */
+  routine_notes: string | null
 }
 
 export interface OnboardingSubmission {
@@ -60,6 +65,11 @@ export interface OnboardingPayload {
     session_length: string
     training_location: string
     job: string
+    // Routine preference — whether the client has a fixed schedule to build
+    // the plan around, or wants flexibility. Optional so older onboarding
+    // submissions still type-check.
+    routine_type?: string
+    routine_notes?: string
   }
   food_preferences: {
     diet_type: string
@@ -163,6 +173,10 @@ export interface CheckinPayload {
   daily_steps?: string             // Under 5k | 5–7k | 7–10k | 10–12k | 12k+
   meals_feel?: string              // Loved them | They worked | Got bored | Cravings hit | Felt restrictive
   training_intensity?: string      // Light | Moderate | Hard | Very hard | Crushing
+  // Routine change since last plan — used when updating the training / full
+  // plan so it's built around the client's current schedule.
+  routine_changed?: string         // 'No change' | 'Yes — see notes'
+  routine_change_notes?: string    // what changed with gym timing / days / routine
   extra_notes?: string             // free-text
   biggest_win: string
   hardest_part: string

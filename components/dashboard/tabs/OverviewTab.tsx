@@ -55,6 +55,8 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
     exercise_dislikes: client.exercise_dislikes ?? '',
     checkin_day: client.checkin_day ?? '',
     coach_notes: client.coach_notes ?? '',
+    routine_type: client.routine_type ?? '',
+    routine_notes: client.routine_notes ?? '',
     status: client.status,
   })
 
@@ -143,6 +145,8 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
       exercise_dislikes: contact.exercise_dislikes.trim() || null,
       checkin_day: contact.checkin_day || null,
       coach_notes: contact.coach_notes || null,
+      routine_type: contact.routine_type || null,
+      routine_notes: contact.routine_notes.trim() || null,
       status: contact.status,
     }).eq('id', client.id)
     setSaving(false)
@@ -324,6 +328,24 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                   />
                 </div>
                 <div>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Routine <span className="text-[#8a8680] italic">(how the plan is structured)</span></p>
+                  <select className="input-underline text-sm" value={contact.routine_type} onChange={(e) => setContact((c) => ({ ...c, routine_type: e.target.value }))}>
+                    <option value="">Not set</option>
+                    <option value="fixed">Fixed routine — build around set days/times</option>
+                    <option value="flexible">Flexible — leeway on timing/days</option>
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-[#b8b4ac] mb-1">Routine notes <span className="text-[#8a8680] italic">(training days/times, meal timings — used in plans)</span></p>
+                  <textarea
+                    className="input-underline text-sm"
+                    rows={2}
+                    value={contact.routine_notes}
+                    placeholder="e.g. Gym Mon/Wed/Fri 6:30am, breakfast 8am, lunch 1pm, dinner 7:30pm"
+                    onChange={(e) => setContact((c) => ({ ...c, routine_notes: e.target.value }))}
+                  />
+                </div>
+                <div>
                   <p className="text-xs text-[#b8b4ac] mb-1">Coach notes</p>
                   <textarea
                     className="input-underline text-sm"
@@ -340,6 +362,13 @@ export default function OverviewTab({ client, checkins, onboarding }: Props) {
                 <Row label="Phone" value={client.phone || '—'} />
                 <Row label="Check-in day" value={client.checkin_day || '—'} />
                 <Row label="Last check-in" value={latestCheckin ? formatDate(latestCheckin.created_at) : '—'} />
+                <Row label="Routine" value={client.routine_type === 'fixed' ? 'Fixed' : client.routine_type === 'flexible' ? 'Flexible' : '—'} />
+                {client.routine_notes && (
+                  <div>
+                    <p className="text-xs text-[#b8b4ac] mb-1">Routine notes</p>
+                    <p className="text-sm text-[#e0d8cc] leading-relaxed italic">{client.routine_notes}</p>
+                  </div>
+                )}
                 {client.coach_notes && (
                   <div>
                     <p className="text-xs text-[#b8b4ac] mb-1">Coach notes</p>

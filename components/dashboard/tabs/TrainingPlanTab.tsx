@@ -51,6 +51,14 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
   // PB gains, sleep changes etc.
   const recentCheckins = checkins.slice(0, 2)
 
+  // Routine context so the AI can structure sessions around the client's real
+  // schedule. routineChange is the most recent "yes, it changed" flag from a
+  // check-in, so plan updates respond to lifestyle shifts.
+  const routineType = client.routine_type || ''
+  const routineNotes = client.routine_notes || ''
+  const routineChange =
+    checkins.find((c) => c.payload.routine_changed === 'Yes — see notes')?.payload.routine_change_notes || ''
+
   async function aiDraft() {
     setAiDrafting(true)
     setError('')
@@ -71,6 +79,9 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           exerciseDislikes: client.exercise_dislikes || '',
           trainingGoals: ob?.goals?.why || client.goal || '',
           recentCheckins,
+          routineType,
+          routineNotes,
+          routineChange,
         }),
       })
       const data = await res.json()
@@ -113,6 +124,9 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           currentCoachNotes: coachNotes,
           instructions: reviseInstructions,
           recentCheckins,
+          routineType,
+          routineNotes,
+          routineChange,
         }),
       })
       const data = await res.json()
@@ -152,6 +166,9 @@ export default function TrainingPlanTab({ client, initialTrainingPlan, onboardin
           otherSessions,
           instructions: sessionInstructions[sIdx]?.trim() || undefined,
           recentCheckins,
+          routineType,
+          routineNotes,
+          routineChange,
         }),
       })
       const data = await res.json()

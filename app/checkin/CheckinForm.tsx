@@ -197,6 +197,8 @@ export default function CheckinForm() {
   // Feel, separate from yes/no logistics
   const [mealsFeel, setMealsFeel] = useState('')
   const [trainingIntensity, setTrainingIntensity] = useState('')
+  const [routineChanged, setRoutineChanged] = useState('')
+  const [routineChangeNotes, setRoutineChangeNotes] = useState('')
 
   // Wins
   const [biggestWin, setBiggestWin] = useState('')
@@ -276,6 +278,8 @@ export default function CheckinForm() {
       daily_steps: dailySteps,
       meals_feel: mealsFeel,
       training_intensity: trainingIntensity,
+      routine_changed: routineChanged,
+      routine_change_notes: routineChangeNotes,
       biggest_win: biggestWin,
       hardest_part: hardestPart,
       mood,
@@ -401,6 +405,14 @@ export default function CheckinForm() {
               <Field label="How intense did training feel overall?">
                 <Select value={trainingIntensity} onChange={setTrainingIntensity} options={['Light, easy & comfortable','Moderate, a good push','Hard, felt the work','Very hard, finishing on fumes','Crushing, hardest yet']} />
               </Field>
+              <Field label="Has anything changed with your gym times, training days or daily routine?">
+                <Select value={routineChanged} onChange={setRoutineChanged} options={['No change','Yes — see notes']} />
+              </Field>
+              {routineChanged === 'Yes — see notes' && (
+                <Field label="What's changed? (so Jess can rework your plan around it)">
+                  <Textarea value={routineChangeNotes} onChange={setRoutineChangeNotes} placeholder="e.g. New job — can now only train evenings Tue/Thu/Sat. Breakfast pushed to 9:30am." />
+                </Field>
+              )}
             </Card>
 
             {/* RECOVERY */}
