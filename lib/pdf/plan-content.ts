@@ -434,6 +434,47 @@ function trainingSlotIndex(mealCount: number, routineNotes: string): number {
   return mealCount > 0 ? 0 : -1
 }
 
+/** Format minutes-since-midnight back to a friendly time like "6:30am". */
+function formatMinutes(mins: number): string {
+  const h24 = Math.floor(mins / 60)
+  const m = mins % 60
+  const mer = h24 >= 12 ? 'pm' : 'am'
+  let h = h24 % 12
+  if (h === 0) h = 12
+  return m === 0 ? `${h}${mer}` : `${h}:${String(m).padStart(2, '0')}${mer}`
+}
+
+/**
+ * Pull an explicit training time out of the routine notes when one sits next
+ * to a training word ("gym … 6:30am", "train … 6pm"). Meal times elsewhere in
+ * the same note are ignored because they aren't adjacent to a training word.
+ * Returns minutes-since-midnight + a display string, or null to fall back to
+ * the morning/evening heuristic.
+ */
+function extractTrainingTime(routineNotes: string): { minutes: number; display: string } | null {
+  const n = (routineNotes || '').toLowerCase()
+  if (!n) return null
+  const kw = '(?:gym|train\\w*|session|workout|work out|lift\\w*|class|run|cardio)'
+  const time = '(\\d{1,2}(?::\\d{2})?\\s*(?:am|pm)?)'
+  // keyword → time, or time → keyword, within a short window.
+  const patterns = [
+    new RegExp(`${kw}[^.,;\\n]{0,40}?${time}`),
+    new RegExp(`${time}[^.,;\\n]{0,40}?${kw}`),
+  ]
+  for (const re of patterns) {
+    const m = n.match(re)
+    if (m) {
+      const raw = (m[1] || '').trim()
+      // Reject a bare number with no am/pm and no colon (too ambiguous, e.g.
+      // "3 sessions" — that's a count, not a clock time).
+      if (!/[:]|am|pm/.test(raw)) continue
+      const mins = parseTimeToMinutes(raw)
+      if (mins != null) return { minutes: mins, display: formatMinutes(mins) }
+    }
+  }
+  return null
+}
+
 /**
  * Build the day-by-day week: each training session's day with the meal
  * template slotted around it, marking the pre/post-workout meals. Meals are
@@ -457,15 +498,42 @@ export function buildWeekSchedule(
     })
     .map((x) => x.m)
 
+  // Prefer an explicit training time from the routine when we have one AND
+  // every meal has a readable time, so we can place the session precisely by
+  // the clock. Otherwise fall back to the morning/evening/default heuristic.
+  const trainingTime = extractTrainingTime(routineNotes || '')
+  const mealMinutes = orderedMeals.map((m) => parseTimeToMinutes(m.time))
+  const allMealsTimed = mealMinutes.every((t) => t != null)
+  const useClock = !!trainingTime && allMealsTimed
+
+  // Heuristic insertion index (meal to follow; -1 = before all meals).
   const slot = trainingSlotIndex(orderedMeals.length, routineNotes || '')
+  // Clock insertion index: before the first meal later than the session.
+  const clockInsertAt = useClock
+    ? (() => {
+        const idx = mealMinutes.findIndex((t) => (t as number) > trainingTime!.minutes)
+        return idx === -1 ? orderedMeals.length : idx // append if after all meals
+      })()
+    : -1
 
   return sessions.map((s) => {
     const isRest = s.exerciseCount === 0
     const items: ScheduleItem[] = []
-    const trainingItem: ScheduleItem = { kind: 'training', label: `Training — ${s.focus || 'session'}` }
+    const trainingItem: ScheduleItem = {
+      kind: 'training',
+      label: `Training — ${s.focus || 'session'}`,
+      time: useClock ? trainingTime!.display : undefined,
+    }
 
     if (isRest) {
       orderedMeals.forEach((m) => items.push({ kind: 'meal', label: m.name, time: m.time }))
+    } else if (useClock) {
+      // Insert the session at its chronological position among the meals.
+      orderedMeals.forEach((m, idx) => {
+        if (idx === clockInsertAt) items.push(trainingItem)
+        items.push({ kind: 'meal', label: m.name, time: m.time })
+      })
+      if (clockInsertAt >= orderedMeals.length) items.push(trainingItem)
     } else {
       // Insert training after meal index `slot` (-1 = before all meals).
       if (slot < 0) items.push(trainingItem)
@@ -473,6 +541,9 @@ export function buildWeekSchedule(
         items.push({ kind: 'meal', label: m.name, time: m.time })
         if (idx === slot) items.push(trainingItem)
       })
+    }
+
+    if (!isRest) {
       // Tag the meal immediately before / after the training item.
       const tIdx = items.findIndex((it) => it.kind === 'training')
       for (let i = tIdx - 1; i >= 0; i--) { if (items[i].kind === 'meal') { items[i] = { ...items[i], tag: 'pre-workout fuel' }; break } }
