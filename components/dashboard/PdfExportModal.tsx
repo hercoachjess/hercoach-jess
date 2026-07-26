@@ -11,7 +11,7 @@ import {
 interface Props {
   open: boolean
   onClose: () => void
-  scope: 'meal' | 'training'
+  scope: 'meal' | 'training' | 'full'
   /** Full default customisation, freshly built by the tab on each open. */
   defaults: PdfCustomisation
   /** Whether this plan actually has a multi-week progression to show. */
@@ -88,15 +88,24 @@ export default function PdfExportModal({
 
   const isTrainingScope = scope === 'training'
   const isMealScope = scope === 'meal'
+  const isFullScope = scope === 'full'
+  // Training + nutrition content is available on the full plan and on their
+  // respective single-scope exports.
+  const showTraining = isTrainingScope || isFullScope
+  const showNutrition = isMealScope || isFullScope
 
   // Sections that actually render for this scope, in the coach-chosen order.
-  // (Training only appears on training exports, Nutrition only on meal.)
-  const applicableKeys: SectionKey[] = isTrainingScope
-    ? ['training', 'yoga', 'cardio', 'general', 'custom']
-    : ['nutrition', 'yoga', 'cardio', 'general', 'custom']
+  // (Training only appears on training/full, Nutrition on meal/full, the
+  // day-by-day schedule on the full plan only.)
+  const applicableKeys: SectionKey[] = isFullScope
+    ? ['schedule', 'training', 'nutrition', 'yoga', 'cardio', 'general', 'custom']
+    : isTrainingScope
+      ? ['training', 'yoga', 'cardio', 'general', 'custom']
+      : ['nutrition', 'yoga', 'cardio', 'general', 'custom']
   const orderedApplicable = normalizeSectionOrder(cx.sectionOrder).filter((k) => applicableKeys.includes(k))
 
   const sectionEnabled: Record<SectionKey, boolean> = {
+    schedule: cx.includeSchedule,
     training: cx.includeTraining,
     yoga: cx.includeYoga,
     cardio: cx.includeCardio,
@@ -181,7 +190,7 @@ export default function PdfExportModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isTrainingScope ? 'Review & export training plan' : 'Review & export meal plan'}
+      title={isFullScope ? 'Review & export full plan' : isTrainingScope ? 'Review & export training plan' : 'Review & export meal plan'}
       size="xl"
       footer={
         <div className="flex items-center justify-between gap-2 w-full flex-wrap">
@@ -224,22 +233,39 @@ export default function PdfExportModal({
         {/* ── COVER & OVERVIEW ── */}
         <GroupHeading>Cover &amp; overview</GroupHeading>
 
-        <Toggle label="Personal welcome card" hint="The warm 'This is your plan' opener pulled from onboarding."
-          checked={cx.includeWelcome} onCheck={(v) => set('includeWelcome', v)} />
+        <Section label={isFullScope ? 'Mini intro (from you)' : 'Personal welcome card'}
+          hint={isFullScope ? "The short opener at the top: name, goal, and a line in your voice about the plan." : "The warm 'This is your plan' opener pulled from onboarding."}
+          checked={cx.includeWelcome} onCheck={(v) => set('includeWelcome', v)}>
+          {isFullScope ? (
+            <TextField label="Intro paragraph (your voice)" rows={5} value={cx.introBlurb}
+              onChange={(v) => set('introBlurb', v)} />
+          ) : null}
+        </Section>
 
-        <Section label="Client stats line" hint="Age, height, current weight in the overview box. Some clients prefer this off."
+        <Section
+          label={isFullScope ? 'Detail line (age · height · email)' : 'Client stats line'}
+          hint={isFullScope ? 'The small line under the intro. No weight, macros or steps here.' : 'Age, height, current weight in the overview box. Some clients prefer this off.'}
           checked={cx.includeClientStats} onCheck={(v) => set('includeClientStats', v)}>
-          <TextField label="Text on the PDF" rows={2} value={cx.clientStatsOverride}
-            placeholder="Age, height, current weight…" onChange={(v) => set('clientStatsOverride', v)} />
+          {isFullScope ? (
+            <p className="text-xs text-[#8a8680] italic leading-relaxed">Pulled live from the client file (age, height, email).</p>
+          ) : (
+            <TextField label="Text on the PDF" rows={2} value={cx.clientStatsOverride}
+              placeholder="Age, height, current weight…" onChange={(v) => set('clientStatsOverride', v)} />
+          )}
         </Section>
 
-        <Section label="At-a-glance chips" hint="The strip of headline numbers under the overview (calories, protein, steps, cardio target)."
-          checked={cx.includeMacroChips} onCheck={(v) => set('includeMacroChips', v)}>
+        {isFullScope ? (
           <InlineField label="Daily step goal" value={cx.stepGoal} placeholder="10,000"
-            onChange={(v) => set('stepGoal', v)} hint="Shown on the chips and used across the cardio & movement section." />
-        </Section>
+            onChange={(v) => set('stepGoal', v)} hint="Used across the schedule and the cardio & movement section." />
+        ) : (
+          <Section label="At-a-glance chips" hint="The strip of headline numbers under the overview (calories, protein, steps, cardio target)."
+            checked={cx.includeMacroChips} onCheck={(v) => set('includeMacroChips', v)}>
+            <InlineField label="Daily step goal" value={cx.stepGoal} placeholder="10,000"
+              onChange={(v) => set('stepGoal', v)} hint="Shown on the chips and used across the cardio & movement section." />
+          </Section>
+        )}
 
-        {isMealScope && cx.macroOverride && (
+        {showNutrition && cx.macroOverride && (
           <div className="border border-[rgba(255,255,255,0.14)] rounded-sm p-4">
             <p className="text-sm text-[#f0ece4] font-medium leading-tight">Macro targets on the PDF</p>
             <p className="text-xs text-[#8a8680] italic leading-relaxed mt-0.5 mb-3">
@@ -301,8 +327,23 @@ export default function PdfExportModal({
           ))}
         </div>
 
-        {/* ── TRAINING (training scope only) ── */}
-        {isTrainingScope && (
+        {/* ── YOUR WEEK (full plan only) ── */}
+        {isFullScope && (
+          <>
+            <GroupHeading>Your week (day-by-day)</GroupHeading>
+            <Section label="Day-by-day schedule" hint="Each training day with the meals slotted around it, built from the client's routine. Reorder or switch off above."
+              checked={cx.includeSchedule} onCheck={(v) => set('includeSchedule', v)}>
+              <TextField label="Intro line above the week" rows={3} value={cx.scheduleNote}
+                onChange={(v) => set('scheduleNote', v)} />
+              <p className="text-xs text-[#8a8680] italic leading-relaxed mt-2">
+                Meal times come from the meal plan; training is placed using the client&apos;s routine (Overview → Routine).
+              </p>
+            </Section>
+          </>
+        )}
+
+        {/* ── TRAINING (training + full scope) ── */}
+        {showTraining && (
           <>
             <GroupHeading>Training plan</GroupHeading>
             <Toggle label="Include the whole training section" hint="Master switch for Section 01 (warm-up, sessions, progression, cool-down)."
@@ -376,8 +417,8 @@ export default function PdfExportModal({
           </div>
         )}
 
-        {/* ── NUTRITION (meal scope only) ── */}
-        {isMealScope && (
+        {/* ── NUTRITION (meal + full scope) ── */}
+        {showNutrition && (
           <>
             <GroupHeading>Nutrition</GroupHeading>
             <Toggle label="Include the whole nutrition section" hint="Master switch for Section 04 (meals, snacks, hydration, food facts)."
@@ -429,7 +470,7 @@ export default function PdfExportModal({
               checked={cx.includeStress} onCheck={(v) => set('includeStress', v)}>
               <LinesField value={cx.stressLines} onChange={(v) => set('stressLines', v)} rows={6} />
             </Section>
-            {isMealScope && (
+            {showNutrition && (
               <Section label="Training-day nutrition timing" hint="Pre / post-workout fuelling guidance."
                 checked={cx.includeTrainingDayNutrition} onCheck={(v) => set('includeTrainingDayNutrition', v)}>
                 <LinesField value={cx.trainingDayNutritionLines} onChange={(v) => set('trainingDayNutritionLines', v)} rows={4} />
