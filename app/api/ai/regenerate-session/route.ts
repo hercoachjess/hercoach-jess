@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
       otherSessions,
       instructions,
       recentCheckins = [],
+      routineType = '',
+      routineNotes = '',
+      routineChange = '',
     }: {
       clientName: string
       goal: string
@@ -46,6 +49,9 @@ export async function POST(request: NextRequest) {
       otherSessions: TrainingSession[]
       instructions?: string
       recentCheckins?: CheckinSubmission[]
+      routineType?: string
+      routineNotes?: string
+      routineChange?: string
     } = await request.json()
 
     if (!currentSession) {
@@ -79,6 +85,7 @@ Intensity preference: ${intensity || 'moderate'}
 Equipment / location: ${gymAccess || 'Gym'}
 Injuries / limitations: ${injuries || 'None reported'}
 Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
+${(routineType || routineNotes || routineChange) ? `Client routine: ${routineType === 'fixed' ? 'fixed schedule' : routineType === 'flexible' ? 'flexible' : ''}${routineNotes ? ` — ${routineNotes}` : ''}${routineChange ? ` | recent change: ${routineChange}` : ''}` : ''}
 ${checkinContext}
 THE SESSION TO REPLACE (keep the same day slot):
 ${JSON.stringify(currentSession, null, 2)}

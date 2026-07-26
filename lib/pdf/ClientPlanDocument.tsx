@@ -7,8 +7,8 @@ import { normalizeMealItems } from '@/lib/meal'
 import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
 import type { ReactNode } from 'react'
 import {
-  buildDefaultCustomisation, computeHrZones, normalizeSectionOrder,
-  type PdfCustomisation, type HrZoneRow, type SectionKey,
+  buildDefaultCustomisation, computeHrZones, normalizeSectionOrder, buildWeekSchedule,
+  type PdfCustomisation, type HrZoneRow, type SectionKey, type ScheduleDay,
 } from '@/lib/pdf/plan-content'
 
 // ───────────────── FONTS ─────────────────
@@ -489,6 +489,30 @@ function SnackStrip({ snacks }: { snacks: [string, string][] }) {
   )
 }
 
+function ScheduleWeek({ days }: { days: ScheduleDay[] }) {
+  return (
+    <View>
+      {days.map((d, i) => (
+        <View key={i} wrap={false} style={{ marginTop: i === 0 ? 0 : 10 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', borderBottomWidth: 0.5, borderBottomColor: C.RULE_LIGHT, paddingBottom: 3, marginBottom: 4 }}>
+            <Text style={s.dayHead}>{d.day}</Text>
+            <Text style={{ fontSize: 8, color: d.isRest ? C.MID_GREY : C.ACCENT }}>{d.isRest ? 'Rest & recovery' : d.focus}</Text>
+          </View>
+          {d.items.map((it, j) => (
+            <View key={j} style={{ flexDirection: 'row', paddingVertical: 2, alignItems: 'baseline' }}>
+              <Text style={{ width: 44, fontSize: 8, color: C.MID_GREY }}>{it.time || ''}</Text>
+              <Text style={[{ flex: 1, fontSize: 9 }, it.kind === 'training' ? { fontFamily: 'Helvetica-Bold', color: C.BLACK } : { color: C.OFF_BLACK }]}>
+                {it.label}
+                {it.tag ? <Text style={{ fontFamily: 'Helvetica-Oblique', fontSize: 7.5, color: C.MID_GREY }}>{'  ·  '}{it.tag}</Text> : null}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  )
+}
+
 function HRTable({ zones }: { zones: HrZoneRow[] }) {
   return (
     <View>
@@ -607,6 +631,25 @@ export default function ClientPlanDocument({
   const trainingDays = (trainingPlan?.sessions || []).filter((s) => s.exercises.length > 0)
   const restDays = (trainingPlan?.sessions || []).filter((s) => s.exercises.length === 0)
 
+  // Full plan = both meal + training present. Only the full plan gets the new
+  // mini intro (no macros/weight/steps at the top) and the day-by-day "Your
+  // Week" schedule. Meal-only / training-only exports are untouched so their
+  // look doesn't change.
+  const isFullPlan = !!mealPlan && !!trainingPlan
+  const weekSchedule = isFullPlan
+    ? buildWeekSchedule(
+        (trainingPlan?.sessions || []).map((sn) => ({ day: sn.day, focus: sn.focus, exerciseCount: sn.exercises.length })),
+        (mealPlan?.meals || []).map((m) => ({ name: m.name, time: m.time })),
+        client.routine_type,
+        client.routine_notes,
+      )
+    : []
+  const introDetail = [
+    cx.includeClientStats && age != null ? `Age ${age}` : null,
+    cx.includeClientStats && client.height_cm ? `${client.height_cm} cm` : null,
+    cx.includeClientStats && client.email ? client.email : null,
+  ].filter(Boolean).join('   ·   ')
+
   return (
     <Document title={`${client.full_name}, Plan ${version}`} author="hercoach Jess, Registered Dietitian (HCPC)">
       <Page size="A4" style={s.page}>
@@ -619,43 +662,68 @@ export default function ClientPlanDocument({
           <Text style={s.welcomeR}>Prepared by Jess  ·  Registered Dietitian (HCPC)  ·  {today}</Text>
         </View>
 
-        {/* Personal welcome card, pulls from onboarding so the first
-            page feels like it was written for this specific person.
-            Falls back gracefully when onboarding data is thin. */}
-        {cx.includeWelcome && (
-          <WelcomeCard
-            client={client}
-            onboarding={onboarding}
-            trainingPlan={trainingPlan}
-            mealPlan={mealPlan}
-            isTrainingOnly={isTrainingOnly}
-          />
-        )}
-
-        {/* Client snapshot. The stats line (age/height/weight) is
-            optional and coach-editable per export. */}
-        {(() => {
-          const autoStats = [
-            client.date_of_birth ? `Age: ${new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()}` : null,
-            client.height_cm ? `Height: ${client.height_cm} cm` : null,
-            client.current_weight_kg ? `Current weight: ${client.current_weight_kg} kg` : null,
-          ].filter(Boolean).join('  ·  ')
-          const statsLine = cx.includeClientStats
-            ? (cx.clientStatsOverride && cx.clientStatsOverride.trim()) || autoStats
-            : ''
-          const overviewLines = [
-            statsLine,
-            `Goal: ${client.goal || 'Personalised wellness & training programme'}`,
-            `Programme: ${trainingPlan?.days_per_week ?? 5} active days, resistance training + recovery`,
-            `Version: ${version}`,
-          ].filter((line) => line && line.trim().length > 0)
-          return <LinenBox head="Client Overview" lines={overviewLines} />
-        })()}
-
-        {cx.includeMacroChips && (
+        {isFullPlan ? (
+          /* Full plan: a clean mini intro only — name, goal, what the plan is,
+             and a light detail line (age · height · email). No weight, macros
+             or steps at the top; those live in their own sections below. */
+          cx.includeWelcome && (
+            <View style={s.welcomeCard} wrap={false}>
+              <Text style={s.welcomeEyebrow}>FOR {(client.full_name || '').split(' ')[0].toUpperCase()}</Text>
+              <Text style={s.welcomeGreeting}>This is your plan, {(client.full_name || '').split(' ')[0]}.</Text>
+              {client.goal && (
+                <Text style={[s.welcomeBody, { marginBottom: 6 }]}>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>Your goal: </Text>{client.goal}
+                </Text>
+              )}
+              {cx.introBlurb.trim().length > 0 && (
+                <Text style={s.welcomeBody}>{cx.introBlurb.trim()}</Text>
+              )}
+              {introDetail.length > 0 && (
+                <Text style={{ fontSize: 8, color: C.MID_GREY, marginTop: 8 }}>{introDetail}</Text>
+              )}
+            </View>
+          )
+        ) : (
           <>
-            <View style={{ height: 8 }} />
-            <MacroChips chips={chips} />
+            {/* Personal welcome card, pulls from onboarding so the first
+                page feels like it was written for this specific person.
+                Falls back gracefully when onboarding data is thin. */}
+            {cx.includeWelcome && (
+              <WelcomeCard
+                client={client}
+                onboarding={onboarding}
+                trainingPlan={trainingPlan}
+                mealPlan={mealPlan}
+                isTrainingOnly={isTrainingOnly}
+              />
+            )}
+
+            {/* Client snapshot. The stats line (age/height/weight) is
+                optional and coach-editable per export. */}
+            {(() => {
+              const autoStats = [
+                client.date_of_birth ? `Age: ${new Date().getFullYear() - new Date(client.date_of_birth).getFullYear()}` : null,
+                client.height_cm ? `Height: ${client.height_cm} cm` : null,
+                client.current_weight_kg ? `Current weight: ${client.current_weight_kg} kg` : null,
+              ].filter(Boolean).join('  ·  ')
+              const statsLine = cx.includeClientStats
+                ? (cx.clientStatsOverride && cx.clientStatsOverride.trim()) || autoStats
+                : ''
+              const overviewLines = [
+                statsLine,
+                `Goal: ${client.goal || 'Personalised wellness & training programme'}`,
+                `Programme: ${trainingPlan?.days_per_week ?? 5} active days, resistance training + recovery`,
+                `Version: ${version}`,
+              ].filter((line) => line && line.trim().length > 0)
+              return <LinenBox head="Client Overview" lines={overviewLines} />
+            })()}
+
+            {cx.includeMacroChips && (
+              <>
+                <View style={{ height: 8 }} />
+                <MacroChips chips={chips} />
+              </>
+            )}
           </>
         )}
 
@@ -952,7 +1020,18 @@ export default function ClientPlanDocument({
             </>
           ) : null
 
+          // Day-by-day "Your Week" — full plan only, when there are sessions.
+          const scheduleBody: ReactNode = (isFullPlan && cx.includeSchedule && weekSchedule.length > 0) ? (
+            <>
+              {cx.scheduleNote.trim().length > 0 && (
+                <Text style={[s.noteText, { marginBottom: 8 }]}>{cx.scheduleNote.trim()}</Text>
+              )}
+              <ScheduleWeek days={weekSchedule} />
+            </>
+          ) : null
+
           const defs: Record<SectionKey, { title: string; body: ReactNode } | null> = {
+            schedule: scheduleBody ? { title: 'Your Week', body: scheduleBody } : null,
             training: trainingBody ? { title: 'Training Plan', body: trainingBody } : null,
             yoga: yogaBody ? { title: 'Yoga & Active Recovery', body: yogaBody } : null,
             cardio: cardioBody ? { title: 'Cardio & Daily Movement', body: cardioBody } : null,

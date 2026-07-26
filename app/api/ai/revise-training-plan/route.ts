@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
       currentCoachNotes,
       instructions,
       recentCheckins = [],
+      routineType = '',
+      routineNotes = '',
+      routineChange = '',
     }: {
       clientName: string
       goal: string
@@ -47,6 +50,9 @@ export async function POST(request: NextRequest) {
       currentCoachNotes: string
       instructions: string
       recentCheckins?: CheckinSubmission[]
+      routineType?: string
+      routineNotes?: string
+      routineChange?: string
     } = await request.json()
     const lengthWeeks = [1, 4, 8, 12].includes(programmeLengthWeeks || 1) ? (programmeLengthWeeks as number) : 1
 
@@ -65,7 +71,7 @@ Training style: ${trainingStyle || 'preserve current split unless instructions s
 Equipment / location: ${gymAccess || 'Gym'}
 Injuries / limitations to respect: ${injuries || 'None reported'}
 Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
-
+${(routineType || routineNotes || routineChange) ? `\nCLIENT ROUTINE (keep sessions aligned to this):${routineType ? `\n  Preference: ${routineType === 'fixed' ? 'FIXED — keep sessions on their stated days/times' : 'FLEXIBLE — spread sensibly, movable'}` : ''}${routineNotes ? `\n  Typical week / timings: ${routineNotes}` : ''}${routineChange ? `\n  RECENT CHANGE flagged at check-in (take priority, re-slot days if needed): ${routineChange}` : ''}\n  When the routine names specific days, use those exact day names in each session's "day" field.\n` : ''}
 DO-NOT-PROGRAMME RULE, CRITICAL:
 The "Injuries / limitations" and "Exercises the client does NOT want" lists are absolute. NEVER include any exercise that hits a contraindicated joint, replicates a disliked movement pattern, or otherwise causes the client distress, even if the coach instructions don't explicitly forbid it. If the current programme already includes one, this is your chance to swap it for an equivalent that respects the limitation.
 

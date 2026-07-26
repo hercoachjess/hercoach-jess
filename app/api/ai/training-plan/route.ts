@@ -28,6 +28,9 @@ export async function POST(request: NextRequest) {
       exerciseDislikes,
       trainingGoals,
       recentCheckins = [],
+      routineType = '',
+      routineNotes = '',
+      routineChange = '',
     }: {
       clientName: string
       goal: string
@@ -41,6 +44,9 @@ export async function POST(request: NextRequest) {
       exerciseDislikes?: string
       trainingGoals: string
       recentCheckins?: CheckinSubmission[]
+      routineType?: string
+      routineNotes?: string
+      routineChange?: string
     } = await request.json()
     const lengthWeeks = [1, 4, 8, 12].includes(programmeLengthWeeks || 1) ? (programmeLengthWeeks as number) : 1
 
@@ -70,6 +76,18 @@ ${recentCheckins
 `
       : ''
 
+    // Routine context — schedule the week around how the client actually
+    // lives. Fixed routines should map sessions to their stated days; flexible
+    // clients get a suggested spread they can move around.
+    const routineContext = (routineType || routineNotes || routineChange)
+      ? `\nCLIENT ROUTINE (structure the week around this):
+${routineType ? `  Preference: ${routineType === 'fixed' ? 'FIXED routine — assign sessions to the specific days/times below and keep them consistent' : 'FLEXIBLE — give a sensible weekly spread they can shuffle to fit their life'}` : ''}
+${routineNotes ? `  Typical week / timings: ${routineNotes}` : ''}
+${routineChange ? `  RECENT CHANGE flagged at check-in (take priority): ${routineChange}` : ''}
+  When the routine names specific training days, use those exact day names in the "day" field of each session.
+`
+      : ''
+
     const coachStyle = await getCoachStyleBlock()
     const prompt = coachStyle + `You are Jess, an online fitness coach and HCPC-registered Registered Dietitian. Draft a ${lengthWeeks}-week training programme for client ${clientName}.
 
@@ -83,7 +101,7 @@ Equipment / gym access: ${gymAccess || 'Full gym'}
 Injuries / limitations: ${injuries || 'None'}
 Exercises / movements the client does NOT want: ${exerciseDislikes || 'None recorded'}
 Training goals: ${trainingGoals || goal}
-${checkinContext}
+${routineContext}${checkinContext}
 DO-NOT-PROGRAMME RULE, CRITICAL:
 The "Injuries / limitations" and "Exercises the client does NOT want" lists above are absolute. NEVER include any exercise that targets a contraindicated joint, replicates a movement pattern the client dislikes, or causes the client distress. Examples:
 - If they dislike burpees → no burpees, no burpee variations, no thrusters as a substitute either

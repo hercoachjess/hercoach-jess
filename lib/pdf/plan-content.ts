@@ -41,13 +41,14 @@ export interface MacroOverride {
 /** The reorderable body sections. The cover (welcome / stats / chips) is
  *  always first and the closing sign-off always last; everything between
  *  renders in `sectionOrder`. */
-export type SectionKey = 'training' | 'yoga' | 'cardio' | 'nutrition' | 'general' | 'custom'
+export type SectionKey = 'schedule' | 'training' | 'yoga' | 'cardio' | 'nutrition' | 'general' | 'custom'
 
-export const ALL_SECTION_KEYS: SectionKey[] = ['training', 'yoga', 'cardio', 'nutrition', 'general', 'custom']
+export const ALL_SECTION_KEYS: SectionKey[] = ['schedule', 'training', 'yoga', 'cardio', 'nutrition', 'general', 'custom']
 
 export const DEFAULT_SECTION_ORDER: SectionKey[] = [...ALL_SECTION_KEYS]
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
+  schedule: 'Your week (day-by-day)',
   training: 'Training plan',
   yoga: 'Yoga & active recovery',
   cardio: 'Cardio & daily movement',
@@ -81,9 +82,15 @@ export function normalizeSectionOrder(order: SectionKey[] | undefined | null): S
 export interface PdfCustomisation {
   // ── Cover & overview ──
   includeWelcome: boolean
+  /** Short "what this plan is" paragraph in Jess's voice, shown in the intro. */
+  introBlurb: string
   includeClientStats: boolean
   clientStatsOverride: string
   includeMacroChips: boolean
+
+  // ── Day-by-day "Your Week" schedule (full plan only) ──
+  includeSchedule: boolean
+  scheduleNote: string
   /** Daily step target, shown on the macro chip strip + cardio section. */
   stepGoal: string
   /** Editable macro targets for meal exports (chips + protein line + note).
@@ -147,6 +154,14 @@ export interface PdfCustomisation {
 // ── Static default content ──────────────────────────────────────────────
 
 export const DEFAULT_STEP_GOAL = '10,000'
+
+// Jess-voiced intro paragraph. First-person, warm, professional — never
+// reads as AI-generated. Coach can edit per export.
+export const DEFAULT_INTRO_BLURB =
+  "I've put this plan together for you personally, around your goals, your preferences and how your week actually runs. Everything here is a guide, not a set of rules — the aim is something you can live with and enjoy, not just follow for a fortnight. Read it through once, then take it a day at a time. I'm with you every step, so tell me what's working and what isn't at each check-in and we'll keep shaping it together."
+
+export const DEFAULT_SCHEDULE_NOTE =
+  'Here is how a typical week fits together for you — your training slotted in around your meals and daily routine. Times are a guide; if life moves a session, just keep the order and the balance and you are still on track.'
 
 export const DEFAULT_WARMUP_LINES = [
   '5 minutes incline treadmill walk, gradient 6–8, easy comfortable pace (Zone 1)',
@@ -371,6 +386,103 @@ export function computeHrZones(maxHr: number | null | undefined): HrZoneRow[] {
   ]
 }
 
+// ── Day-by-day week schedule ─────────────────────────────────────────────
+
+export interface ScheduleItem {
+  kind: 'meal' | 'training'
+  label: string
+  time?: string
+  tag?: string   // e.g. 'pre-workout', 'post-workout'
+}
+
+export interface ScheduleDay {
+  day: string
+  focus: string
+  isRest: boolean
+  items: ScheduleItem[]
+}
+
+interface ScheduleSession { day: string; focus: string; exerciseCount: number }
+interface ScheduleMeal { name: string; time?: string }
+
+/** Parse a loose meal time ("8am", "13:00", "7:30pm", "1pm") to minutes for
+ *  ordering. Returns null when it can't be read, so we fall back to plan order. */
+function parseTimeToMinutes(time: string | undefined): number | null {
+  if (!time) return null
+  const t = time.trim().toLowerCase()
+  const m = t.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/)
+  if (!m) return null
+  let h = parseInt(m[1], 10)
+  const min = m[2] ? parseInt(m[2], 10) : 0
+  const mer = m[3]
+  if (mer === 'pm' && h < 12) h += 12
+  if (mer === 'am' && h === 12) h = 0
+  if (h > 23 || min > 59) return null
+  return h * 60 + min
+}
+
+/** Decide where the training session sits in the day relative to meals,
+ *  from the client's routine notes (morning / evening cues). Returns the
+ *  meal index the training should follow (-1 = before the first meal). */
+function trainingSlotIndex(mealCount: number, routineNotes: string): number {
+  const n = (routineNotes || '').toLowerCase()
+  const morning = /(morning|before work|before breakfast|first thing|early|\bam\b|6\s*[:.]?\d*\s*am|7\s*[:.]?\d*\s*am|5\s*[:.]?\d*\s*am)/.test(n)
+  const evening = /(evening|after work|night|\bpm\b|before bed|lunchtime|midday)/.test(n)
+  if (morning) return -1
+  if (evening) return mealCount - 1
+  // Sensible default: after the first meal (trained fuelled).
+  return mealCount > 0 ? 0 : -1
+}
+
+/**
+ * Build the day-by-day week: each training session's day with the meal
+ * template slotted around it, marking the pre/post-workout meals. Meals are
+ * ordered by their time when parseable, otherwise kept in plan order. Pure so
+ * it can be unit-tested and reused by the modal preview.
+ */
+export function buildWeekSchedule(
+  sessions: ScheduleSession[],
+  meals: ScheduleMeal[],
+  routineType: string | null | undefined,
+  routineNotes: string | null | undefined,
+): ScheduleDay[] {
+  // Order the meal template once; the same order repeats each day.
+  const orderedMeals = [...meals]
+    .map((m, i) => ({ m, i, t: parseTimeToMinutes(m.time) }))
+    .sort((a, b) => {
+      if (a.t == null && b.t == null) return a.i - b.i
+      if (a.t == null) return 1
+      if (b.t == null) return -1
+      return a.t - b.t
+    })
+    .map((x) => x.m)
+
+  const slot = trainingSlotIndex(orderedMeals.length, routineNotes || '')
+
+  return sessions.map((s) => {
+    const isRest = s.exerciseCount === 0
+    const items: ScheduleItem[] = []
+    const trainingItem: ScheduleItem = { kind: 'training', label: `Training — ${s.focus || 'session'}` }
+
+    if (isRest) {
+      orderedMeals.forEach((m) => items.push({ kind: 'meal', label: m.name, time: m.time }))
+    } else {
+      // Insert training after meal index `slot` (-1 = before all meals).
+      if (slot < 0) items.push(trainingItem)
+      orderedMeals.forEach((m, idx) => {
+        items.push({ kind: 'meal', label: m.name, time: m.time })
+        if (idx === slot) items.push(trainingItem)
+      })
+      // Tag the meal immediately before / after the training item.
+      const tIdx = items.findIndex((it) => it.kind === 'training')
+      for (let i = tIdx - 1; i >= 0; i--) { if (items[i].kind === 'meal') { items[i] = { ...items[i], tag: 'pre-workout fuel' }; break } }
+      for (let i = tIdx + 1; i < items.length; i++) { if (items[i].kind === 'meal') { items[i] = { ...items[i], tag: 'post-workout' }; break } }
+    }
+
+    return { day: s.day, focus: isRest ? (s.focus || 'Rest & recovery') : s.focus, isRest, items }
+  })
+}
+
 // ── Default customisation builder ────────────────────────────────────────
 
 export interface BuildDefaultOpts {
@@ -395,9 +507,14 @@ export function buildDefaultCustomisation(opts: BuildDefaultOpts): PdfCustomisat
   const stepGoal = DEFAULT_STEP_GOAL
   return {
     includeWelcome: true,
+    introBlurb: DEFAULT_INTRO_BLURB,
     includeClientStats: true,
     clientStatsOverride: opts.statsLine ?? '',
     includeMacroChips: true,
+
+    includeSchedule: true,
+    scheduleNote: DEFAULT_SCHEDULE_NOTE,
+
     stepGoal,
     // Only meal exports carry editable macros; training exports have no
     // nutrition content so this stays null.

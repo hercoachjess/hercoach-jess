@@ -209,6 +209,8 @@ export default function OnboardingForm() {
   const [sessionLen, setSessionLen] = useState('')
   const [trainLoc, setTrainLoc] = useState('')
   const [job, setJob] = useState('')
+  const [routineType, setRoutineType] = useState('')
+  const [routineNotes, setRoutineNotes] = useState('')
   // Step 3, food
   const [diet, setDiet] = useState('')
   const [mealsPerDay, setMealsPerDay] = useState('')
@@ -268,7 +270,7 @@ export default function OnboardingForm() {
     const payload = {
       basics,
       goals: { primary_goal: goal, timeline, why, previous },
-      lifestyle: { activity, experience, training_days_per_week: trainDays, session_length: sessionLen, training_location: trainLoc, job },
+      lifestyle: { activity, experience, training_days_per_week: trainDays, session_length: sessionLen, training_location: trainLoc, job, routine_type: routineType, routine_notes: routineNotes },
       food_preferences: {
         diet_type: diet, meals_per_day: mealsPerDay, cooking_confidence: cooking,
         meal_prep: prep, foods_loved: foodsLoved, foods_disliked: foodsDisliked,
@@ -457,6 +459,25 @@ export default function OnboardingForm() {
               </Field>
               <Field label="Job / Daily Routine">
                 <Select value={job} onChange={setJob} options={['Office / desk job','On my feet all day','Mixed','Work from home','Shift work','Stay at home / carer']} />
+              </Field>
+              <Field label="How set is your weekly routine?">
+                <Pills>
+                  {[
+                    { v: 'fixed', label: 'I have a fixed routine' },
+                    { v: 'flexible', label: 'I like flexibility' },
+                  ].map(({ v, label }) => (
+                    <Pill key={v} active={routineType === v} onClick={() => setRoutineType(v)}>{label}</Pill>
+                  ))}
+                </Pills>
+              </Field>
+              <Field label={routineType === 'fixed' ? 'Tell me your typical week — which days & times you train, and roughly when you eat' : 'Anything about your daily timings I should build around? (optional)'}>
+                <Textarea
+                  value={routineNotes}
+                  onChange={setRoutineNotes}
+                  placeholder={routineType === 'fixed'
+                    ? "e.g. Gym Mon/Wed/Fri before work ~6:30am, breakfast 8am, lunch 1pm, dinner 7:30pm. Weekends are flexible."
+                    : "e.g. I train whenever I can fit it in, meals vary day to day — keep it adaptable."}
+                />
               </Field>
             </Card>
             <Nav onBack={() => go(1)} onNext={() => go(3)} />

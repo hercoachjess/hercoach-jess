@@ -6,6 +6,8 @@ import Card, { CardBody, CardHeader } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Modal from '@/components/ui/Modal'
+import PdfExportModal from '@/components/dashboard/PdfExportModal'
+import { buildDefaultCustomisation, type PdfCustomisation } from '@/lib/pdf/plan-content'
 import { formatDate, nextVersionNumber } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Client, MealPlan, TrainingPlan, PlanHistory } from '@/types'
@@ -34,6 +36,57 @@ export default function PlanHistoryTab({
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [error, setError] = useState('')
+
+  // Full-plan export (review + preview) — separate from Save-to-history.
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+
+  async function runFullExport(customisation: PdfCustomisation, preview: boolean) {
+    if (preview) setPreviewing(true); else setExporting(true)
+    setError('')
+    try {
+      const mealForPdf = currentMealPlan
+        ? { ...currentMealPlan, targets: customisation.macroOverride ?? currentMealPlan.targets }
+        : null
+      const res = await fetch('/api/pdf/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          mealPlan: mealForPdf,
+          trainingPlan: currentTrainingPlan,
+          version: 'current',
+          includeNumbers: false,
+          scope: 'full',
+          mode: 'inline',
+          customisation,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Export failed.' }))
+        throw new Error(data.error || 'Export failed.')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if (preview) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } else {
+        const name = (client?.full_name || 'client').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${name}-full-plan.pdf`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setExportModalOpen(false)
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Export failed.')
+    } finally {
+      if (preview) setPreviewing(false); else setExporting(false)
+    }
+  }
 
   async function saveToHistory() {
     setSaving(true)
@@ -128,12 +181,22 @@ export default function PlanHistoryTab({
         </p>
       </div>
 
-      {/* Save button */}
-      <div className="flex gap-3">
+      {/* Actions */}
+      <div className="flex gap-3 flex-wrap">
         <Button onClick={() => setSaveModalOpen(true)} disabled={!currentMealPlan && !currentTrainingPlan}>
           Save &amp; add to plan history
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => { setError(''); setExportModalOpen(true) }}
+          disabled={!currentMealPlan && !currentTrainingPlan}
+        >
+          Preview / export full plan
+        </Button>
       </div>
+      {error && !saveModalOpen && (
+        <p className="text-sm text-[#b06060]">{error}</p>
+      )}
 
       {/* History list */}
       {planHistory.length === 0 ? (
@@ -283,6 +346,34 @@ export default function PlanHistoryTab({
           This will permanently delete this plan version and its PDF. This cannot be undone.
         </p>
       </Modal>
+
+      {/* Full-plan review + export (toggle every section, reorder, preview). */}
+      <PdfExportModal
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        scope="full"
+        defaults={buildDefaultCustomisation({
+          scope: 'full',
+          isTrainingOnly: false,
+          includeNumbers: false,
+          proteinTargetG: currentMealPlan?.targets?.protein_g ?? client?.protein_target_g ?? null,
+          fatTargetG: currentMealPlan?.targets?.fat_g ?? client?.fat_target_g ?? null,
+          carbsTargetG: currentMealPlan?.targets?.carbs_g ?? client?.carbs_target_g ?? null,
+          kcalTarget: currentMealPlan?.targets?.kcal ?? client?.primary_goal_kcal ?? null,
+        })}
+        hasWeeklyProgression={
+          !!currentTrainingPlan &&
+          (currentTrainingPlan.programme_length_weeks ?? 1) > 1 &&
+          (currentTrainingPlan.weekly_progression?.length ?? 0) > 0
+        }
+        hasFoodFacts={(currentMealPlan?.food_facts?.length ?? 0) > 0}
+        storageKey={`pdf-preset:${clientId}:full`}
+        onGenerate={(c) => runFullExport(c, false)}
+        onPreview={(c) => runFullExport(c, true)}
+        generating={exporting}
+        previewing={previewing}
+        error={error}
+      />
     </div>
   )
 }
