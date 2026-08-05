@@ -1,7 +1,8 @@
 import {
-  Document, Page, Text, View, StyleSheet, Font,
+  Document, Page, Text, View, StyleSheet, Font, Image,
 } from '@react-pdf/renderer'
 import { POPPINS_SEMIBOLD_DATAURI } from './poppins-font'
+import { HJC_LOGO_DATAURI } from './hjc-logo'
 import type { Client, CheckinSubmission } from '@/types'
 
 // Poppins for display type — embedded as a base64 data URI so generation
@@ -32,6 +33,7 @@ const s = StyleSheet.create({
   rdTitle: { fontFamily: 'Helvetica-Bold', fontSize: 6.5, color: C.LIGHT_GREY, marginBottom: 6, letterSpacing: 1 },
   rdLine: { fontSize: 6.8, color: '#aaaaaa', textAlign: 'center', marginBottom: 2 },
   rdPin: { fontFamily: 'Helvetica-Oblique', fontSize: 6, color: '#666666', marginTop: 4, textAlign: 'center' },
+  hjcLogo: { position: 'absolute', right: 48, top: 30, width: 94, height: 94 },
   footerBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 36, backgroundColor: C.OFF_BLACK, paddingHorizontal: 50, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerL: { fontSize: 6, color: C.MID_GREY },
   footerR: { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.LIGHT_GREY },
@@ -66,12 +68,7 @@ function HeaderBar() {
       </View>
       <Text style={s.tagline}>L E S S   R E S T R I C T I O N .   M O R E   Y O U .</Text>
       <View style={s.taglineRule} />
-      <View style={s.rdBadge}>
-        <Text style={s.rdTitle}>REGISTERED DIETITIAN</Text>
-        <Text style={s.rdLine}>HCPC Registered  ·  BDA Member</Text>
-        <Text style={s.rdLine}>England &amp; Wales</Text>
-        <Text style={s.rdPin}>PIN available on request</Text>
-      </View>
+      <Image src={HJC_LOGO_DATAURI} style={s.hjcLogo} />
     </View>
   )
 }
