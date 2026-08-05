@@ -124,6 +124,11 @@ export interface PdfCustomisation {
 
   // ── Nutrition ──
   includeNutrition: boolean
+  /** Show each meal's "same macros" alternative options in the PDF. */
+  includeAlternatives: boolean
+  /** Cap on how many alternatives to print per meal (the client edits/orders
+   *  the full list on the Meal Plan tab; this trims what reaches the PDF). */
+  maxAlternativesPerMeal: number
   includeSnacks: boolean
   snacks: SnackItem[]
   includeHydration: boolean
@@ -622,6 +627,8 @@ export function buildDefaultCustomisation(opts: BuildDefaultOpts): PdfCustomisat
     includeHRZones: true,
 
     includeNutrition: true,
+    includeAlternatives: true,
+    maxAlternativesPerMeal: 2,
     includeSnacks: true,
     snacks: defaultSnacks(opts.includeNumbers),
     includeHydration: true,

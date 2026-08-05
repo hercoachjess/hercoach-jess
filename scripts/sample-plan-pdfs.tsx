@@ -63,6 +63,13 @@ const mealPlan: MealPlan = {
         { food: 'Whey protein', brand: 'MyProtein', quantity: 1, unit: 'scoop', kcal: 105, protein_g: 21, fat_g: 2, carbs_g: 2 },
       ],
       prep_notes: 'Make overnight oats the night before so it is grab-and-go after the gym.',
+      alternatives: [
+        { label: 'Greek yoghurt bowl', items: [
+          { food: 'Fage 0% yoghurt', quantity: 200, unit: 'g', kcal: 110, protein_g: 20, fat_g: 0, carbs_g: 8 },
+          { food: 'Granola', quantity: 30, unit: 'g', kcal: 130, protein_g: 3, fat_g: 5, carbs_g: 18 },
+          { food: 'Blueberries', quantity: 80, unit: 'g', kcal: 45, protein_g: 1, fat_g: 0, carbs_g: 10 },
+        ], prep_notes: 'No cooking — layer and go.' },
+      ],
     },
     {
       name: 'Lunch', time: '1pm',
@@ -75,6 +82,12 @@ const mealPlan: MealPlan = {
         { label: 'Veggie swap', items: [
           { food: 'Tofu, firm', quantity: 150, unit: 'g', kcal: 180, protein_g: 20, fat_g: 10, carbs_g: 3 },
           { food: 'Cooked basmati rice', quantity: 180, unit: 'g', kcal: 235, protein_g: 5, fat_g: 1, carbs_g: 52 },
+          { food: 'Mixed salad + olive oil', quantity: 1, unit: 'item', kcal: 120, protein_g: 2, fat_g: 11, carbs_g: 4 },
+        ] },
+        { label: 'Higher-carb training day', items: [
+          { food: 'Chicken breast', quantity: 150, unit: 'g', kcal: 245, protein_g: 46, fat_g: 5, carbs_g: 0 },
+          { food: 'Cooked basmati rice', quantity: 250, unit: 'g', kcal: 325, protein_g: 7, fat_g: 1, carbs_g: 72 },
+          { food: 'Sweetcorn', quantity: 80, unit: 'g', kcal: 65, protein_g: 2, fat_g: 1, carbs_g: 13 },
         ] },
       ],
     },
@@ -84,6 +97,13 @@ const mealPlan: MealPlan = {
         { food: 'Lean beef mince, 5%', quantity: 150, unit: 'g', kcal: 220, protein_g: 32, fat_g: 8, carbs_g: 0 },
         { food: 'Wholewheat pasta', quantity: 70, unit: 'g', kcal: 245, protein_g: 10, fat_g: 2, carbs_g: 50 },
         { food: 'Tomato & veg sauce', quantity: 1, unit: 'item', kcal: 90, protein_g: 3, fat_g: 3, carbs_g: 12 },
+      ],
+      alternatives: [
+        { label: 'Salmon swap', items: [
+          { food: 'Salmon fillet', quantity: 130, unit: 'g', kcal: 270, protein_g: 25, fat_g: 18, carbs_g: 0 },
+          { food: 'New potatoes', quantity: 200, unit: 'g', kcal: 150, protein_g: 4, fat_g: 0, carbs_g: 33 },
+          { food: 'Green veg', quantity: 1, unit: 'item', kcal: 45, protein_g: 3, fat_g: 1, carbs_g: 6 },
+        ] },
       ],
     },
   ],

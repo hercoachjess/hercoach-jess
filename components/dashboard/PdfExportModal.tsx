@@ -433,6 +433,27 @@ export default function PdfExportModal({
                 <p className="text-xs text-[#8a8680] italic leading-relaxed">
                   The meals themselves are edited on the Meal Plan tab. Below are the extra nutrition blocks.
                 </p>
+
+                <Section
+                  label="Alternative meal options"
+                  hint="Print each meal's 'same macros' swaps (edited on the Meal Plan tab). Turn off to send the core meals only."
+                  checked={cx.includeAlternatives} onCheck={(v) => set('includeAlternatives', v)}
+                >
+                  <div className="flex items-center gap-3">
+                    <FieldLabel>Show up to</FieldLabel>
+                    <select
+                      className="input-underline text-sm bg-transparent"
+                      value={cx.maxAlternativesPerMeal}
+                      onChange={(e) => set('maxAlternativesPerMeal', Number(e.target.value))}
+                    >
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <option key={n} value={n} className="bg-[#0e0e0e]">{n}</option>
+                      ))}
+                    </select>
+                    <span className="text-xs text-[#8a8680]">per meal</span>
+                  </div>
+                </Section>
+
                 <Section label="Snack ideas strip" hint="The row of go-to snacks."
                   checked={cx.includeSnacks} onCheck={(v) => set('includeSnacks', v)}>
                   <SnackEditor snacks={cx.snacks} onChange={(v) => set('snacks', v)} />

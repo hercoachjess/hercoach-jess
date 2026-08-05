@@ -2,7 +2,7 @@
 import {
   Document, Page, Text, View, StyleSheet,
 } from '@react-pdf/renderer'
-import type { Client, MealPlan, TrainingPlan, Meal, MealAlternative, OnboardingSubmission } from '@/types'
+import type { Client, MealPlan, TrainingPlan, Meal, OnboardingSubmission } from '@/types'
 import { normalizeMealItems } from '@/lib/meal'
 import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
 import type { ReactNode } from 'react'
@@ -33,6 +33,7 @@ const C = {
   TEXT_DARK:  '#333333',
   TEXT_MID:   '#444444',
   ACCENT:     '#3a3530',
+  ACCENT_GOLD:'#a9793f',   // warm tan — matches the dashboard's meal-time / alternative-label accent
 }
 
 const s = StyleSheet.create({
@@ -170,6 +171,35 @@ const s = StyleSheet.create({
   mealPrepBody:  { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.55, marginBottom: 4 },
   altCard:       { borderLeftWidth: 1, borderLeftColor: C.RULE_LIGHT, paddingLeft: 8, marginTop: 6, marginLeft: 2 },
   altLabel:      { fontFamily: 'Helvetica-Oblique', fontSize: 7.5, color: C.MID_GREY, marginBottom: 3, letterSpacing: 0.3 },
+
+  // ── Meal card (dashboard-style, phone-screenshot friendly) ──
+  mcard:      { borderWidth: 0.6, borderColor: C.RULE_LIGHT, borderRadius: 6, marginBottom: 12, backgroundColor: '#ffffff' },
+  mcardHead:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: C.LINEN, paddingVertical: 9, paddingHorizontal: 14, borderBottomWidth: 0.6, borderBottomColor: C.RULE_LIGHT },
+  mcardTitle: { fontFamily: 'Helvetica-Bold', fontSize: 13, color: C.BLACK, letterSpacing: 0.2 },
+  mcardTime:  { fontFamily: 'Helvetica-Oblique', fontSize: 9, color: C.ACCENT_GOLD },
+  mPillRow:   { flexDirection: 'row', gap: 5, paddingHorizontal: 14, paddingTop: 10, flexWrap: 'wrap' },
+  mPill:      { backgroundColor: C.ROW_B, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'baseline' },
+  mPillKcal:  { backgroundColor: C.BLACK, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'baseline' },
+  mPillVal:   { fontFamily: 'Helvetica-Bold', fontSize: 10, color: C.BLACK },
+  mPillValLt: { fontFamily: 'Helvetica-Bold', fontSize: 10, color: C.WARM_WHITE },
+  mPillLbl:   { fontSize: 7, color: C.MID_GREY, marginLeft: 3 },
+  mPillLblLt: { fontSize: 7, color: C.LIGHT_GREY, marginLeft: 3 },
+  mItemRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingVertical: 6, paddingHorizontal: 14, borderTopWidth: 0.4, borderTopColor: '#efece6' },
+  mItemRowFirst: { borderTopWidth: 0, marginTop: 4 },
+  mItemFood:  { fontSize: 11, color: C.OFF_BLACK, flex: 1, lineHeight: 1.35, paddingRight: 8 },
+  mItemMeta:  { fontSize: 8.5, color: C.MID_GREY, textAlign: 'right' },
+  mPrepWrap:  { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: C.ROW_A, borderTopWidth: 0.4, borderTopColor: '#efece6' },
+  mPrepLbl:   { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.MID_GREY, letterSpacing: 1, marginBottom: 2 },
+  mPrepBody:  { fontFamily: 'Helvetica-Oblique', fontSize: 9, color: C.TEXT_MID, lineHeight: 1.5 },
+  mAltSection:{ paddingHorizontal: 14, paddingTop: 9, paddingBottom: 4, borderTopWidth: 0.6, borderTopColor: C.RULE_LIGHT, backgroundColor: '#fbfaf7' },
+  mAltHeadLbl:{ fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.MID_GREY, letterSpacing: 1, marginBottom: 6 },
+  mAltWrap:   { borderLeftWidth: 2, borderLeftColor: C.ACCENT_GOLD, paddingLeft: 8, marginBottom: 8 },
+  mAltHeadRow:{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  mAltLbl:    { fontFamily: 'Helvetica-Bold', fontSize: 8.5, color: C.ACCENT_GOLD, letterSpacing: 0.3 },
+  mAltMeta:   { fontSize: 7.5, color: C.MID_GREY },
+  mAltItem:   { fontSize: 9.5, color: C.TEXT_MID, lineHeight: 1.45, marginBottom: 1 },
+  mAltPrep:   { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.MID_GREY, lineHeight: 1.45, marginTop: 2 },
+  mGroupLbl:  { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.MID_GREY, letterSpacing: 1.5, marginBottom: 6, marginTop: 4 },
   cellYogaHead:{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: C.BLACK },
   cellYogaBody:{ fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.5 },
 
@@ -397,61 +427,91 @@ function ExerciseTable({ rows }: { rows: { name: string; sr: string; note?: stri
  * card. Replaces the old MealTable approach that repeated the meal name in
  * the first column for every single ingredient row.
  */
-function MealBlock({ meal, showMacros }: { meal: Meal; showMacros: boolean }) {
+/**
+ * A single meal rendered as a self-contained card (mirrors the dashboard):
+ * header with name + time, a macro-pill strip, the item list at readable
+ * size, prep note, then the "same macros" alternatives. `wrap={false}` keeps
+ * each card whole so it screenshots cleanly on a phone.
+ *
+ * `includeAlternatives` + `maxAlternatives` are coach-controlled at export:
+ * the toggle hides them entirely, the cap trims how many print per meal.
+ */
+function MealBlock({
+  meal, showMacros, includeAlternatives, maxAlternatives,
+}: {
+  meal: Meal; showMacros: boolean; includeAlternatives: boolean; maxAlternatives: number
+}) {
   const items = normalizeMealItems(meal.items)
   const mealHasMacros = items.some(itemHasMacros)
+  const alts = includeAlternatives
+    ? (meal.alternatives ?? [])
+        .filter((a) => a.label?.trim() || (a.items && a.items.length > 0))
+        .slice(0, Math.max(0, maxAlternatives))
+    : []
+  const m = mealHasMacros ? mealMacros({ ...meal, items }) : null
   return (
-    <View wrap={false}>
-      {showMacros && mealHasMacros && (
-        <Text style={[s.mealPrepLabel, { marginTop: 2, marginBottom: 4, color: '#666' }]}>
-          {formatMacrosShort(mealMacros({ ...meal, items }))}
-        </Text>
-      )}
-      {items.map((item, i) => (
-        <View key={i} style={[s.tableRow, i % 2 === 0 ? s.tableRowA : s.tableRowB]}>
-          <Text style={[s.mealItemFood, { flex: 60 }]}>{formatItemDisplay(item)}</Text>
-          <Text style={[s.mealItemBrand, { flex: 40 }]}>
-            {showMacros && itemHasMacros(item) ? formatMacrosShort(itemMacros(item)) : (item.brand || '')}
-          </Text>
-        </View>
-      ))}
-      {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
-        <View>
-          <Text style={s.mealPrepLabel}>PREP</Text>
-          <Text style={s.mealPrepBody}>{meal.prep_notes.trim()}</Text>
-        </View>
-      )}
-      {(meal.alternatives ?? []).map((alt, i) => (
-        <MealAltBlock key={i} alt={alt} showMacros={showMacros} />
-      ))}
-    </View>
-  )
-}
+    <View style={s.mcard} wrap={false}>
+      <View style={s.mcardHead}>
+        <Text style={s.mcardTitle}>{meal.name}</Text>
+        {meal.time ? <Text style={s.mcardTime}>{meal.time}</Text> : null}
+      </View>
 
-function MealAltBlock({ alt, showMacros }: { alt: MealAlternative; showMacros: boolean }) {
-  const items = normalizeMealItems(alt.items)
-  if (!alt.label && items.length === 0) return null
-  const altHasMacros = items.some(itemHasMacros)
-  // Render alternatives as clearly subordinate "Or try…" swap options
-  // rather than as standalone meals. Smaller / italic / muted so the
-  // main meal stays the focal point on the page.
-  const labelText = alt.label ? `Or try, ${alt.label.toLowerCase()}` : 'Or try'
-  return (
-    <View style={s.altCard} wrap={false}>
-      <Text style={s.altLabel}>{labelText}</Text>
-      {showMacros && altHasMacros && (
-        <Text style={[s.mealPrepBody, { fontSize: 7.5, marginBottom: 2 }]}>
-          {formatMacrosShort(mealMacros({ name: '', time: '', items }))}
-        </Text>
-      )}
-      {items.map((item, i) => (
-        <View key={i} style={[s.tableRow, { backgroundColor: 'transparent', paddingVertical: 2, borderTopWidth: 0 }]}>
-          <Text style={[s.mealItemFood, { flex: 60, fontSize: 8 }]}>{formatItemDisplay(item)}</Text>
-          <Text style={[s.mealItemBrand, { flex: 40, fontSize: 7.5 }]}>{item.brand || ''}</Text>
+      {showMacros && m && (
+        <View style={s.mPillRow}>
+          <View style={s.mPillKcal}><Text style={s.mPillValLt}>{Math.round(m.kcal)}</Text><Text style={s.mPillLblLt}>kcal</Text></View>
+          <View style={s.mPill}><Text style={s.mPillVal}>{Math.round(m.protein_g)}g</Text><Text style={s.mPillLbl}>protein</Text></View>
+          <View style={s.mPill}><Text style={s.mPillVal}>{Math.round(m.fat_g)}g</Text><Text style={s.mPillLbl}>fat</Text></View>
+          <View style={s.mPill}><Text style={s.mPillVal}>{Math.round(m.carbs_g)}g</Text><Text style={s.mPillLbl}>carbs</Text></View>
         </View>
-      ))}
-      {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
-        <Text style={[s.mealPrepBody, { fontSize: 7.5, marginTop: 2 }]}>{alt.prep_notes.trim()}</Text>
+      )}
+
+      <View style={{ paddingBottom: 4 }}>
+        {items.map((item, i) => {
+          const meta = showMacros && itemHasMacros(item)
+            ? `${Math.round(itemMacros(item).kcal)} kcal`
+            : (item.brand || '')
+          return (
+            <View key={i} style={[s.mItemRow, i === 0 ? s.mItemRowFirst : {}]}>
+              <Text style={s.mItemFood}>{formatItemDisplay(item)}</Text>
+              {meta ? <Text style={s.mItemMeta}>{meta}</Text> : null}
+            </View>
+          )
+        })}
+      </View>
+
+      {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
+        <View style={s.mPrepWrap}>
+          <Text style={s.mPrepLbl}>PREP</Text>
+          <Text style={s.mPrepBody}>{meal.prep_notes.trim()}</Text>
+        </View>
+      )}
+
+      {alts.length > 0 && (
+        <View style={s.mAltSection}>
+          <Text style={s.mAltHeadLbl}>ALTERNATIVE OPTIONS · SAME MACROS</Text>
+          {alts.map((alt, i) => {
+            const altItems = normalizeMealItems(alt.items)
+            const altHasMacros = altItems.some(itemHasMacros)
+            return (
+              <View key={i} style={s.mAltWrap}>
+                <View style={s.mAltHeadRow}>
+                  <Text style={s.mAltLbl}>{alt.label || 'Alternative'}</Text>
+                  {showMacros && altHasMacros ? (
+                    <Text style={s.mAltMeta}>{`${Math.round(mealMacros({ name: '', time: '', items: altItems }).kcal)} kcal`}</Text>
+                  ) : null}
+                </View>
+                {altItems.map((it, j) => (
+                  <Text key={j} style={s.mAltItem}>
+                    {formatItemDisplay(it)}{it.brand ? `  ·  ${it.brand}` : ''}
+                  </Text>
+                ))}
+                {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
+                  <Text style={s.mAltPrep}>{alt.prep_notes.trim()}</Text>
+                )}
+              </View>
+            )
+          })}
+        </View>
       )}
     </View>
   )
@@ -619,13 +679,16 @@ export default function ClientPlanDocument({
   // variant in the modal, then whatever Jess left it as).
   const snacks: [string, string][] = cx.snacks.map((sn) => [sn.name, sn.detail])
 
-  // Meals from the saved meal plan, group by slot and render one block per
-  // meal. The old approach flattened items into rows with the meal name in
-  // every row, which is why exported PDFs showed "Breakfast" five times.
+  // Meals from the saved meal plan, rendered in their own order as cards
+  // (mirrors the dashboard). The old approach filtered into breakfast /
+  // lunch / dinner buckets by regex, which silently dropped any meal whose
+  // name didn't match (e.g. "Mid-morning snack"). Rendering in order keeps
+  // every meal and matches what Jess sees on screen.
   const allMeals = mealPlan?.meals ?? []
-  const breakfastMeals = allMeals.filter((m) => /breakfast/i.test(m.name))
-  const lunchMeals = allMeals.filter((m) => /lunch/i.test(m.name))
-  const dinnerMeals = allMeals.filter((m) => /dinner|evening/i.test(m.name))
+  // Alternatives are coach-controlled at export. Default to on / cap 2 so
+  // customisations saved before these fields existed still behave sensibly.
+  const includeAlts = cx.includeAlternatives !== false
+  const maxAlts = Number.isFinite(cx.maxAlternativesPerMeal) ? cx.maxAlternativesPerMeal : 2
 
   // Days from saved training plan
   const trainingDays = (trainingPlan?.sessions || []).filter((s) => s.exercises.length > 0)
@@ -911,35 +974,26 @@ export default function ClientPlanDocument({
                 : ' Simply follow the portions provided, the balance is taken care of for you.'}
             </Text>
 
-            {breakfastMeals.length > 0 && (
+            {allMeals.length > 0 && (
               <>
                 <View style={{ height: 6 }} />
-                <Text style={s.dayHead}>Breakfast</Text>
-                {breakfastMeals.map((m, i) => (<MealBlock key={i} meal={m} showMacros={includeNumbers} />))}
-              </>
-            )}
-
-            {lunchMeals.length > 0 && (
-              <>
-                <View style={{ height: 8 }} />
-                <Text style={s.dayHead}>Lunch</Text>
-                {lunchMeals.map((m, i) => (<MealBlock key={i} meal={m} showMacros={includeNumbers} />))}
+                {allMeals.map((m, i) => (
+                  <MealBlock
+                    key={i}
+                    meal={m}
+                    showMacros={includeNumbers}
+                    includeAlternatives={includeAlts}
+                    maxAlternatives={maxAlts}
+                  />
+                ))}
               </>
             )}
 
             {cx.includeSnacks && snacks.length > 0 && (
               <>
-                <View style={{ height: 8 }} />
-                <Text style={s.dayHead}>Snacks, choose one per day</Text>
+                <View style={{ height: 2 }} />
+                <Text style={s.mGroupLbl}>SNACKS · CHOOSE ONE PER DAY</Text>
                 <SnackStrip snacks={snacks} />
-              </>
-            )}
-
-            {dinnerMeals.length > 0 && (
-              <>
-                <View style={{ height: 8 }} />
-                <Text style={s.dayHead}>Dinner</Text>
-                {dinnerMeals.map((m, i) => (<MealBlock key={i} meal={m} showMacros={includeNumbers} />))}
               </>
             )}
 
