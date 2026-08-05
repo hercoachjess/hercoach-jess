@@ -1,8 +1,15 @@
 /* eslint-disable jsx-a11y/alt-text, @typescript-eslint/no-explicit-any */
 import {
-  Document, Page, Text, View, StyleSheet,
+  Document, Page, Text, View, StyleSheet, Font,
 } from '@react-pdf/renderer'
+import { POPPINS_SEMIBOLD_DATAURI } from './poppins-font'
 import type { Client, MealPlan, TrainingPlan, Meal, OnboardingSubmission } from '@/types'
+
+// Poppins (geometric sans, Canva "Now"-style) for the display type — logo,
+// section titles, chip values. Embedded as a base64 data URI so generation
+// never depends on an external font fetch or filesystem access. Body copy
+// stays on the built-in Helvetica.
+Font.register({ family: 'Poppins', src: POPPINS_SEMIBOLD_DATAURI, fontWeight: 600 })
 import { normalizeMealItems } from '@/lib/meal'
 import { itemHasMacros, itemMacros, mealMacros, formatItemDisplay, formatMacrosShort } from '@/lib/meal-macros'
 import type { ReactNode } from 'react'
@@ -12,9 +19,8 @@ import {
 } from '@/lib/pdf/plan-content'
 
 // ───────────────── FONTS ─────────────────
-// Using PDF built-in fonts (Helvetica + Times-Italic) so PDFs always generate
-// without depending on external font URLs that can break. Times-Italic gives
-// the serif-italic look for the logo wordmark and section titles.
+// Body copy uses the built-in Helvetica; display type (logo, section titles,
+// chips) uses embedded Poppins — see the Font.register above.
 
 // ───────────────── COLOURS (match Python) ─────────────────
 const C = {
@@ -53,9 +59,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 50, paddingTop: 26,
   },
   logoRow: { flexDirection: 'row', alignItems: 'baseline' },
-  logoMain: { fontFamily: 'Times-Italic', fontSize: 26, color: C.WARM_WHITE },
+  logoMain: { fontFamily: 'Poppins', fontWeight: 600, fontSize: 26, color: C.WARM_WHITE },
   logoDot:  { fontSize: 22, color: C.LIGHT_GREY, marginHorizontal: 4 },
-  logoJess: { fontFamily: 'Times-Italic', fontSize: 28, color: C.WARM_WHITE },
+  logoJess: { fontFamily: 'Poppins', fontWeight: 600, fontSize: 28, color: C.WARM_WHITE },
   tagline:  { fontSize: 7, color: '#666666', marginTop: 6, letterSpacing: 2.5 },
   taglineRule: { borderBottomWidth: 0.4, borderBottomColor: C.ACCENT, width: 220, marginTop: 3 },
   rdBadge: {
@@ -91,7 +97,7 @@ const s = StyleSheet.create({
   // Section heading
   eyebrow: { fontSize: 7, color: C.MID_GREY, letterSpacing: 1.2, marginBottom: 2 },
   sectionTitle: {
-    fontFamily: 'Times-Italic', fontSize: 18, color: C.BLACK,
+    fontFamily: 'Poppins', fontWeight: 600, fontSize: 18, color: C.BLACK,
     marginBottom: 6,
   },
   sectionRule: { borderBottomWidth: 0.5, borderBottomColor: C.RULE_LIGHT, marginBottom: 12 },
@@ -126,11 +132,11 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   welcomeEyebrow: { fontSize: 7, color: C.MID_GREY, letterSpacing: 1.4, marginBottom: 4 },
-  welcomeGreeting: { fontFamily: 'Times-Italic', fontSize: 17, color: C.BLACK, marginBottom: 8 },
+  welcomeGreeting: { fontFamily: 'Poppins', fontWeight: 600, fontSize: 17, color: C.BLACK, marginBottom: 8 },
   welcomeBody: { fontSize: 9, color: C.TEXT_DARK, lineHeight: 1.6, marginBottom: 6 },
   welcomeBlockLabel: { fontSize: 7, color: C.MID_GREY, letterSpacing: 1, marginTop: 6, marginBottom: 3 },
   welcomeQuote: {
-    fontFamily: 'Times-Italic', fontSize: 9.5, color: C.OFF_BLACK,
+    fontFamily: 'Helvetica-Oblique', fontSize: 9.5, color: C.OFF_BLACK,
     lineHeight: 1.55, marginBottom: 6,
     borderLeftWidth: 1, borderLeftColor: C.MID_GREY, paddingLeft: 8,
   },
@@ -146,7 +152,7 @@ const s = StyleSheet.create({
     flex: 1, alignItems: 'center', paddingVertical: 10,
     borderRightWidth: 0.5, borderRightColor: C.RULE_LIGHT,
   },
-  chipValue: { fontFamily: 'Times-Italic', fontSize: 15, color: C.BLACK },
+  chipValue: { fontFamily: 'Poppins', fontWeight: 600, fontSize: 15, color: C.BLACK },
   chipLabel: { fontSize: 7, color: C.MID_GREY, marginTop: 3, letterSpacing: 0.5 },
 
   // Two-column linen
@@ -214,7 +220,7 @@ const s = StyleSheet.create({
     backgroundColor: C.LINEN, borderWidth: 0.5, borderColor: C.RULE_LIGHT,
     padding: 22, marginTop: 16, alignItems: 'center',
   },
-  closeLogo: { fontFamily: 'Times-Italic', fontSize: 24, color: C.BLACK, marginBottom: 4 },
+  closeLogo: { fontFamily: 'Poppins', fontWeight: 600, fontSize: 24, color: C.BLACK, marginBottom: 4 },
   closeTag:  { fontFamily: 'Helvetica-Oblique', fontSize: 9, color: C.MID_GREY, marginTop: 4 },
   closeCred: { fontSize: 8, color: C.MID_GREY, marginTop: 10, textAlign: 'center' },
   closeRule: { borderBottomWidth: 0.4, borderBottomColor: C.RULE_LIGHT, width: '60%', marginVertical: 8 },
