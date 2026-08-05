@@ -101,7 +101,7 @@ export default function PdfExportModal({
     ? ['schedule', 'training', 'nutrition', 'yoga', 'cardio', 'general', 'custom']
     : isTrainingScope
       ? ['training', 'yoga', 'cardio', 'general', 'custom']
-      : ['nutrition', 'yoga', 'cardio', 'general', 'custom']
+      : ['nutrition', 'general', 'custom']
   const orderedApplicable = normalizeSectionOrder(cx.sectionOrder).filter((k) => applicableKeys.includes(k))
 
   const sectionEnabled: Record<SectionKey, boolean> = {
@@ -382,39 +382,44 @@ export default function PdfExportModal({
           </>
         )}
 
-        {/* ── YOGA & RECOVERY ── */}
-        <GroupHeading>Yoga &amp; active recovery</GroupHeading>
-        <Toggle label="Include the yoga & recovery section" hint="Turn off if this client doesn't want a yoga / mobility day."
-          checked={cx.includeYoga} onCheck={(v) => set('includeYoga', v)} />
-        {cx.includeYoga && (
-          <div className="flex flex-col gap-4 pl-3 border-l border-[rgba(255,255,255,0.10)]">
-            <TextField label="Intro paragraph" rows={3} value={cx.yogaIntro} onChange={(v) => set('yogaIntro', v)} />
-            <div>
-              <FieldLabel>How to approach it</FieldLabel>
-              <LinesField value={cx.yogaApproachLines} onChange={(v) => set('yogaApproachLines', v)} rows={5} />
-            </div>
-            <YogaEditor rows={cx.yogaRows} onChange={(v) => set('yogaRows', v)} />
-            <TextField label="Yoga tip" rows={3} value={cx.yogaTip} onChange={(v) => set('yogaTip', v)} />
-          </div>
-        )}
+        {/* ── YOGA & RECOVERY ── (fitness content: training / full scope only,
+            never on a nutrition-only export) */}
+        {showTraining && (
+          <>
+            <GroupHeading>Yoga &amp; active recovery</GroupHeading>
+            <Toggle label="Include the yoga & recovery section" hint="Turn off if this client doesn't want a yoga / mobility day."
+              checked={cx.includeYoga} onCheck={(v) => set('includeYoga', v)} />
+            {cx.includeYoga && (
+              <div className="flex flex-col gap-4 pl-3 border-l border-[rgba(255,255,255,0.10)]">
+                <TextField label="Intro paragraph" rows={3} value={cx.yogaIntro} onChange={(v) => set('yogaIntro', v)} />
+                <div>
+                  <FieldLabel>How to approach it</FieldLabel>
+                  <LinesField value={cx.yogaApproachLines} onChange={(v) => set('yogaApproachLines', v)} rows={5} />
+                </div>
+                <YogaEditor rows={cx.yogaRows} onChange={(v) => set('yogaRows', v)} />
+                <TextField label="Yoga tip" rows={3} value={cx.yogaTip} onChange={(v) => set('yogaTip', v)} />
+              </div>
+            )}
 
-        {/* ── CARDIO & MOVEMENT ── */}
-        <GroupHeading>Cardio &amp; daily movement</GroupHeading>
-        <Toggle label="Include cardio & movement section" hint="Steady-state cardio, daily steps and heart-rate zones."
-          checked={cx.includeCardio} onCheck={(v) => set('includeCardio', v)} />
-        {cx.includeCardio && (
-          <div className="flex flex-col gap-4 pl-3 border-l border-[rgba(255,255,255,0.10)]">
-            <div>
-              <FieldLabel>Cardio guidance</FieldLabel>
-              <LinesField value={cx.cardioLines} onChange={(v) => set('cardioLines', v)} rows={6} />
-            </div>
-            <div>
-              <FieldLabel>Daily steps guidance</FieldLabel>
-              <LinesField value={cx.stepsLines} onChange={(v) => set('stepsLines', v)} rows={6} />
-            </div>
-            <Toggle label="Heart-rate zones table" hint="The Zone 1–5 reference table with your Zone 2 target highlighted."
-              checked={cx.includeHRZones} onCheck={(v) => set('includeHRZones', v)} />
-          </div>
+            {/* ── CARDIO & MOVEMENT ── */}
+            <GroupHeading>Cardio &amp; daily movement</GroupHeading>
+            <Toggle label="Include cardio & movement section" hint="Steady-state cardio, daily steps and heart-rate zones."
+              checked={cx.includeCardio} onCheck={(v) => set('includeCardio', v)} />
+            {cx.includeCardio && (
+              <div className="flex flex-col gap-4 pl-3 border-l border-[rgba(255,255,255,0.10)]">
+                <div>
+                  <FieldLabel>Cardio guidance</FieldLabel>
+                  <LinesField value={cx.cardioLines} onChange={(v) => set('cardioLines', v)} rows={6} />
+                </div>
+                <div>
+                  <FieldLabel>Daily steps guidance</FieldLabel>
+                  <LinesField value={cx.stepsLines} onChange={(v) => set('stepsLines', v)} rows={6} />
+                </div>
+                <Toggle label="Heart-rate zones table" hint="The Zone 1–5 reference table with your Zone 2 target highlighted."
+                  checked={cx.includeHRZones} onCheck={(v) => set('includeHRZones', v)} />
+              </div>
+            )}
+          </>
         )}
 
         {/* ── NUTRITION (meal + full scope) ── */}

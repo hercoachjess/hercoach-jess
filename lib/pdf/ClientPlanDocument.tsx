@@ -829,7 +829,11 @@ export default function ClientPlanDocument({
           </>
           ) : null
 
-          const yogaBody: ReactNode = cx.includeYoga ? (
+          {/* Yoga and cardio are fitness sections: they only belong on a plan
+              that actually contains training. A meal-only export must stay
+              nutrition-only, so both require a training plan to appear (mirrors
+              how the Training section is gated on `trainingPlan`). */}
+          const yogaBody: ReactNode = (trainingPlan && cx.includeYoga) ? (
           <>
             {cx.yogaIntro.trim().length > 0 && (
               <Text style={s.noteText}>{cx.yogaIntro.trim()}</Text>
@@ -858,7 +862,7 @@ export default function ClientPlanDocument({
           </>
           ) : null
 
-          const cardioBody: ReactNode = cx.includeCardio ? (
+          const cardioBody: ReactNode = (trainingPlan && cx.includeCardio) ? (
           <>
             <TwoCol
               lHead="Cardio, 2 to 3 sessions per week"
