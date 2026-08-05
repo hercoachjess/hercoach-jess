@@ -23,6 +23,7 @@ import type {
 import OverviewTab from './tabs/OverviewTab'
 import CheckinsTab from './tabs/CheckinsTab'
 import CompareTab from './tabs/CompareTab'
+import FeedbackHistoryTab from './tabs/FeedbackHistoryTab'
 import ProgressTab from './tabs/ProgressTab'
 import MealPlanTab from './tabs/MealPlanTab'
 import DietTab from './tabs/DietTab'
@@ -35,6 +36,7 @@ const TABS = [
   'Overview',
   'Check-ins',
   'Compare',
+  'Feedback',
   'Progress',
   'Meal Plan',
   'Diet',
@@ -149,12 +151,13 @@ export default function ClientFile({
         </div>
       </div>
 
-      {/* Tab content */}
+      {/* Tab content — keyed by tab NAME so adding/reordering tabs can't
+          misalign the panels. */}
       <div className="fade-in" key={activeTab}>
-        {activeTab === 0 && (
+        {TABS[activeTab] === 'Overview' && (
           <OverviewTab client={client} checkins={checkins} onboarding={onboarding} />
         )}
-        {activeTab === 1 && (
+        {TABS[activeTab] === 'Check-ins' && (
           <CheckinsTab
             checkins={checkins}
             clientId={client.id}
@@ -165,22 +168,25 @@ export default function ClientFile({
             dietSubmissions={dietSubmissions}
           />
         )}
-        {activeTab === 2 && (
+        {TABS[activeTab] === 'Compare' && (
           <CompareTab checkins={checkins} client={client} />
         )}
-        {activeTab === 3 && (
+        {TABS[activeTab] === 'Feedback' && (
+          <FeedbackHistoryTab checkins={checkins} client={client} />
+        )}
+        {TABS[activeTab] === 'Progress' && (
           <ProgressTab checkins={checkins} />
         )}
-        {activeTab === 4 && (
+        {TABS[activeTab] === 'Meal Plan' && (
           <MealPlanTab client={client} initialMealPlan={mealPlan} onboarding={onboarding} />
         )}
-        {activeTab === 5 && (
+        {TABS[activeTab] === 'Diet' && (
           <DietTab client={client} submissions={dietSubmissions} />
         )}
-        {activeTab === 6 && (
+        {TABS[activeTab] === 'Training' && (
           <TrainingPlanTab client={client} initialTrainingPlan={trainingPlan} onboarding={onboarding} checkins={checkins} />
         )}
-        {activeTab === 7 && (
+        {TABS[activeTab] === 'Plan History' && (
           <PlanHistoryTab
             clientId={client.id}
             client={client}
@@ -189,10 +195,10 @@ export default function ClientFile({
             currentTrainingPlan={trainingPlan}
           />
         )}
-        {activeTab === 8 && (
+        {TABS[activeTab] === 'Payments' && (
           <PaymentsTab clientId={client.id} payments={payments} />
         )}
-        {activeTab === 9 && (
+        {TABS[activeTab] === 'Onboarding' && (
           <OnboardingFileTab onboarding={onboarding} client={client} />
         )}
       </div>
