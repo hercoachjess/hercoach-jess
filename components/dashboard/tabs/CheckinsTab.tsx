@@ -96,6 +96,13 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
   const [actionError, setActionError] = useState('')
+
+  // "Feedback to client" — the saveable, PDF-able feedback per check-in.
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, string>>({})
+  const [feedbackAmend, setFeedbackAmend] = useState<Record<string, string>>({})
+  const [feedbackBusy, setFeedbackBusy] = useState<Record<string, 'generate' | 'amend' | 'save' | 'export' | null>>({})
+  const [feedbackError, setFeedbackError] = useState<Record<string, string>>({})
+  const [feedbackSaved, setFeedbackSaved] = useState<Record<string, boolean>>({})
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
   // Mark a check-in as reviewed, clears the notification + (if not yet cached)
@@ -138,6 +145,118 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
     setSavingResponse((s) => ({ ...s, [checkin.id]: false }))
     if (error) { setActionError(`Couldn't save your reply: ${error.message}`); return }
     router.refresh()
+  }
+
+  // ── Feedback to client (generate / amend / save / export) ──
+  // The current on-screen draft for a check-in: local edit if present,
+  // otherwise whatever's saved on the check-in.
+  function feedbackValue(checkin: CheckinSubmission): string {
+    return feedbackDrafts[checkin.id] ?? checkin.coach_feedback ?? ''
+  }
+  function setFeedbackValue(id: string, value: string) {
+    setFeedbackDrafts((d) => ({ ...d, [id]: value }))
+    setFeedbackSaved((s) => ({ ...s, [id]: false }))
+  }
+
+  async function generateFeedback(checkin: CheckinSubmission, previous: CheckinSubmission | null) {
+    setFeedbackBusy((b) => ({ ...b, [checkin.id]: 'generate' }))
+    setFeedbackError((e) => ({ ...e, [checkin.id]: '' }))
+    try {
+      const res = await fetch('/api/ai/checkin-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client?.full_name ?? '',
+          clientGoal: client?.goal ?? '',
+          currentCheckin: checkin,
+          previousCheckin: previous,
+          areas: [],
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to generate feedback.')
+      setFeedbackValue(checkin.id, data.draft ?? '')
+    } catch (e: unknown) {
+      setFeedbackError((er) => ({ ...er, [checkin.id]: e instanceof Error ? e.message : 'Failed to generate feedback.' }))
+    } finally {
+      setFeedbackBusy((b) => ({ ...b, [checkin.id]: null }))
+    }
+  }
+
+  async function amendFeedback(checkin: CheckinSubmission, previous: CheckinSubmission | null) {
+    const instructions = (feedbackAmend[checkin.id] ?? '').trim()
+    const draft = feedbackValue(checkin).trim()
+    if (!instructions) { setFeedbackError((e) => ({ ...e, [checkin.id]: 'Tell the AI what to change first.' })); return }
+    if (!draft) { setFeedbackError((e) => ({ ...e, [checkin.id]: 'Generate or write some feedback first, then amend it.' })); return }
+    setFeedbackBusy((b) => ({ ...b, [checkin.id]: 'amend' }))
+    setFeedbackError((e) => ({ ...e, [checkin.id]: '' }))
+    try {
+      const res = await fetch('/api/ai/checkin-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client?.full_name ?? '',
+          clientGoal: client?.goal ?? '',
+          currentCheckin: checkin,
+          previousCheckin: previous,
+          areas: [],
+          currentDraft: draft,
+          amendInstructions: instructions,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to amend feedback.')
+      setFeedbackValue(checkin.id, data.draft ?? draft)
+      setFeedbackAmend((a) => ({ ...a, [checkin.id]: '' }))
+    } catch (e: unknown) {
+      setFeedbackError((er) => ({ ...er, [checkin.id]: e instanceof Error ? e.message : 'Failed to amend feedback.' }))
+    } finally {
+      setFeedbackBusy((b) => ({ ...b, [checkin.id]: null }))
+    }
+  }
+
+  async function saveFeedback(checkin: CheckinSubmission) {
+    setFeedbackBusy((b) => ({ ...b, [checkin.id]: 'save' }))
+    setFeedbackError((e) => ({ ...e, [checkin.id]: '' }))
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('checkin_submissions')
+      .update({ coach_feedback: feedbackValue(checkin), feedback_updated_at: new Date().toISOString() })
+      .eq('id', checkin.id)
+    setFeedbackBusy((b) => ({ ...b, [checkin.id]: null }))
+    if (error) { setFeedbackError((e) => ({ ...e, [checkin.id]: `Couldn't save: ${error.message}` })); return }
+    setFeedbackSaved((s) => ({ ...s, [checkin.id]: true }))
+    router.refresh()
+  }
+
+  async function exportFeedbackPdf(checkin: CheckinSubmission) {
+    const body = feedbackValue(checkin).trim()
+    if (!body) { setFeedbackError((e) => ({ ...e, [checkin.id]: 'There is no feedback to export yet.' })); return }
+    setFeedbackBusy((b) => ({ ...b, [checkin.id]: 'export' }))
+    setFeedbackError((e) => ({ ...e, [checkin.id]: '' }))
+    try {
+      const res = await fetch('/api/pdf/checkin-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: checkin.client_id, checkinId: checkin.id, feedback: body }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Export failed.' }))
+        throw new Error(data.error || 'Export failed.')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const safe = (client?.full_name ?? 'client').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+      a.href = url
+      a.download = `${safe}-checkin-feedback-week-${checkin.week_number ?? 'x'}.pdf`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e: unknown) {
+      setFeedbackError((er) => ({ ...er, [checkin.id]: e instanceof Error ? e.message : 'Export failed.' }))
+    } finally {
+      setFeedbackBusy((b) => ({ ...b, [checkin.id]: null }))
+    }
   }
 
   async function generateSummary(checkin: CheckinSubmission) {
@@ -643,6 +762,69 @@ export default function CheckinsTab({ checkins, client, onboarding, mealPlan, tr
                     )}
                   </div>
                 )}
+
+                {/* Feedback to client — generate (comparing to last week), amend with AI, save, export a branded PDF */}
+                <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                    <p className="text-xs text-[#b8b4ac] tracking-widest uppercase">Feedback to client</p>
+                    <div className="flex items-center gap-3">
+                      {feedbackSaved[checkin.id]
+                        ? <span className="text-xs text-[#7da87d]">Saved ✓</span>
+                        : checkin.feedback_updated_at
+                          ? <span className="text-xs text-[#8a8680] italic">Saved {formatDate(checkin.feedback_updated_at)}</span>
+                          : null}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={feedbackBusy[checkin.id] === 'generate'}
+                        onClick={() => generateFeedback(checkin, previousCheckin)}
+                      >
+                        {feedbackValue(checkin).trim() ? 'Regenerate' : 'Generate feedback'}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#8a8680] italic leading-relaxed mb-3">
+                    A ready-to-send feedback note{previousCheckin ? ', automatically comparing this week to last week' : ''}. Save as you go, refine it with AI, then export a branded PDF to send on WhatsApp. You always review and edit before sending.
+                  </p>
+                  {feedbackError[checkin.id] && <p className="text-xs text-[#b06060] mb-2">{feedbackError[checkin.id]}</p>}
+
+                  <textarea
+                    className="input-underline text-sm leading-relaxed w-full"
+                    rows={10}
+                    value={feedbackValue(checkin)}
+                    placeholder="Generate feedback, or write your own. It's saved on this check-in and used to build the PDF."
+                    onChange={(e) => setFeedbackValue(checkin.id, e.target.value)}
+                  />
+
+                  <div className="mt-3 flex flex-col gap-2">
+                    <textarea
+                      className="input-underline text-sm w-full"
+                      rows={2}
+                      value={feedbackAmend[checkin.id] ?? ''}
+                      placeholder={'Ask AI to amend, e.g. "make it warmer", "add a line about her sleep", "shorten it"'}
+                      onChange={(e) => setFeedbackAmend((a) => ({ ...a, [checkin.id]: e.target.value }))}
+                    />
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={feedbackBusy[checkin.id] === 'amend'}
+                        disabled={!(feedbackAmend[checkin.id] ?? '').trim()}
+                        onClick={() => amendFeedback(checkin, previousCheckin)}
+                      >
+                        Amend with AI
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" loading={feedbackBusy[checkin.id] === 'export'} onClick={() => exportFeedbackPdf(checkin)}>
+                          Export PDF
+                        </Button>
+                        <Button size="sm" loading={feedbackBusy[checkin.id] === 'save'} onClick={() => saveFeedback(checkin)}>
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* What you actually sent, captured separately so it appears on the record */}
                 <div className="pt-4 border-t border-[rgba(255,255,255,0.14)]">
