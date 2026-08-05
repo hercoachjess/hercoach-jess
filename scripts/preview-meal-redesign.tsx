@@ -23,6 +23,7 @@ const C = {
   MID_GREY: '#888888', LIGHT_GREY: '#c8c8c8', RULE_LIGHT: '#dedad4',
   WARM_WHITE: '#f0ece4', CREAM: '#e8e0d4', LINEN: '#f5f2ed',
   ROW_A: '#faf8f5', ROW_B: '#f2efe9', ACCENT: '#3a3530', TEXT_DARK: '#333333', TEXT_MID: '#444444',
+  ACCENT_GOLD: '#a9793f', // warm tan used on the dashboard for meal times & alternative labels
 }
 
 const s = StyleSheet.create({
@@ -79,10 +80,15 @@ const s = StyleSheet.create({
   prepLbl: { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.MID_GREY, letterSpacing: 1, marginBottom: 2 },
   prepBody: { fontFamily: 'Helvetica-Oblique', fontSize: 9, color: C.TEXT_MID, lineHeight: 1.5 },
 
-  // Alternative
-  altWrap: { paddingHorizontal: 14, paddingVertical: 8, borderTopWidth: 0.4, borderTopColor: '#efece6', borderLeftWidth: 2, borderLeftColor: C.RULE_LIGHT },
-  altLbl: { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.ACCENT, marginBottom: 3 },
+  // Alternatives block (mirrors the dashboard's "Alternative options · same macros")
+  altSection: { paddingHorizontal: 14, paddingTop: 9, paddingBottom: 4, borderTopWidth: 0.6, borderTopColor: C.RULE_LIGHT, backgroundColor: '#fbfaf7' },
+  altSectionLbl: { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.MID_GREY, letterSpacing: 1, marginBottom: 6 },
+  altWrap: { borderLeftWidth: 2, borderLeftColor: C.ACCENT_GOLD, paddingLeft: 8, marginBottom: 8 },
+  altHeadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  altLbl: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, color: C.ACCENT_GOLD, letterSpacing: 0.3 },
+  altMeta: { fontSize: 7.5, color: C.MID_GREY },
   altItem: { fontSize: 9.5, color: C.TEXT_MID, lineHeight: 1.45, marginBottom: 1 },
+  altPrep: { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.MID_GREY, lineHeight: 1.45, marginTop: 2 },
 
   // Snacks
   snackTitle: { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.MID_GREY, letterSpacing: 1.5, marginTop: 6, marginBottom: 6 },
@@ -159,17 +165,29 @@ function MealCard({ meal, showMacros }: { meal: Meal; showMacros: boolean }) {
           <Text style={s.prepBody}>{meal.prep_notes.trim()}</Text>
         </View>
       )}
-      {(meal.alternatives ?? []).map((alt, i) => {
-        const altItems = normalizeMealItems(alt.items)
-        return (
-          <View key={i} style={s.altWrap}>
-            <Text style={s.altLbl}>Or try — {alt.label || 'alternative'}</Text>
-            {altItems.map((it, j) => (
-              <Text key={j} style={s.altItem}>{formatItemDisplay(it)}</Text>
-            ))}
-          </View>
-        )
-      })}
+      {(meal.alternatives ?? []).length > 0 && (
+        <View style={s.altSection}>
+          <Text style={s.altSectionLbl}>ALTERNATIVE OPTIONS · SAME MACROS</Text>
+          {(meal.alternatives ?? []).map((alt, i) => {
+            const altItems = normalizeMealItems(alt.items)
+            const altHasMacros = altItems.some(itemHasMacros)
+            return (
+              <View key={i} style={s.altWrap}>
+                <View style={s.altHeadRow}>
+                  <Text style={s.altLbl}>{alt.label || 'Alternative'}</Text>
+                  {showMacros && altHasMacros ? (
+                    <Text style={s.altMeta}>{`${Math.round(mealMacros({ name: '', time: '', items: altItems }).kcal)} kcal`}</Text>
+                  ) : null}
+                </View>
+                {altItems.map((it, j) => (
+                  <Text key={j} style={s.altItem}>{formatItemDisplay(it)}{it.brand ? `  ·  ${it.brand}` : ''}</Text>
+                ))}
+                {alt.prep_notes && alt.prep_notes.trim() ? <Text style={s.altPrep}>{alt.prep_notes.trim()}</Text> : null}
+              </View>
+            )
+          })}
+        </View>
+      )}
     </View>
   )
 }
@@ -184,15 +202,24 @@ const meals: Meal[] = [
     name: 'Breakfast', time: '8am',
     items: [mk('Porridge oats', 50, 'g', 190, 7, 4, 32, 'Quaker'), mk('Semi-skimmed milk', 200, 'ml', 100, 7, 3, 10), mk('Blueberries', 80, 'g', 45, 1, 0, 10), mk('Whey protein', 1, 'scoop', 105, 21, 2, 2, 'MyProtein')],
     prep_notes: 'Make it as overnight oats the night before so it is grab-and-go straight after the gym.',
+    alternatives: [
+      { label: 'Greek yoghurt bowl', items: [mk('Fage 0% yoghurt', 200, 'g', 110, 20, 0, 8), mk('Granola', 30, 'g', 130, 3, 5, 18), mk('Blueberries', 80, 'g', 45, 1, 0, 10)], prep_notes: 'No cooking — layer and go.' },
+    ],
   },
   {
     name: 'Lunch', time: '1pm',
     items: [mk('Chicken breast', 150, 'g', 245, 46, 5, 0), mk('Cooked basmati rice', 180, 'g', 235, 5, 1, 52), mk('Mixed salad + olive oil', 1, 'item', 120, 2, 11, 4)],
-    alternatives: [{ label: 'veggie swap', items: [mk('Firm tofu', 150, 'g', 180, 20, 10, 3), mk('Cooked basmati rice', 180, 'g', 235, 5, 1, 52)] }],
+    alternatives: [
+      { label: 'Veggie swap', items: [mk('Firm tofu', 150, 'g', 180, 20, 10, 3), mk('Cooked basmati rice', 180, 'g', 235, 5, 1, 52), mk('Mixed salad + olive oil', 1, 'item', 120, 2, 11, 4)] },
+      { label: 'Higher-carb training day', items: [mk('Chicken breast', 150, 'g', 245, 46, 5, 0), mk('Cooked basmati rice', 250, 'g', 325, 7, 1, 72), mk('Sweetcorn', 80, 'g', 65, 2, 1, 13)] },
+    ],
   },
   {
     name: 'Dinner', time: '7pm',
     items: [mk('Lean beef mince, 5%', 150, 'g', 220, 32, 8, 0), mk('Wholewheat pasta', 70, 'g', 245, 10, 2, 50), mk('Tomato & veg sauce', 1, 'item', 90, 3, 3, 12)],
+    alternatives: [
+      { label: 'Salmon swap', items: [mk('Salmon fillet', 130, 'g', 270, 25, 18, 0), mk('New potatoes', 200, 'g', 150, 4, 0, 33), mk('Green veg', 1, 'item', 45, 3, 1, 6)] },
+    ],
   },
 ]
 
