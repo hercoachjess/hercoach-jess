@@ -50,8 +50,9 @@ const mealPlan: MealPlan = {
   status: 'saved', is_current: true, coach_notes: null,
   targets: { kcal: 1800, protein_g: 130, fat_g: 60, carbs_g: 190 },
   food_facts: [
-    { food: 'Greek yoghurt', fact: 'High in protein and calcium, supports muscle repair and bone health.', source: 'BDA' },
-    { food: 'Oats', fact: 'Beta-glucan fibre helps keep you full and supports healthy cholesterol.', source: 'NHS' },
+    { food: 'Greek yoghurt', fact: 'Around 17g of slow-digesting casein protein per 150g, plus calcium contributing to the 700mg adult daily reference intake. The slow digestion drip-feeds amino acids to muscle.', why_for_you: 'For your fat-loss goal this helps you hold onto muscle in a deficit and keeps you full — handy on the days your afternoon cravings hit hardest.', source: 'BDA Food Fact Sheet, Calcium; ISSN Position Stand on Protein' },
+    { food: 'Porridge oats', fact: 'Beta-glucan, a soluble fibre, forms a gel in the gut that slows gastric emptying and blunts the post-meal blood-glucose rise.', why_for_you: 'Eaten straight after your 6:30am session, this steadies your energy through the morning so you are not flagging by 11am like you mentioned at your last check-in.', source: 'EFSA; NHS Eatwell Guide' },
+    { food: 'Chicken breast', fact: 'A lean, complete protein — roughly 31g protein per 100g cooked with minimal fat — rich in leucine, the amino acid that triggers muscle protein synthesis.', why_for_you: 'This is doing the heavy lifting for your strength work — leucine here signals your body to rebuild after training.', source: 'McCance & Widdowson; ISSN' },
   ],
   meals: [
     {

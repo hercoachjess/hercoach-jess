@@ -199,8 +199,15 @@ export interface MealPlan {
 
 export interface FoodFact {
   food: string
+  /** The clinical science / mechanism — why this food does what it does. */
   fact: string
   source: string
+  /** Optional client- and goal-specific relevance ("For your fat-loss goal,
+   *  the protein here helps you hold onto muscle in a deficit"). Added later,
+   *  so it's optional and older facts without it still type-check. Populated
+   *  by the /api/ai/food-science generator, which also reads the latest
+   *  check-in so the relevance can reflect how the client is actually doing. */
+  why_for_you?: string
 }
 
 export interface MacroTargets {

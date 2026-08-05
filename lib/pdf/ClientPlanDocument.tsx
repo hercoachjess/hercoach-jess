@@ -1011,15 +1011,21 @@ export default function ClientPlanDocument({
 
             {/* Food facts, evidence-based one-liners with sources */}
             {cx.includeFoodFacts && mealPlan.food_facts && mealPlan.food_facts.length > 0 && (
-              <View wrap={false} style={{ marginTop: 18 }}>
-                <Text style={[s.dayHead, { fontSize: 12 }]}>The Science Behind Your Plan</Text>
+              <View style={{ marginTop: 18 }}>
+                <Text style={[s.dayHead, { fontSize: 12 }]}>The Science Behind Your Meals</Text>
                 <Text style={[s.noteText, { marginBottom: 6 }]}>
-                  Short evidence-based facts about the foods in this plan, for context, not prescription.
+                  Evidence-based notes about the key foods on your plan — the science, and what it means for you.
                 </Text>
                 {mealPlan.food_facts.map((f, i) => (
-                  <View key={i} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
+                  <View key={i} wrap={false} style={{ marginTop: 8, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: '#D8C9A8' }}>
                     <Text style={[s.dayHead, { fontSize: 10 }]}>{f.food}</Text>
                     <Text style={[s.noteText, { fontFamily: 'Helvetica', color: C.BLACK }]}>{f.fact}</Text>
+                    {f.why_for_you && f.why_for_you.trim().length > 0 && (
+                      <Text style={[s.noteText, { fontFamily: 'Helvetica', color: C.TEXT_DARK, marginTop: 2 }]}>
+                        <Text style={{ fontFamily: 'Helvetica-Bold', color: C.ACCENT_GOLD }}>For you  ·  </Text>
+                        {f.why_for_you.trim()}
+                      </Text>
+                    )}
                     <Text style={s.noteText}>Source: {f.source}</Text>
                   </View>
                 ))}
