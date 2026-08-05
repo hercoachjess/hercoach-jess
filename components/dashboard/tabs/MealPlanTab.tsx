@@ -87,6 +87,12 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
   const [coachNotes, setCoachNotes] = useState(mealPlan?.coach_notes ?? '')
   const [foodFacts, setFoodFacts] = useState<FoodFact[]>(mealPlan?.food_facts ?? [])
 
+  // "Science behind your meals" generator — richer, client- and goal-specific
+  // food notes that also read the latest check-in. On-demand so it only pulls
+  // in check-in context when Jess explicitly refreshes.
+  const [scienceBusy, setScienceBusy] = useState(false)
+  const [scienceNote, setScienceNote] = useState('')
+
   // AI macro recommendation state. macroRec holds the AI's proposed targets +
   // reasoning so the coach can review before applying. Null until requested.
   const [macroRec, setMacroRec] = useState<{
@@ -120,6 +126,35 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
     setEditedTargets(macroRec.recommendation)
     setMacroRec(null)
     setEditing(true)
+  }
+
+  // Generate / refresh "The science behind your meals" — richer per-food
+  // notes tied to the client's goal and latest check-in. Result lands in
+  // foodFacts (editable) and is persisted on the next Save draft.
+  async function generateScience() {
+    if (editedMeals.length === 0) {
+      setError('Generate or save a meal plan first, then I can write the science notes.')
+      return
+    }
+    setScienceBusy(true); setError(''); setScienceNote('')
+    try {
+      const res = await fetch('/api/ai/food-science', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, meals: editedMeals, targets: editedTargets }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to generate science notes.')
+      setFoodFacts(data.food_facts ?? [])
+      setScienceNote(data.used_checkin
+        ? 'Written from this client’s goal and latest check-in. Review and edit before saving.'
+        : 'Written from this client’s goal (no check-in on record yet). Review and edit before saving.')
+      setEditing(true)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to generate science notes.')
+    } finally {
+      setScienceBusy(false)
+    }
   }
 
   // Live guidance ranges based on the current edited targets.
@@ -1271,23 +1306,36 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
         </Card>
       ))}
 
-      {/* Food facts, short, sourced one-liners from the AI dietitian */}
-      {foodFacts.length > 0 && (
+      {/* The science behind your meals — richer, client- & goal-specific food
+          notes. Shows whenever there are meals so the AI generator is always
+          reachable, even before any notes exist. */}
+      {(foodFacts.length > 0 || editedMeals.length > 0) && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">Food facts · evidence-based</span>
-              {editing && (
-                <button
-                  className="text-xs text-[#8a8680] hover:text-[#e0d8cc] transition-colors"
-                  onClick={() => setFoodFacts([])}
-                >
-                  Clear all
-                </button>
-              )}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-xs text-[#b8b4ac] tracking-widest uppercase">The science behind your meals</span>
+              <div className="flex items-center gap-3">
+                {editing && foodFacts.length > 0 && (
+                  <button
+                    className="text-xs text-[#8a8680] hover:text-[#e0d8cc] transition-colors"
+                    onClick={() => setFoodFacts([])}
+                  >
+                    Clear all
+                  </button>
+                )}
+                <Button size="sm" variant="outline" loading={scienceBusy} onClick={generateScience}>
+                  {foodFacts.length > 0 ? 'Refresh from check-in' : 'Generate science notes'}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardBody className="flex flex-col gap-3">
+            <p className="text-xs text-[#8a8680] italic leading-relaxed">
+              {scienceNote || 'Evidence-based notes about the key foods on this plan, made personal to the client. “Generate” reads their goal and latest check-in; you always review and edit before saving.'}
+            </p>
+            {foodFacts.length === 0 && !editing && (
+              <p className="text-sm text-[#b8b4ac]">No science notes yet — click “Generate science notes”.</p>
+            )}
             {foodFacts.map((f, i) => (
               <div key={i} className="border-l border-[rgba(255,255,255,0.14)] pl-3">
                 {editing ? (
@@ -1302,8 +1350,15 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                       className="input-underline text-sm"
                       rows={2}
                       value={f.fact}
-                      placeholder="Evidence-based fact"
+                      placeholder="The clinical science / mechanism"
                       onChange={(e) => setFoodFacts((arr) => arr.map((x, j) => j === i ? { ...x, fact: e.target.value } : x))}
+                    />
+                    <textarea
+                      className="input-underline text-sm"
+                      rows={2}
+                      value={f.why_for_you ?? ''}
+                      placeholder="For you… (why this food matters for THIS client's goal / check-in)"
+                      onChange={(e) => setFoodFacts((arr) => arr.map((x, j) => j === i ? { ...x, why_for_you: e.target.value } : x))}
                     />
                     <input
                       className="input-underline text-xs"
@@ -1321,7 +1376,12 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
                 ) : (
                   <>
                     <p className="text-sm text-[#f0ece4] mb-0.5"><span className="text-[#c89a6a]">{f.food}</span>, {f.fact}</p>
-                    <p className="text-xs text-[#8a8680] italic">{f.source}</p>
+                    {f.why_for_you && f.why_for_you.trim() && (
+                      <p className="text-sm text-[#c8c4bc] leading-relaxed mt-0.5">
+                        <span className="text-[#c89a6a] tracking-wider uppercase text-xs">For you</span> · {f.why_for_you}
+                      </p>
+                    )}
+                    <p className="text-xs text-[#8a8680] italic mt-0.5">{f.source}</p>
                   </>
                 )}
               </div>
@@ -1329,9 +1389,9 @@ export default function MealPlanTab({ client, initialMealPlan, onboarding }: Pro
             {editing && (
               <button
                 className="text-xs text-[#b8b4ac] hover:text-[#e0d8cc] text-left transition-colors"
-                onClick={() => setFoodFacts((arr) => [...arr, { food: '', fact: '', source: '' }])}
+                onClick={() => setFoodFacts((arr) => [...arr, { food: '', fact: '', source: '', why_for_you: '' }])}
               >
-                + Add fact
+                + Add note
               </button>
             )}
           </CardBody>

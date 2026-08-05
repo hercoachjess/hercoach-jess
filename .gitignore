@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated sample/review PDFs (throwaway output of scripts/sample-plan-pdfs.tsx)
+scripts/_samples/
