@@ -206,6 +206,11 @@ const s = StyleSheet.create({
   mAltItem:   { fontSize: 9.5, color: C.TEXT_MID, lineHeight: 1.45, marginBottom: 1 },
   mAltPrep:   { fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.MID_GREY, lineHeight: 1.45, marginTop: 2 },
   mGroupLbl:  { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.MID_GREY, letterSpacing: 1.5, marginBottom: 6, marginTop: 4 },
+  // Side-by-side layout: meal items left, alternatives right (used when the
+  // meal is compact enough; otherwise they stack).
+  mContentRow:{ flexDirection: 'row', alignItems: 'stretch' },
+  mItemsCol:  { flex: 1.35, paddingBottom: 4 },
+  mAltCol:    { flex: 1, backgroundColor: '#fbfaf7', borderLeftWidth: 0.6, borderLeftColor: C.RULE_LIGHT, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 2 },
   cellYogaHead:{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: C.BLACK },
   cellYogaBody:{ fontFamily: 'Helvetica-Oblique', fontSize: 8.5, color: C.TEXT_MID, lineHeight: 1.5 },
 
@@ -455,6 +460,55 @@ function MealBlock({
         .slice(0, Math.max(0, maxAlternatives))
     : []
   const m = mealHasMacros ? mealMacros({ ...meal, items }) : null
+
+  // Alternatives sit beside the meal (right column) to use the space and keep
+  // each card shorter for phone screenshots — but only while the meal is
+  // compact. Long meals / long alternatives stack instead so nothing gets
+  // squashed. (react-pdf can't measure rendered height, so this is a
+  // content-size heuristic that mirrors "side-by-side, stack if tight".)
+  const altItemsTotal = alts.reduce((n, a) => n + normalizeMealItems(a.items).length, 0)
+  const sideBySide = alts.length > 0 && items.length <= 5 && alts.length <= 2 && altItemsTotal <= 8
+
+  const itemRows = items.map((item, i) => {
+    const meta = showMacros && itemHasMacros(item)
+      ? `${Math.round(itemMacros(item).kcal)} kcal`
+      : (item.brand || '')
+    return (
+      <View key={i} style={[s.mItemRow, i === 0 ? s.mItemRowFirst : {}]}>
+        <Text style={s.mItemFood}>{formatItemDisplay(item)}</Text>
+        {meta ? <Text style={s.mItemMeta}>{meta}</Text> : null}
+      </View>
+    )
+  })
+
+  const altsContent = (
+    <>
+      <Text style={s.mAltHeadLbl}>ALTERNATIVE OPTIONS · SAME MACROS</Text>
+      {alts.map((alt, i) => {
+        const altItems = normalizeMealItems(alt.items)
+        const altHasMacros = altItems.some(itemHasMacros)
+        return (
+          <View key={i} style={s.mAltWrap}>
+            <View style={s.mAltHeadRow}>
+              <Text style={s.mAltLbl}>{alt.label || 'Alternative'}</Text>
+              {showMacros && altHasMacros ? (
+                <Text style={s.mAltMeta}>{`${Math.round(mealMacros({ name: '', time: '', items: altItems }).kcal)} kcal`}</Text>
+              ) : null}
+            </View>
+            {altItems.map((it, j) => (
+              <Text key={j} style={s.mAltItem}>
+                {formatItemDisplay(it)}{it.brand ? `  ·  ${it.brand}` : ''}
+              </Text>
+            ))}
+            {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
+              <Text style={s.mAltPrep}>{alt.prep_notes.trim()}</Text>
+            )}
+          </View>
+        )
+      })}
+    </>
+  )
+
   return (
     <View style={s.mcard} wrap={false}>
       <View style={s.mcardHead}>
@@ -471,52 +525,26 @@ function MealBlock({
         </View>
       )}
 
-      <View style={{ paddingBottom: 4 }}>
-        {items.map((item, i) => {
-          const meta = showMacros && itemHasMacros(item)
-            ? `${Math.round(itemMacros(item).kcal)} kcal`
-            : (item.brand || '')
-          return (
-            <View key={i} style={[s.mItemRow, i === 0 ? s.mItemRowFirst : {}]}>
-              <Text style={s.mItemFood}>{formatItemDisplay(item)}</Text>
-              {meta ? <Text style={s.mItemMeta}>{meta}</Text> : null}
-            </View>
-          )
-        })}
-      </View>
-
-      {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
-        <View style={s.mPrepWrap}>
-          <Text style={s.mPrepLbl}>PREP</Text>
-          <Text style={s.mPrepBody}>{meal.prep_notes.trim()}</Text>
+      {/* Meal items — full width, beside the alternatives, or above them. */}
+      {alts.length === 0 ? (
+        <View style={{ paddingBottom: 4 }}>{itemRows}</View>
+      ) : sideBySide ? (
+        <View style={s.mContentRow}>
+          <View style={s.mItemsCol}>{itemRows}</View>
+          <View style={s.mAltCol}>{altsContent}</View>
         </View>
+      ) : (
+        <>
+          <View style={{ paddingBottom: 4 }}>{itemRows}</View>
+          <View style={s.mAltSection}>{altsContent}</View>
+        </>
       )}
 
-      {alts.length > 0 && (
-        <View style={s.mAltSection}>
-          <Text style={s.mAltHeadLbl}>ALTERNATIVE OPTIONS · SAME MACROS</Text>
-          {alts.map((alt, i) => {
-            const altItems = normalizeMealItems(alt.items)
-            const altHasMacros = altItems.some(itemHasMacros)
-            return (
-              <View key={i} style={s.mAltWrap}>
-                <View style={s.mAltHeadRow}>
-                  <Text style={s.mAltLbl}>{alt.label || 'Alternative'}</Text>
-                  {showMacros && altHasMacros ? (
-                    <Text style={s.mAltMeta}>{`${Math.round(mealMacros({ name: '', time: '', items: altItems }).kcal)} kcal`}</Text>
-                  ) : null}
-                </View>
-                {altItems.map((it, j) => (
-                  <Text key={j} style={s.mAltItem}>
-                    {formatItemDisplay(it)}{it.brand ? `  ·  ${it.brand}` : ''}
-                  </Text>
-                ))}
-                {alt.prep_notes && alt.prep_notes.trim().length > 0 && (
-                  <Text style={s.mAltPrep}>{alt.prep_notes.trim()}</Text>
-                )}
-              </View>
-            )
-          })}
+      {/* Cooking method last, full width, so it's easy to screenshot on its own. */}
+      {meal.prep_notes && meal.prep_notes.trim().length > 0 && (
+        <View style={s.mPrepWrap}>
+          <Text style={s.mPrepLbl}>COOKING METHOD</Text>
+          <Text style={s.mPrepBody}>{meal.prep_notes.trim()}</Text>
         </View>
       )}
     </View>
