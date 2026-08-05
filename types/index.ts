@@ -121,6 +121,11 @@ export interface CheckinSubmission {
   coach_response_sent?: string | null
   ai_summary?: string[] | null
   ai_weekly_review?: WeeklyReview | null
+  // Saveable coach feedback for this check-in (generated, edited, saved as you
+  // go, and exported as a branded PDF). The text is the source of truth.
+  coach_feedback?: string | null
+  coach_feedback_areas?: string[] | null
+  feedback_updated_at?: string | null
 }
 
 // AI weekly review — pulls the check-in, trend, current plan + goals, and

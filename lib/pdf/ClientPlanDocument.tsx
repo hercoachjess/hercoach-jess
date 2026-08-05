@@ -1,8 +1,9 @@
 /* eslint-disable jsx-a11y/alt-text, @typescript-eslint/no-explicit-any */
 import {
-  Document, Page, Text, View, StyleSheet, Font,
+  Document, Page, Text, View, StyleSheet, Font, Image,
 } from '@react-pdf/renderer'
 import { POPPINS_SEMIBOLD_DATAURI } from './poppins-font'
+import { HJC_LOGO_DATAURI } from './hjc-logo'
 import type { Client, MealPlan, TrainingPlan, Meal, OnboardingSubmission } from '@/types'
 
 // Poppins (geometric sans, Canva "Now"-style) for the display type — logo,
@@ -74,6 +75,8 @@ const s = StyleSheet.create({
   rdTitle: { fontFamily: 'Helvetica-Bold', fontSize: 6.5, color: C.LIGHT_GREY, marginBottom: 6, letterSpacing: 1 },
   rdLine:  { fontSize: 6.8, color: '#aaaaaa', textAlign: 'center', marginBottom: 2 },
   rdPin:   { fontFamily: 'Helvetica-Oblique', fontSize: 6, color: '#666666', marginTop: 4, textAlign: 'center' },
+  // HJC brand badge, top-right of the header (transparent, sits on the black).
+  hjcLogo: { position: 'absolute', right: 48, top: 30, width: 94, height: 94 },
 
   // Footer bar
   footerBar: {
@@ -247,12 +250,7 @@ function HeaderBar() {
       <Text style={s.tagline}>L E S S   R E S T R I C T I O N .   M O R E   Y O U .</Text>
       <View style={s.taglineRule} />
 
-      <View style={s.rdBadge}>
-        <Text style={s.rdTitle}>REGISTERED DIETITIAN</Text>
-        <Text style={s.rdLine}>HCPC Registered  ·  BDA Member</Text>
-        <Text style={s.rdLine}>England &amp; Wales</Text>
-        <Text style={s.rdPin}>PIN available on request</Text>
-      </View>
+      <Image src={HJC_LOGO_DATAURI} style={s.hjcLogo} />
     </View>
   )
 }
